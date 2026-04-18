@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Register Staff</title>
+    <meta charset="UTF-8">
+    <script>
+        function toggleRoleFields() {
+            const role = document.getElementById("staffType").value;
+
+            document.getElementById("medicalFields").style.display =
+                role === "MEDICAL_STAFF" ? "block" : "none";
+
+            document.getElementById("labFields").style.display =
+                role === "LAB_TECHNICIAN" ? "block" : "none";
+
+            document.getElementById("adminFields").style.display =
+                role === "BLOOD_ADMINISTRATOR" ? "block" : "none";
+        }
+    </script>
+</head>
+<body onload="toggleRoleFields()">
+    <h2>Create Staff Account</h2>
+
+    <p th:if="${successMessage}" th:text="${successMessage}" style="color:green;"></p>
+    <p th:if="${errorMessage}" th:text="${errorMessage}" style="color:red;"></p>
+
+    <form th:action="@{/admin/staff/register}" th:object="${staffRequest}" method="post">
+        <div>
+            <label>Full Name:</label>
+            <input type="text" th:field="*{fullName}" required>
+        </div>
+        <br>
+
+        <div>
+            <label>Username:</label>
+            <input type="text" th:field="*{username}" required>
+        </div>
+        <br>
+
+        <div>
+            <label>Password:</label>
+            <input type="password" th:field="*{password}" required>
+        </div>
+        <br>
+
+        <div>
+            <label>Phone No:</label>
+            <input type="text" th:field="*{phoneNo}">
+        </div>
+        <br>
+
+        <div>
+            <label>IC Number:</label>
+            <input type="text" th:field="*{icNumber}" required>
+        </div>
+        <br>
+
+        <div>
+            <label>Gender:</label>
+            <input type="text" th:field="*{gender}">
+        </div>
+        <br>
+
+        <div>
+            <label>Email:</label>
+            <input type="email" th:field="*{email}">
+        </div>
+        <br>
+
+        <div>
+            <label>Staff Type:</label>
+            <select th:field="*{staffType}" id="staffType" onchange="toggleRoleFields()" required>
+                <option value="">-- Select Role --</option>
+                <option th:each="role : ${roles}" th:value="${role}" th:text="${role}"></option>
+            </select>
+        </div>
+        <br>
+
+        <div id="medicalFields" style="display:none;">
+            <label>License No:</label>
+            <input type="text" th:field="*{licenseNo}">
+            <br><br>
+
+            <label>Position:</label>
+            <input type="text" th:field="*{position}">
+            <br><br>
+        </div>
+
+        <div id="labFields" style="display:none;">
+            <label>Certification No:</label>
+            <input type="text" th:field="*{certificationNo}">
+            <br><br>
+        </div>
+
+        <div id="adminFields" style="display:none;">
+            <label>Department:</label>
+            <input type="text" th:field="*{department}">
+            <br><br>
+        </div>
+
+        <button type="submit">Create Account</button>
+    </form>
+
+    <br>
+    <a th:href="@{/admin/dashboard}">Back to Dashboard</a>
+</body>
+</html>

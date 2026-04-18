@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Login - Blood Inventory System</title>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <h2>Blood Inventory Management System</h2>
+    <h3>Staff Login</h3>
+
+    <div th:if="${param.error}">
+        <p style="color:red;">Invalid username or password.</p>
+    </div>
+
+    <div th:if="${param.logout}">
+        <p style="color:green;">You have logged out successfully.</p>
+    </div>
+
+    <form th:action="@{/login}" method="post">
+        <div>
+            <label>Username:</label>
+            <input type="text" name="username" required>
+        </div>
+        <br>
+        <div>
+            <label>Password:</label>
+            <input type="password" name="password" required>
+        </div>
+        <br>
+        <button type="submit">Login</button>
+    </form>
+</body>
+</html>

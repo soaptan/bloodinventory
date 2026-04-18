@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Admin Dashboard</title>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <h2>Blood Administrator Dashboard</h2>
+
+    <p>Welcome, administrator.</p>
+
+    <a th:href="@{/admin/staff/register}">Create Staff Account</a>
+
+    <br><br>
+
+    <form th:action="@{/logout}" method="post">
+        <button type="submit">Logout</button>
+    </form>
+</body>
+</html>

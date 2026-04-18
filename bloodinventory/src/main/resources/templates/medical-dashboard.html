@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Medical Staff Dashboard</title>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <h2>Medical Staff Dashboard</h2>
+
+    <p>You can access donor eligibility and blood collection functions here.</p>
+
+    <form th:action="@{/logout}" method="post">
+        <button type="submit">Logout</button>
+    </form>
+</body>
+</html>
