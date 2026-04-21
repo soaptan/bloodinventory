@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<div th:fragment="sidebar(roleLabel, roleDescription, activeMenu)">
+    <aside class="sidebar" id="dashboard-sidebar">
+        <div class="sidebar-top">
+            <a th:href="@{/login}" class="sidebar-logo" title="Blood Inventory">BI</a>
+
+            <div class="sidebar-hero">
+                <div class="sidebar-badge">Control Center</div>
+                <div class="sidebar-title" th:text="${roleLabel}">System Panel</div>
+                <div class="sidebar-subtitle" th:text="${roleDescription}">
+                    Centralized navigation panel.
+                </div>
+            </div>
+
+            <div class="nav-section" th:if="${roleLabel == 'Blood Administrator Panel'}">
+                <div class="nav-group">
+                    <div class="nav-label">Main Navigation</div>
+                    <ul class="nav-menu">
+                        <li>
+                            <a th:href="@{/admin/dashboard}"
+                               th:classappend="${activeMenu == 'admin-dashboard'} ? ' active'">
+                                <span class="nav-icon">DB</span>
+                                <span class="nav-copy">
+                                    <span class="nav-title">Dashboard</span>
+                                    <span class="nav-hint">System overview</span>
+                                </span>
+                            </a>
+                        </li>
+                        <li>
+                            <a th:href="@{/admin/staff/register}"
+                               th:classappend="${activeMenu == 'staff-register'} ? ' active'">
+                                <span class="nav-icon">SA</span>
+                                <span class="nav-copy">
+                                    <span class="nav-title">Create Staff Account</span>
+                                    <span class="nav-hint">Register authorized staff</span>
+                                </span>
+                            </a>
+                        </li>
+                        <li>
+                            <a th:href="@{/admin/storage}"
+                               th:classappend="${activeMenu == 'storage-config'} ? ' active'">
+                                <span class="nav-icon">SC</span>
+                                <span class="nav-copy">
+                                    <span class="nav-title">Storage Configuration</span>
+                                    <span class="nav-hint">Locations and capacity</span>
+                                </span>
+                            </a>
+                        </li>
+                        <li>
+                            <a th:href="@{/admin/deferral-rules}"
+                               th:classappend="${activeMenu == 'deferral-rules'} ? ' active'">
+                                <span class="nav-icon">DR</span>
+                                <span class="nav-copy">
+                                    <span class="nav-title">Deferral Rules</span>
+                                    <span class="nav-hint">Eligibility controls</span>
+                                </span>
+                            </a>
+                        </li>
+                        <li>
+                            <a th:href="@{/admin/inventory}"
+                               th:classappend="${activeMenu == 'inventory-monitoring'} ? ' active'">
+                                <span class="nav-icon">IM</span>
+                                <span class="nav-copy">
+                                    <span class="nav-title">Inventory Monitoring</span>
+                                    <span class="nav-hint">Blood component status</span>
+                                </span>
+                            </a>
+                        </li>
+                        <li>
+                            <a th:href="@{/admin/reports}"
+                               th:classappend="${activeMenu == 'reports-alerts'} ? ' active'">
+                                <span class="nav-icon">RA</span>
+                                <span class="nav-copy">
+                                    <span class="nav-title">Reports and Alerts</span>
+                                    <span class="nav-hint">Summaries and warnings</span>
+                                </span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="nav-section" th:if="${roleLabel == 'Medical Staff Panel'}">
+                <div class="nav-group">
+                    <div class="nav-label">Main Navigation</div>
+                    <ul class="nav-menu">
+                        <li>
+                            <a th:href="@{/medical/dashboard}"
+                               th:classappend="${activeMenu == 'medical-dashboard'} ? ' active'">
+                                <span class="nav-icon">DB</span>
+                                <span class="nav-copy">
+                                    <span class="nav-title">Dashboard</span>
+                                    <span class="nav-hint">Clinical overview</span>
+                                </span>
+                            </a>
+                        </li>
+                        <li>
+                            <a th:href="@{/medical/donor-eligibility}"
+                               th:classappend="${activeMenu == 'donor-eligibility'} ? ' active'">
+                                <span class="nav-icon">DE</span>
+                                <span class="nav-copy">
+                                    <span class="nav-title">Donor Eligibility</span>
+                                    <span class="nav-hint">Assessment workflow</span>
+                                </span>
+                            </a>
+                        </li>
+                        <li>
+                            <a th:href="@{/medical/donations}"
+                               th:classappend="${activeMenu == 'blood-collection'} ? ' active'">
+                                <span class="nav-icon">BC</span>
+                                <span class="nav-copy">
+                                    <span class="nav-title">Blood Collection</span>
+                                    <span class="nav-hint">Donation sessions</span>
+                                </span>
+                            </a>
+                        </li>
+                        <li>
+                            <a th:href="@{/medical/transfusion}"
+                               th:classappend="${activeMenu == 'transfusion'} ? ' active'">
+                                <span class="nav-icon">TR</span>
+                                <span class="nav-copy">
+                                    <span class="nav-title">Transfusion Request</span>
+                                    <span class="nav-hint">Clinical requests</span>
+                                </span>
+                            </a>
+                        </li>
+                        <li>
+                            <a th:href="@{/medical/components}"
+                               th:classappend="${activeMenu == 'safe-match'} ? ' active'">
+                                <span class="nav-icon">SB</span>
+                                <span class="nav-copy">
+                                    <span class="nav-title">Safe Blood Match</span>
+                                    <span class="nav-hint">Compatibility review</span>
+                                </span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="nav-section" th:if="${roleLabel == 'Lab Technician Panel'}">
+                <div class="nav-group">
+                    <div class="nav-label">Main Navigation</div>
+                    <ul class="nav-menu">
+                        <li>
+                            <a th:href="@{/lab/dashboard}"
+                               th:classappend="${activeMenu == 'lab-dashboard'} ? ' active'">
+                                <span class="nav-icon">DB</span>
+                                <span class="nav-copy">
+                                    <span class="nav-title">Dashboard</span>
+                                    <span class="nav-hint">Lab overview</span>
+                                </span>
+                            </a>
+                        </li>
+                        <li>
+                            <a th:href="@{/lab/pending-tests}"
+                               th:classappend="${activeMenu == 'pending-tests'} ? ' active'">
+                                <span class="nav-icon">PQ</span>
+                                <span class="nav-copy">
+                                    <span class="nav-title">Pending Test Queue</span>
+                                    <span class="nav-hint">Samples awaiting review</span>
+                                </span>
+                            </a>
+                        </li>
+                        <li>
+                            <a th:href="@{/lab/tti-screening}"
+                               th:classappend="${activeMenu == 'tti-screening'} ? ' active'">
+                                <span class="nav-icon">TS</span>
+                                <span class="nav-copy">
+                                    <span class="nav-title">TTI Screening</span>
+                                    <span class="nav-hint">Infection screening</span>
+                                </span>
+                            </a>
+                        </li>
+                        <li>
+                            <a th:href="@{/lab/component-status}"
+                               th:classappend="${activeMenu == 'component-status'} ? ' active'">
+                                <span class="nav-icon">CS</span>
+                                <span class="nav-copy">
+                                    <span class="nav-title">Component Status</span>
+                                    <span class="nav-hint">Validation progress</span>
+                                </span>
+                            </a>
+                        </li>
+                        <li>
+                            <a th:href="@{/lab/traceability}"
+                               th:classappend="${activeMenu == 'traceability'} ? ' active'">
+                                <span class="nav-icon">TB</span>
+                                <span class="nav-copy">
+                                    <span class="nav-title">Traceability</span>
+                                    <span class="nav-hint">Unit movement tracking</span>
+                                </span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar-footer">
+            <div class="sidebar-note">
+                Authorized personnel only. All actions are monitored for secure healthcare operations.
+            </div>
+            <form th:action="@{/logout}" method="post">
+                <button type="submit" class="logout-btn">Logout</button>
+            </form>
+        </div>
+    </aside>
+</div>
+
+</body>
+</html>

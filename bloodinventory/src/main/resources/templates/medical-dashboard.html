@@ -3,14 +3,158 @@
 <head>
     <title>Medical Staff Dashboard</title>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" th:href="@{/css/dashboard-layout.css}">
+    <style>
+        .main-stack {
+            display: grid;
+            gap: 18px;
+        }
+
+        .hero-card,
+        .module-card {
+            padding: 22px 24px;
+        }
+
+        .eyebrow {
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: #7f94ae;
+            margin-bottom: 8px;
+        }
+
+        .hero-card h1 {
+            font-size: 34px;
+            color: #1f3f67;
+            margin-bottom: 8px;
+        }
+
+        .hero-card p,
+        .module-card p {
+            color: #5f7796;
+            font-size: 14px;
+            line-height: 1.65;
+        }
+
+        .module-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .module-card h2 {
+            color: #24476f;
+            font-size: 22px;
+            margin-bottom: 8px;
+        }
+
+        .module-card a {
+            display: inline-block;
+            margin-top: 12px;
+            color: #2f80ed;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        @media (max-width: 720px) {
+            .module-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .hero-card,
+            .module-card {
+                padding: 18px 16px;
+            }
+        }
+    </style>
 </head>
 <body>
-    <h2>Medical Staff Dashboard</h2>
+<div class="dashboard-scene">
+    <div class="dashboard-app">
+        <header class="app-header">
+            <div class="app-brand">
+                <button type="button" class="icon-button sidebar-toggle"
+                        data-sidebar-toggle aria-controls="dashboard-sidebar" aria-expanded="true" aria-label="Collapse menu">
+                    <span class="hamburger-icon" aria-hidden="true">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </span>
+                    <span class="sr-only" data-sidebar-toggle-label>Collapse menu</span>
+                </button>
 
-    <p>You can access donor eligibility and blood collection functions here.</p>
+                <div class="app-brand-copy">
+                    <div class="app-kicker">Blood Bank Digital Platform</div>
+                    <div class="app-title">Blood Inventory Management System</div>
+                    <div class="app-subtitle">Clinical workspace for eligibility review, collection, and transfusion support.</div>
+                </div>
+            </div>
 
-    <form th:action="@{/logout}" method="post">
-        <button type="submit">Logout</button>
-    </form>
+            <form class="app-search" data-dashboard-search role="search">
+                <div class="app-search-shell">
+                    <label class="sr-only" for="medical-dashboard-search">Search dashboard</label>
+                    <input id="medical-dashboard-search" class="app-search-input" type="search"
+                           placeholder="Search dashboard or menu" data-dashboard-search-input>
+                    <button type="submit" class="app-search-button" aria-label="Search dashboard">
+                        <span class="search-icon" aria-hidden="true"></span>
+                    </button>
+                </div>
+            </form>
+
+            <div class="app-actions">
+                <span class="header-chip">Medical Staff Workspace</span>
+            </div>
+        </header>
+
+        <div class="layout">
+            <div th:replace="fragments/sidebar :: sidebar(
+                'Medical Staff Panel',
+                'Clinical workflows for donor eligibility, blood collection, and transfusion requests.',
+                'medical-dashboard'
+            )"></div>
+            <button type="button" class="sidebar-overlay" data-sidebar-close aria-label="Close sidebar"></button>
+
+            <main class="main">
+                <div class="main-stack">
+                    <section class="hero-card page-card">
+                        <div class="eyebrow">Dashboard</div>
+                        <h1>Medical Staff Dashboard</h1>
+                        <p>Access donor review, collection workflows, compatibility checks, and transfusion support from one coordinated workspace.</p>
+                    </section>
+
+                    <section class="module-grid">
+                        <article class="module-card page-card" data-search-item>
+                            <h2>Donor Eligibility</h2>
+                            <p>Review donor suitability, collect screening outcomes, and apply current eligibility rules.</p>
+                            <a th:href="@{/medical/donor-eligibility}">Open donor eligibility</a>
+                        </article>
+
+                        <article class="module-card page-card" data-search-item>
+                            <h2>Blood Collection</h2>
+                            <p>Manage donation sessions and coordinate collection status across current workflows.</p>
+                            <a th:href="@{/medical/donations}">Open blood collection</a>
+                        </article>
+
+                        <article class="module-card page-card" data-search-item>
+                            <h2>Transfusion Request</h2>
+                            <p>Review clinical requests, prioritize urgent demand, and prepare matching steps.</p>
+                            <a th:href="@{/medical/transfusion}">Open transfusion requests</a>
+                        </article>
+
+                        <article class="module-card page-card" data-search-item>
+                            <h2>Safe Blood Match</h2>
+                            <p>Support compatibility checks and safe recommendation of suitable blood components.</p>
+                            <a th:href="@{/medical/components}">Open safe blood match</a>
+                        </article>
+                    </section>
+                </div>
+            </main>
+        </div>
+    </div>
+</div>
+<script th:src="@{/js/dashboard-layout.js}"></script>
 </body>
 </html>

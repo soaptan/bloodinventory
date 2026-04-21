@@ -1,33 +1,382 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Login - Blood Inventory System</title>
+    <title>Login - Blood Inventory Management System</title>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #eaf4ff 0%, #d8ebff 35%, #f9fcff 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 30px;
+            overflow: hidden;
+        }
+
+        .background-shape-left {
+            position: absolute;
+            width: 480px;
+            height: 480px;
+            background: linear-gradient(135deg, #3a8dde, #66b3ff);
+            border-radius: 50%;
+            top: -120px;
+            left: -120px;
+            opacity: 0.18;
+        }
+
+        .background-shape-right {
+            position: absolute;
+            width: 520px;
+            height: 520px;
+            background: linear-gradient(135deg, #ffb3b3, #ff6b6b);
+            border-radius: 50%;
+            bottom: -180px;
+            right: -160px;
+            opacity: 0.12;
+        }
+
+        .login-wrapper {
+            width: 100%;
+            max-width: 1100px;
+            min-height: 620px;
+            background: #ffffff;
+            border-radius: 28px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(33, 89, 150, 0.18);
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            position: relative;
+            z-index: 2;
+        }
+
+        .left-panel {
+            position: relative;
+            background: linear-gradient(135deg, #2f80ed 0%, #59a9ff 100%);
+            color: white;
+            padding: 60px 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+        }
+
+        .left-panel::before {
+            content: "";
+            position: absolute;
+            width: 420px;
+            height: 420px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.10);
+            top: -120px;
+            right: -120px;
+        }
+
+        .left-panel::after {
+            content: "";
+            position: absolute;
+            width: 360px;
+            height: 360px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.08);
+            bottom: -120px;
+            left: -80px;
+        }
+
+        .brand {
+            position: relative;
+            z-index: 1;
+        }
+
+        .brand-badge {
+            display: inline-block;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.18);
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.4px;
+            margin-bottom: 18px;
+        }
+
+        .brand h1 {
+            font-size: 34px;
+            line-height: 1.2;
+            margin-bottom: 16px;
+            font-weight: 700;
+        }
+
+        .brand p {
+            font-size: 15px;
+            line-height: 1.8;
+            max-width: 460px;
+            color: rgba(255,255,255,0.92);
+        }
+
+        .feature-box {
+            position: relative;
+            z-index: 1;
+            background: rgba(255,255,255,0.14);
+            border: 1px solid rgba(255,255,255,0.20);
+            border-radius: 22px;
+            padding: 24px;
+            backdrop-filter: blur(4px);
+            max-width: 460px;
+        }
+
+        .feature-box h3 {
+            font-size: 18px;
+            margin-bottom: 14px;
+            font-weight: 600;
+        }
+
+        .feature-box ul {
+            list-style: none;
+        }
+
+        .feature-box li {
+            margin-bottom: 10px;
+            font-size: 14px;
+            color: rgba(255,255,255,0.95);
+            padding-left: 22px;
+            position: relative;
+        }
+
+        .feature-box li::before {
+            content: "●";
+            position: absolute;
+            left: 0;
+            top: 0;
+            color: #ffd6d6;
+            font-size: 12px;
+        }
+
+        .right-panel {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 50px 36px;
+            background: #fdfefe;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 420px;
+            background: #f8fbff;
+            border: 1px solid #e4eef9;
+            border-radius: 24px;
+            padding: 38px 32px;
+            box-shadow: 0 12px 30px rgba(52, 114, 184, 0.10);
+        }
+
+        .login-card h2 {
+            color: #1f3f67;
+            font-size: 28px;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .login-card .subtitle {
+            color: #6b85a3;
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 28px;
+            line-height: 1.6;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #35506f;
+            margin-bottom: 8px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 14px 15px;
+            border: 1px solid #ccdcef;
+            border-radius: 12px;
+            outline: none;
+            font-size: 14px;
+            background: white;
+            transition: 0.25s ease;
+        }
+
+        .form-group input:focus {
+            border-color: #4b9cff;
+            box-shadow: 0 0 0 4px rgba(75, 156, 255, 0.12);
+        }
+
+        .login-btn {
+            width: 100%;
+            border: none;
+            border-radius: 14px;
+            padding: 14px;
+            font-size: 15px;
+            font-weight: 700;
+            color: white;
+            cursor: pointer;
+            background: linear-gradient(90deg, #d62839 0%, #ff5d6c 100%);
+            box-shadow: 0 10px 22px rgba(214, 40, 57, 0.25);
+            transition: 0.25s ease;
+            margin-top: 8px;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 14px 28px rgba(214, 40, 57, 0.30);
+        }
+
+        .alert {
+            border-radius: 12px;
+            padding: 12px 14px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .alert-error {
+            background: #ffe7ea;
+            color: #b42334;
+            border: 1px solid #ffc6ce;
+        }
+
+        .alert-success {
+            background: #e9f8ef;
+            color: #1f7a46;
+            border: 1px solid #c8ecd7;
+        }
+
+        .footer-note {
+            text-align: center;
+            margin-top: 18px;
+            font-size: 12.5px;
+            color: #8ba0b8;
+            line-height: 1.6;
+        }
+
+        .role-tags {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 18px;
+        }
+
+        .role-tag {
+            background: #eef5fd;
+            color: #46698d;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 7px 12px;
+            border-radius: 999px;
+            border: 1px solid #dbe8f6;
+        }
+
+        @media (max-width: 920px) {
+            .login-wrapper {
+                grid-template-columns: 1fr;
+            }
+
+            .left-panel {
+                min-height: 320px;
+            }
+
+            .right-panel {
+                padding: 30px 20px;
+            }
+        }
+
+        @media (max-width: 520px) {
+            .brand h1 {
+                font-size: 28px;
+            }
+
+            .login-card {
+                padding: 28px 20px;
+            }
+        }
+    </style>
 </head>
 <body>
-    <h2>Blood Inventory Management System</h2>
-    <h3>Staff Login</h3>
+    <div class="background-shape-left"></div>
+    <div class="background-shape-right"></div>
 
-    <div th:if="${param.error}">
-        <p style="color:red;">Invalid username or password.</p>
-    </div>
+    <div class="login-wrapper">
+        <div class="left-panel">
+            <div class="brand">
+                <div class="brand-badge">Blood Bank Digital Platform</div>
+                <h1>Blood Inventory Management System with Eligibility Control</h1>
+                <p>
+                    Securely manage staff login, donor eligibility verification, blood inventory monitoring,
+                    and traceability workflows through a centralized healthcare management platform.
+                </p>
+            </div>
 
-    <div th:if="${param.logout}">
-        <p style="color:green;">You have logged out successfully.</p>
-    </div>
-
-    <form th:action="@{/login}" method="post">
-        <div>
-            <label>Username:</label>
-            <input type="text" name="username" required>
+            <div class="feature-box">
+                <h3>System Access Overview</h3>
+                <ul>
+                    <li>Blood Administrator access for configuration, reporting, and monitoring</li>
+                    <li>Medical Staff access for donor eligibility and transfusion-related functions</li>
+                    <li>Lab Technician access for screening and blood component validation</li>
+                    <li>Role-based access control for safer and controlled operations</li>
+                </ul>
+            </div>
         </div>
-        <br>
-        <div>
-            <label>Password:</label>
-            <input type="password" name="password" required>
+
+        <div class="right-panel">
+            <div class="login-card">
+                <h2>Staff Login</h2>
+                <p class="subtitle">
+                    Sign in to access authorized blood bank operations and eligibility control functions.
+                </p>
+
+                <div th:if="${param.error}" class="alert alert-error">
+                    Invalid username or password.
+                </div>
+
+                <div th:if="${param.logout}" class="alert alert-success">
+                    You have logged out successfully.
+                </div>
+
+                <form th:action="@{/login}" method="post">
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" name="username" placeholder="Enter your username" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" name="password" placeholder="Enter your password" required>
+                    </div>
+
+                    <button type="submit" class="login-btn">Login to System</button>
+                </form>
+
+                <div class="role-tags">
+                    <span class="role-tag">Administrator</span>
+                    <span class="role-tag">Medical Staff</span>
+                    <span class="role-tag">Lab Technician</span>
+                </div>
+
+                <p class="footer-note">
+                    Authorized personnel only. All login activity is protected and monitored for secure healthcare operations.
+                </p>
+            </div>
         </div>
-        <br>
-        <button type="submit">Login</button>
-    </form>
+    </div>
 </body>
 </html>

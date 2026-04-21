@@ -3,14 +3,158 @@
 <head>
     <title>Lab Technician Dashboard</title>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" th:href="@{/css/dashboard-layout.css}">
+    <style>
+        .main-stack {
+            display: grid;
+            gap: 18px;
+        }
+
+        .hero-card,
+        .workflow-card {
+            padding: 22px 24px;
+        }
+
+        .eyebrow {
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: #7f94ae;
+            margin-bottom: 8px;
+        }
+
+        .hero-card h1 {
+            font-size: 34px;
+            color: #1f3f67;
+            margin-bottom: 8px;
+        }
+
+        .hero-card p,
+        .workflow-card p {
+            color: #5f7796;
+            font-size: 14px;
+            line-height: 1.65;
+        }
+
+        .workflow-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .workflow-card h2 {
+            color: #24476f;
+            font-size: 22px;
+            margin-bottom: 8px;
+        }
+
+        .workflow-card a {
+            display: inline-block;
+            margin-top: 12px;
+            color: #2f80ed;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        @media (max-width: 720px) {
+            .workflow-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .hero-card,
+            .workflow-card {
+                padding: 18px 16px;
+            }
+        }
+    </style>
 </head>
 <body>
-    <h2>Lab Technician Dashboard</h2>
+<div class="dashboard-scene">
+    <div class="dashboard-app">
+        <header class="app-header">
+            <div class="app-brand">
+                <button type="button" class="icon-button sidebar-toggle"
+                        data-sidebar-toggle aria-controls="dashboard-sidebar" aria-expanded="true" aria-label="Collapse menu">
+                    <span class="hamburger-icon" aria-hidden="true">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </span>
+                    <span class="sr-only" data-sidebar-toggle-label>Collapse menu</span>
+                </button>
 
-    <p>You can access TTI screening and lab queue functions here.</p>
+                <div class="app-brand-copy">
+                    <div class="app-kicker">Blood Bank Digital Platform</div>
+                    <div class="app-title">Blood Inventory Management System</div>
+                    <div class="app-subtitle">Laboratory workspace for queue control, TTI screening, and traceability updates.</div>
+                </div>
+            </div>
 
-    <form th:action="@{/logout}" method="post">
-        <button type="submit">Logout</button>
-    </form>
+            <form class="app-search" data-dashboard-search role="search">
+                <div class="app-search-shell">
+                    <label class="sr-only" for="lab-dashboard-search">Search dashboard</label>
+                    <input id="lab-dashboard-search" class="app-search-input" type="search"
+                           placeholder="Search dashboard or menu" data-dashboard-search-input>
+                    <button type="submit" class="app-search-button" aria-label="Search dashboard">
+                        <span class="search-icon" aria-hidden="true"></span>
+                    </button>
+                </div>
+            </form>
+
+            <div class="app-actions">
+                <span class="header-chip">Lab Technician Workspace</span>
+            </div>
+        </header>
+
+        <div class="layout">
+            <div th:replace="fragments/sidebar :: sidebar(
+                'Lab Technician Panel',
+                'Laboratory tools for queue management, screening validation, and component traceability.',
+                'lab-dashboard'
+            )"></div>
+            <button type="button" class="sidebar-overlay" data-sidebar-close aria-label="Close sidebar"></button>
+
+            <main class="main">
+                <div class="main-stack">
+                    <section class="hero-card page-card">
+                        <div class="eyebrow">Dashboard</div>
+                        <h1>Lab Technician Dashboard</h1>
+                        <p>Monitor pending tests, validate screening outcomes, and keep blood component traceability records organized.</p>
+                    </section>
+
+                    <section class="workflow-grid">
+                        <article class="workflow-card page-card" data-search-item>
+                            <h2>Pending Test Queue</h2>
+                            <p>Review laboratory samples awaiting action and prioritize them based on operational status.</p>
+                            <a th:href="@{/lab/pending-tests}">Open pending test queue</a>
+                        </article>
+
+                        <article class="workflow-card page-card" data-search-item>
+                            <h2>TTI Screening</h2>
+                            <p>Record infectious disease screening outcomes and confirm safe component release readiness.</p>
+                            <a th:href="@{/lab/tti-screening}">Open TTI screening</a>
+                        </article>
+
+                        <article class="workflow-card page-card" data-search-item>
+                            <h2>Component Status</h2>
+                            <p>Update validation results, quarantine states, and release readiness for blood components.</p>
+                            <a th:href="@{/lab/component-status}">Open component status</a>
+                        </article>
+
+                        <article class="workflow-card page-card" data-search-item>
+                            <h2>Traceability</h2>
+                            <p>Track blood unit movement from testing through storage and final downstream usage.</p>
+                            <a th:href="@{/lab/traceability}">Open traceability</a>
+                        </article>
+                    </section>
+                </div>
+            </main>
+        </div>
+    </div>
+</div>
+<script th:src="@{/js/dashboard-layout.js}"></script>
 </body>
 </html>
