@@ -4,38 +4,15 @@ import jakarta.persistence.*;
 
 @Entity
 @Table(name = "medical_staff")
-public class MedicalStaff {
-
-    @Id
-    @Column(name = "staff_id")
-    private Long staffId;
-
-    @OneToOne
-    @MapsId
-    @JoinColumn(name = "staff_id")
-    private Staff staff;
+@DiscriminatorValue("MEDICAL_STAFF")
+@PrimaryKeyJoinColumn(name = "staff_id")
+public class MedicalStaff extends Staff {
 
     @Column(name = "license_no", nullable = false, unique = true, length = 50)
     private String licenseNo;
 
     @Column(name = "position", nullable = false, length = 50)
     private String position;
-
-    public Long getStaffId() {
-        return staffId;
-    }
-
-    public void setStaffId(Long staffId) {
-        this.staffId = staffId;
-    }
-
-    public Staff getStaff() {
-        return staff;
-    }
-
-    public void setStaff(Staff staff) {
-        this.staff = staff;
-    }
 
     public String getLicenseNo() {
         return licenseNo;

@@ -6,7 +6,9 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "staff")
-public class Staff {
+@Inheritance(strategy = InheritanceType.JOINED)
+@DiscriminatorColumn(name = "staff_type", discriminatorType = DiscriminatorType.STRING)
+public class Staff extends Auditable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -14,7 +16,7 @@ public class Staff {
     private Long staffId;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "staff_type", nullable = false)
+    @Column(name = "staff_type", nullable = false, insertable = false, updatable = false)
     private StaffRole staffType;
 
     @Column(name = "full_name", nullable = false, length = 100)
@@ -59,6 +61,18 @@ public class Staff {
     }
 
     public StaffRole getStaffType() {
+        if (this instanceof BloodAdministrator) {
+            return StaffRole.BLOOD_ADMINISTRATOR;
+        }
+
+        if (this instanceof MedicalStaff) {
+            return StaffRole.MEDICAL_STAFF;
+        }
+
+        if (this instanceof LabTechnician) {
+            return StaffRole.LAB_TECHNICIAN;
+        }
+
         return staffType;
     }
 

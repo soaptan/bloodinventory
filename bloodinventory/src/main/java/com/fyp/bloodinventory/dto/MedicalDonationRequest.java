@@ -1,12 +1,28 @@
 package com.fyp.bloodinventory.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+
 import java.util.ArrayList;
 import java.util.List;
 
 public class MedicalDonationRequest {
+    @NotNull(message = "Please select a donor.")
     private Long donorId;
+
+    @NotNull(message = "Please select a storage location.")
     private Long locationId;
+
+    @NotBlank(message = "Collection timestamp is required.")
+    @Pattern(
+            regexp = "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2})?$",
+            message = "Collection timestamp must be a valid date and time."
+    )
     private String collectionTimestamp;
+
+    @NotEmpty(message = "Please select at least one component type.")
     private List<String> componentTypes = new ArrayList<>();
 
     public Long getDonorId() {

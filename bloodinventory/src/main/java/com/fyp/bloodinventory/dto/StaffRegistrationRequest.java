@@ -1,22 +1,55 @@
 package com.fyp.bloodinventory.dto;
 
 import com.fyp.bloodinventory.entity.StaffRole;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 public class StaffRegistrationRequest {
 
+    @NotBlank(message = "Full name is required.")
+    @Size(max = 100, message = "Full name must not exceed 100 characters.")
     private String fullName;
+
+    @NotBlank(message = "Username cannot be blank.")
+    @Size(min = 4, max = 50, message = "Username must be between 4 and 50 characters.")
     private String username;
+
+    @NotBlank(message = "Password cannot be blank.")
+    @Size(min = 8, max = 72, message = "Password must be between 8 and 72 characters.")
     private String password;
+
+    @Size(max = 20, message = "Phone number must not exceed 20 characters.")
     private String phoneNo;
+
+    @NotBlank(message = "IC number is required.")
+    @Size(max = 20, message = "IC number must not exceed 20 characters.")
     private String icNumber;
+
+    @NotBlank(message = "Gender must be selected.")
     private String gender;
+
+    @NotBlank(message = "Email is required.")
+    @Email(message = "Please provide a valid email address.")
+    @Size(max = 100, message = "Email must not exceed 100 characters.")
     private String email;
+
+    @NotNull(message = "Role must be selected.")
     private StaffRole staffType;
 
+    @Size(max = 50, message = "Medical license number must not exceed 50 characters.")
     private String licenseNo;
+
+    @Size(max = 50, message = "Clinical position must not exceed 50 characters.")
     private String position;
+
+    @Size(max = 50, message = "Laboratory certification number must not exceed 50 characters.")
     private String certificationNo;
+
+    @Size(max = 100, message = "Department must not exceed 100 characters.")
     private String department;
+
     private String profilePhoto;
 
     public String getFullName() {

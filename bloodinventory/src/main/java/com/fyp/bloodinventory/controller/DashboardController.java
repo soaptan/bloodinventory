@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
@@ -80,14 +81,16 @@ public class DashboardController {
         model.addAttribute("stats", stats);
         model.addAttribute("locations", storageLocationService.getAllLocations());
         model.addAttribute("locationCount", storageLocationService.countLocations());
-        model.addAttribute("locationRequest", new StorageLocationRequest());
+        if (!model.containsAttribute("locationRequest")) {
+            model.addAttribute("locationRequest", new StorageLocationRequest());
+        }
         return "admin-storage";
     }
 
     @PostMapping("/admin/storage/add")
     public String addStorageLocation(@ModelAttribute("locationRequest") StorageLocationRequest request,
                                      Principal principal,
-                                     Model model) {
+                                     RedirectAttributes redirectAttributes) {
         try {
             storageLocationService.addLocation(request);
             notificationService.record(
@@ -96,16 +99,13 @@ public class DashboardController {
                     "Created storage location: " + safeLabel(request.getDescription(), "new location"),
                     actorName(principal)
             );
-            return "redirect:/admin/storage";
+            redirectAttributes.addFlashAttribute("successMessage", "Storage location created successfully.");
         } catch (Exception e) {
-            AdminDashboardStats stats = adminDashboardService.getDashboardStats();
-            model.addAttribute("stats", stats);
-            model.addAttribute("locations", storageLocationService.getAllLocations());
-            model.addAttribute("locationCount", storageLocationService.countLocations());
-            model.addAttribute("locationRequest", request);
-            model.addAttribute("errorMessage", e.getMessage());
-            return "admin-storage";
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectAttributes.addFlashAttribute("locationRequest", request);
         }
+
+        return "redirect:/admin/storage";
     }
 
     @GetMapping("/admin/inventory")
@@ -151,14 +151,16 @@ public class DashboardController {
         model.addAttribute("stats", stats);
         model.addAttribute("rules", deferralRuleService.getAllRules());
         model.addAttribute("ruleCount", deferralRuleService.countRules());
-        model.addAttribute("ruleRequest", new DeferralRuleRequest());
+        if (!model.containsAttribute("ruleRequest")) {
+            model.addAttribute("ruleRequest", new DeferralRuleRequest());
+        }
         return "admin-deferral-rules";
     }
 
     @PostMapping("/admin/deferral-rules/add")
     public String addDeferralRule(@ModelAttribute("ruleRequest") DeferralRuleRequest request,
                                   Principal principal,
-                                  Model model) {
+                                  RedirectAttributes redirectAttributes) {
         try {
             deferralRuleService.addRule(request);
             notificationService.record(
@@ -167,16 +169,13 @@ public class DashboardController {
                     "Created deferral rule: " + safeLabel(request.getDescription(), "new rule"),
                     actorName(principal)
             );
-            return "redirect:/admin/deferral-rules";
+            redirectAttributes.addFlashAttribute("successMessage", "Deferral rule created successfully.");
         } catch (Exception e) {
-            AdminDashboardStats stats = adminDashboardService.getDashboardStats();
-            model.addAttribute("stats", stats);
-            model.addAttribute("rules", deferralRuleService.getAllRules());
-            model.addAttribute("ruleCount", deferralRuleService.countRules());
-            model.addAttribute("ruleRequest", request);
-            model.addAttribute("errorMessage", e.getMessage());
-            return "admin-deferral-rules";
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectAttributes.addFlashAttribute("ruleRequest", request);
         }
+
+        return "redirect:/admin/deferral-rules";
     }
 
     @GetMapping("/medical/dashboard")

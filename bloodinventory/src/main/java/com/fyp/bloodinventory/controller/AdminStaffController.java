@@ -7,8 +7,10 @@ import com.fyp.bloodinventory.dto.StaffRegistrationRequest;
 import com.fyp.bloodinventory.entity.StaffRole;
 import com.fyp.bloodinventory.service.StaffService;
 import com.fyp.bloodinventory.service.SystemNotificationService;
+import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -62,10 +64,23 @@ public class AdminStaffController {
     }
 
     @PostMapping("/admin/staff/register")
-    public String registerStaff(@ModelAttribute("staffRequest") StaffRegistrationRequest request,
+    public String registerStaff(@Valid @ModelAttribute("staffRequest") StaffRegistrationRequest request,
+                                BindingResult bindingResult,
                                 @RequestParam(value = "photoFile", required = false) MultipartFile photoFile,
                                 Principal principal,
                                 RedirectAttributes redirectAttributes) {
+
+        if (bindingResult.hasErrors()) {
+            request.setPassword(null);
+            redirectAttributes.addFlashAttribute("errorMessage", "Please correct the highlighted staff registration fields.");
+            redirectAttributes.addFlashAttribute("staffRequest", request);
+            redirectAttributes.addFlashAttribute(
+                    BindingResult.MODEL_KEY_PREFIX + "staffRequest",
+                    bindingResult
+            );
+            redirectAttributes.addFlashAttribute("openRegisterModal", true);
+            return "redirect:/admin/staff/management";
+        }
 
         try {
             staffService.registerStaff(request, photoFile);

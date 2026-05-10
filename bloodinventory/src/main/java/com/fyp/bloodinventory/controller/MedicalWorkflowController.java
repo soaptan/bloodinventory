@@ -7,9 +7,11 @@ import com.fyp.bloodinventory.dto.MedicalSafeMatchRequest;
 import com.fyp.bloodinventory.dto.MedicalTransfusionRequest;
 import com.fyp.bloodinventory.service.MedicalWorkflowService;
 import com.fyp.bloodinventory.service.SystemNotificationService;
+import jakarta.validation.Valid;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -103,9 +105,20 @@ public class MedicalWorkflowController {
     }
 
     @PostMapping("/medical/donations")
-    public String recordDonation(@ModelAttribute("donationRequest") MedicalDonationRequest request,
+    public String recordDonation(@Valid @ModelAttribute("donationRequest") MedicalDonationRequest request,
+                                 BindingResult bindingResult,
                                  Principal principal,
                                  RedirectAttributes redirectAttributes) {
+        if (bindingResult.hasErrors()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Please correct the highlighted donation fields.");
+            redirectAttributes.addFlashAttribute("donationRequest", request);
+            redirectAttributes.addFlashAttribute(
+                    BindingResult.MODEL_KEY_PREFIX + "donationRequest",
+                    bindingResult
+            );
+            return "redirect:/medical/donations";
+        }
+
         try {
             medicalWorkflowService.recordDonation(request, actorName(principal));
             notificationService.record(

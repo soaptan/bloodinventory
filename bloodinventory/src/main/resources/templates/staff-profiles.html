@@ -1,10 +1,10 @@
-<!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+﻿<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/master-layout}">
 <head>
     <title>Staff Management</title>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" th:href="@{/css/dashboard-layout.css}">
+    <th:block layout:fragment="custom-css">
     <style>
         .main {
             overflow: auto;
@@ -475,6 +475,20 @@
             box-shadow: 0 0 0 4px rgba(47, 128, 237, 0.08);
         }
 
+        .form-field input.is-invalid,
+        .form-field select.is-invalid,
+        .form-field textarea.is-invalid {
+            border-color: #ef4444;
+            background: #fff5f6;
+        }
+
+        .form-field input.is-invalid:focus,
+        .form-field select.is-invalid:focus,
+        .form-field textarea.is-invalid:focus {
+            border-color: #dc2626;
+            box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.1);
+        }
+
         .form-field input[type="file"] {
             padding: 10px 12px;
             background: #ffffff;
@@ -485,6 +499,13 @@
             font-size: 12px;
             line-height: 1.5;
             color: #6d86a3;
+        }
+
+        .field-error {
+            color: #dc2626;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1.4;
         }
 
         .role-panel {
@@ -1205,49 +1226,23 @@
             }
         }
     </style>
+    </th:block>
 </head>
 <body>
-<div class="dashboard-scene">
-    <div class="dashboard-app">
-        <header class="app-header">
-            <div class="app-brand">
-                <button type="button" class="icon-button sidebar-toggle"
-                        data-sidebar-toggle aria-controls="dashboard-sidebar" aria-expanded="true" aria-label="Collapse menu">
-                    <span class="hamburger-icon" aria-hidden="true">
-                        <span></span><span></span><span></span>
-                    </span>
-                    <span class="sr-only" data-sidebar-toggle-label>Collapse menu</span>
-                </button>
 
-                <div class="app-brand-copy">
-                    <div class="app-kicker">Blood Bank Digital Platform</div>
-                    <div class="app-title">Blood Inventory Management System</div>
-                    <div class="app-subtitle">Administrative workspace for staffing, storage, monitoring, and reporting.</div>
-                </div>
-            </div>
+    <th:block layout:fragment="app-subtitle">
+        Administrative workspace for staffing, storage, monitoring, and reporting.
+    </th:block>
 
-            <form class="app-search" role="search">
-                <div class="app-search-shell">
-                    <input class="app-search-input" type="search" placeholder="Search staff management or menu">
-                    <button type="submit" class="app-search-button" aria-label="Search staff management">
-                        <span class="search-icon" aria-hidden="true"></span>
-                    </button>
-                </div>
-            </form>
-
-            <div class="app-actions" th:replace="fragments/header-actions :: adminProfileMenu"></div>
-        </header>
-
-        <div class="layout">
-            <div th:replace="fragments/sidebar :: sidebar(
+    <th:block layout:fragment="sidebar">
+            <div th:replace="~{fragments/sidebar :: sidebar(
                 'Blood Administrator Panel',
                 'Centralized navigation for staff, storage, inventory monitoring, alerts, and reports.',
                 'staff-management'
-            )"></div>
+            )}"></div>
+    </th:block>
 
-            <button type="button" class="sidebar-overlay" data-sidebar-close aria-label="Close sidebar"></button>
-
-            <main class="main">
+    <th:block layout:fragment="content">
                 <div class="main-stack">
                     <section class="page-intro page-card">
                         <div>
@@ -1278,9 +1273,6 @@
                             <div class="summary-value" th:text="${labCount}">0</div>
                         </article>
                     </section>
-
-                    <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
-                    <div th:if="${errorMessage}" class="alert alert-error" th:text="${errorMessage}"></div>
 
                     <section class="management-toolbar page-card">
                         <div class="toolbar-copy">
@@ -1728,7 +1720,7 @@
                                 </div>
 
                                 <a th:href="@{/admin/staff/management}" class="modal-close" aria-label="Close register form" data-register-close>
-                                    ×
+                                    Ã—
                                 </a>
                             </div>
 
@@ -1757,57 +1749,124 @@
                                       th:object="${staffRequest}"
                                       method="post"
                                       enctype="multipart/form-data"
+                                      novalidate
                                       class="register-layout"
                                       data-role-form>
+                                    <div th:if="${#fields.hasAnyErrors()}"
+                                         class="alert alert-error">
+                                        Please correct the highlighted staff registration fields.
+                                    </div>
+
                                     <div class="form-grid">
                                         <div class="form-field">
                                             <label for="register-full-name">Full Name</label>
-                                            <input id="register-full-name" type="text" th:field="*{fullName}" placeholder="Full legal name" required>
+                                            <input id="register-full-name"
+                                                   type="text"
+                                                   th:field="*{fullName}"
+                                                   th:classappend="${#fields.hasErrors('fullName')} ? ' is-invalid' : ''"
+                                                   placeholder="Full legal name"
+                                                   required>
+                                            <div class="field-error"
+                                                 th:if="${#fields.hasErrors('fullName')}"
+                                                 th:errors="*{fullName}">Full name error</div>
                                         </div>
 
                                         <div class="form-field">
                                             <label for="register-username">Username</label>
-                                            <input id="register-username" type="text" th:field="*{username}" placeholder="Unique username" required>
+                                            <input id="register-username"
+                                                   type="text"
+                                                   th:field="*{username}"
+                                                   th:classappend="${#fields.hasErrors('username')} ? ' is-invalid' : ''"
+                                                   placeholder="Unique username"
+                                                   required>
+                                            <div class="field-error"
+                                                 th:if="${#fields.hasErrors('username')}"
+                                                 th:errors="*{username}">Username error</div>
                                         </div>
 
                                         <div class="form-field">
                                             <label for="register-password">Password</label>
-                                            <input id="register-password" type="password" th:field="*{password}" placeholder="Minimum 8 characters" required>
+                                            <input id="register-password"
+                                                   type="password"
+                                                   th:field="*{password}"
+                                                   th:classappend="${#fields.hasErrors('password')} ? ' is-invalid' : ''"
+                                                   placeholder="Minimum 8 characters"
+                                                   autocomplete="new-password"
+                                                   required>
+                                            <div class="field-error"
+                                                 th:if="${#fields.hasErrors('password')}"
+                                                 th:errors="*{password}">Password error</div>
                                         </div>
 
                                         <div class="form-field">
                                             <label for="register-ic">IC Number</label>
-                                            <input id="register-ic" type="text" th:field="*{icNumber}" placeholder="000000-00-0000" required>
+                                            <input id="register-ic"
+                                                   type="text"
+                                                   th:field="*{icNumber}"
+                                                   th:classappend="${#fields.hasErrors('icNumber')} ? ' is-invalid' : ''"
+                                                   placeholder="000000-00-0000"
+                                                   required>
+                                            <div class="field-error"
+                                                 th:if="${#fields.hasErrors('icNumber')}"
+                                                 th:errors="*{icNumber}">IC number error</div>
                                         </div>
 
                                         <div class="form-field">
                                             <label for="register-email">Email Address</label>
-                                            <input id="register-email" type="email" th:field="*{email}" placeholder="staff@bloodbank.my">
+                                            <input id="register-email"
+                                                   type="email"
+                                                   th:field="*{email}"
+                                                   th:classappend="${#fields.hasErrors('email')} ? ' is-invalid' : ''"
+                                                   placeholder="staff@bloodbank.my"
+                                                   required>
+                                            <div class="field-error"
+                                                 th:if="${#fields.hasErrors('email')}"
+                                                 th:errors="*{email}">Email error</div>
                                         </div>
 
                                         <div class="form-field">
                                             <label for="register-phone">Phone Number</label>
-                                            <input id="register-phone" type="text" th:field="*{phoneNo}" placeholder="01x-xxxxxxx">
+                                            <input id="register-phone"
+                                                   type="text"
+                                                   th:field="*{phoneNo}"
+                                                   th:classappend="${#fields.hasErrors('phoneNo')} ? ' is-invalid' : ''"
+                                                   placeholder="01x-xxxxxxx">
+                                            <div class="field-error"
+                                                 th:if="${#fields.hasErrors('phoneNo')}"
+                                                 th:errors="*{phoneNo}">Phone number error</div>
                                         </div>
 
                                         <div class="form-field">
                                             <label for="register-gender">Gender</label>
-                                            <select id="register-gender" th:field="*{gender}" required>
+                                            <select id="register-gender"
+                                                    th:field="*{gender}"
+                                                    th:classappend="${#fields.hasErrors('gender')} ? ' is-invalid' : ''"
+                                                    required>
                                                 <option value="">Select gender</option>
                                                 <option value="MALE">Male</option>
                                                 <option value="FEMALE">Female</option>
                                                 <option value="OTHER">Other</option>
                                             </select>
+                                            <div class="field-error"
+                                                 th:if="${#fields.hasErrors('gender')}"
+                                                 th:errors="*{gender}">Gender error</div>
                                         </div>
 
                                         <div class="form-field">
                                             <label for="register-role">Assigned Role</label>
-                                            <select id="register-role" th:field="*{staffType}" data-role-select required>
+                                            <select id="register-role"
+                                                    th:field="*{staffType}"
+                                                    th:classappend="${#fields.hasErrors('staffType')} ? ' is-invalid' : ''"
+                                                    data-role-select
+                                                    required>
                                                 <option value="">Select role</option>
                                                 <option th:each="role : ${roles}"
                                                         th:value="${role}"
                                                         th:text="${#strings.replace(role.name(), '_', ' ')}">ROLE</option>
                                             </select>
+                                            <div class="field-error"
+                                                 th:if="${#fields.hasErrors('staffType')}"
+                                                 th:errors="*{staffType}">Role error</div>
                                         </div>
 
                                         <div class="form-field full-width">
@@ -1820,11 +1879,25 @@
                                             <div class="form-grid">
                                                 <div class="form-field">
                                                     <label for="register-license">Medical License No</label>
-                                                    <input id="register-license" type="text" th:field="*{licenseNo}" placeholder="e.g. APC-12345">
+                                                    <input id="register-license"
+                                                           type="text"
+                                                           th:field="*{licenseNo}"
+                                                           th:classappend="${#fields.hasErrors('licenseNo')} ? ' is-invalid' : ''"
+                                                           placeholder="e.g. APC-12345">
+                                                    <div class="field-error"
+                                                         th:if="${#fields.hasErrors('licenseNo')}"
+                                                         th:errors="*{licenseNo}">License error</div>
                                                 </div>
                                                 <div class="form-field">
                                                     <label for="register-position">Clinical Position</label>
-                                                    <input id="register-position" type="text" th:field="*{position}" placeholder="e.g. Senior Nurse">
+                                                    <input id="register-position"
+                                                           type="text"
+                                                           th:field="*{position}"
+                                                           th:classappend="${#fields.hasErrors('position')} ? ' is-invalid' : ''"
+                                                           placeholder="e.g. Senior Nurse">
+                                                    <div class="field-error"
+                                                         th:if="${#fields.hasErrors('position')}"
+                                                         th:errors="*{position}">Position error</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -1832,14 +1905,28 @@
                                         <div class="role-panel" data-role-section="LAB_TECHNICIAN">
                                             <div class="form-field">
                                                 <label for="register-certification">Laboratory Certification No</label>
-                                                <input id="register-certification" type="text" th:field="*{certificationNo}" placeholder="e.g. LAB-2048">
+                                                <input id="register-certification"
+                                                       type="text"
+                                                       th:field="*{certificationNo}"
+                                                       th:classappend="${#fields.hasErrors('certificationNo')} ? ' is-invalid' : ''"
+                                                       placeholder="e.g. LAB-2048">
+                                                <div class="field-error"
+                                                     th:if="${#fields.hasErrors('certificationNo')}"
+                                                     th:errors="*{certificationNo}">Certification error</div>
                                             </div>
                                         </div>
 
                                         <div class="role-panel" data-role-section="BLOOD_ADMINISTRATOR">
                                             <div class="form-field">
                                                 <label for="register-department">Department</label>
-                                                <input id="register-department" type="text" th:field="*{department}" placeholder="e.g. Eligibility Management">
+                                                <input id="register-department"
+                                                       type="text"
+                                                       th:field="*{department}"
+                                                       th:classappend="${#fields.hasErrors('department')} ? ' is-invalid' : ''"
+                                                       placeholder="e.g. Eligibility Management">
+                                                <div class="field-error"
+                                                     th:if="${#fields.hasErrors('department')}"
+                                                     th:errors="*{department}">Department error</div>
                                             </div>
                                         </div>
                                     </div>
@@ -1855,11 +1942,9 @@
                         </div>
                     </div>
                 </div>
-            </main>
-        </div>
-    </div>
-</div>
-<script th:src="@{/js/dashboard-layout.js}"></script>
+    </th:block>
+
+    <th:block layout:fragment="custom-js">
 <script>
     (() => {
         const registerModal = document.querySelector("[data-register-modal]");
@@ -2324,5 +2409,7 @@
         syncBodyScroll();
     })();
 </script>
+    </th:block>
+
 </body>
 </html>

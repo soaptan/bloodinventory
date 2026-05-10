@@ -245,6 +245,20 @@ public class LabWorkflowService {
     }
 
     @Transactional
+    public void approvePendingDonation(Long donationId, String username) {
+        Long requiredDonationId = requireId(donationId, "Please select a pending donation.");
+        ensureDonationPendingForScreening(requiredDonationId);
+
+        LabScreeningRequest request = new LabScreeningRequest();
+        request.setDonationId(requiredDonationId);
+        request.setTtiScreening("NEGATIVE");
+        request.setBloodTypeMatch("MATCHED");
+        request.setFinalStatus("SAFE");
+
+        recordScreening(request, username);
+    }
+
+    @Transactional
     public void recordScreening(LabScreeningRequest request, String username) {
         Long donationId = requireId(request.getDonationId(), "Please select a donation from the pending test list.");
         Long staffId = requireLabTechnicianId(username);
@@ -332,6 +346,31 @@ public class LabWorkflowService {
         dto.setTestDate(rs.getTimestamp("test_date"));
         dto.setStaffName(rs.getString("staff_name"));
         return dto;
+    }
+
+    private void ensureDonationPendingForScreening(Long donationId) {
+        Long pendingCount = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM donation dn
+                WHERE dn.donation_id = ?
+                  AND EXISTS (
+                      SELECT 1
+                      FROM blood_component bc
+                      WHERE bc.donation_id = dn.donation_id
+                        AND UPPER(bc.status) = 'QUARANTINED'
+                  )
+                  AND COALESCE((
+                      SELECT UPPER(lt.final_status)
+                      FROM lab_test lt
+                      WHERE lt.donation_id = dn.donation_id
+                      ORDER BY lt.test_date DESC, lt.test_id DESC
+                      LIMIT 1
+                  ), 'PENDING') = 'PENDING'
+                """, Long.class, donationId);
+
+        if (pendingCount == null || pendingCount == 0) {
+            throw new RuntimeException("Donation is no longer pending lab approval.");
+        }
     }
 
     private void updateDonationComponentsFromFinalStatus(Long donationId, String finalStatus) {

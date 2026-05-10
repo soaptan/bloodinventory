@@ -71,8 +71,8 @@ public class StaffService {
         validateRoleSpecificDetails(staffType, request.getLicenseNo(), request.getPosition(),
                 request.getCertificationNo(), request.getDepartment(), null);
 
-        Staff staff = new Staff();
-        staff.setStaffType(staffType);
+        Staff staff = newStaffForRole(staffType, request.getLicenseNo(), request.getPosition(),
+                request.getCertificationNo(), request.getDepartment());
         staff.setFullName(fullName);
         staff.setUsername(username);
         staff.setPassword(prepareStoredPassword(password));
@@ -84,9 +84,7 @@ public class StaffService {
         staff.setLocked(Boolean.FALSE);
         staff.setProfilePhoto(storeProfilePhoto(photoFile, username));
 
-        Staff savedStaff = staffRepository.save(staff);
-        syncRoleSpecificDetails(savedStaff, staffType, request.getLicenseNo(), request.getPosition(),
-                request.getCertificationNo(), request.getDepartment());
+        staffRepository.save(staff);
     }
 
     public List<StaffProfileDto> getAllStaffProfiles() {
@@ -169,22 +167,30 @@ public class StaffService {
         validateRoleSpecificDetails(staffType, request.getLicenseNo(), request.getPosition(),
                 request.getCertificationNo(), request.getDepartment(), requiredStaffId);
 
+        String password = trimToNull(request.getPassword());
+        String storedPassword = password == null
+                ? staff.getPassword()
+                : prepareStoredPassword(requirePassword(password, false));
+
+        if (staff.getStaffType() != staffType) {
+            replaceStaffSubtype(requiredStaffId, staffType, fullName, username, phoneNo, icNumber,
+                    gender.toUpperCase(), email, storedPassword, request.getLicenseNo(), request.getPosition(),
+                    request.getCertificationNo(), request.getDepartment(), currentUsername);
+            applyAccountStatus(requiredStaffId, active);
+            return;
+        }
+
         staff.setFullName(fullName);
         staff.setUsername(username);
         staff.setPhoneNo(phoneNo);
         staff.setIcNumber(icNumber);
         staff.setGender(gender.toUpperCase());
         staff.setEmail(email);
-        staff.setStaffType(staffType);
-
-        String password = trimToNull(request.getPassword());
-        if (password != null) {
-            staff.setPassword(prepareStoredPassword(requirePassword(password, false)));
-        }
+        staff.setPassword(storedPassword);
+        applyRoleSpecificDetails(staff, staffType, request.getLicenseNo(), request.getPosition(),
+                request.getCertificationNo(), request.getDepartment());
 
         staffRepository.save(staff);
-        syncRoleSpecificDetails(staff, staffType, request.getLicenseNo(), request.getPosition(),
-                request.getCertificationNo(), request.getDepartment());
         applyAccountStatus(requiredStaffId, active);
     }
 
@@ -380,57 +386,114 @@ public class StaffService {
         requireText(department, "Please enter the administrator department.");
     }
 
-    private void syncRoleSpecificDetails(Staff staff,
-                                         StaffRole staffType,
-                                         String licenseNo,
-                                         String position,
-                                         String certificationNo,
-                                         String department) {
-        Long staffId = requireStaffId(staff);
-
+    private Staff newStaffForRole(StaffRole staffType,
+                                  String licenseNo,
+                                  String position,
+                                  String certificationNo,
+                                  String department) {
         if (staffType == StaffRole.MEDICAL_STAFF) {
-            labTechnicianRepository.findById(staffId).ifPresent(labTechnicianRepository::delete);
-            bloodAdministratorRepository.findById(staffId).ifPresent(bloodAdministratorRepository::delete);
-
-            MedicalStaff medicalStaff = medicalStaffRepository.findById(staffId).orElseGet(MedicalStaff::new);
-            medicalStaff.setStaff(staff);
+            MedicalStaff medicalStaff = new MedicalStaff();
             medicalStaff.setLicenseNo(requireText(licenseNo, "Please enter the medical license number."));
             medicalStaff.setPosition(requireText(position, "Please enter the medical staff position."));
-            medicalStaffRepository.save(medicalStaff);
+            return medicalStaff;
+        }
+
+        if (staffType == StaffRole.LAB_TECHNICIAN) {
+            LabTechnician labTechnician = new LabTechnician();
+            labTechnician.setCertificationNo(requireText(certificationNo,
+                    "Please enter the laboratory certification number."));
+            return labTechnician;
+        }
+
+        BloodAdministrator administrator = new BloodAdministrator();
+        administrator.setDepartment(requireText(department, "Please enter the administrator department."));
+        return administrator;
+    }
+
+    private void applyRoleSpecificDetails(Staff staff,
+                                          StaffRole staffType,
+                                          String licenseNo,
+                                          String position,
+                                          String certificationNo,
+                                          String department) {
+        if (staffType == StaffRole.MEDICAL_STAFF && staff instanceof MedicalStaff medicalStaff) {
+            medicalStaff.setLicenseNo(requireText(licenseNo, "Please enter the medical license number."));
+            medicalStaff.setPosition(requireText(position, "Please enter the medical staff position."));
+            return;
+        }
+
+        if (staffType == StaffRole.LAB_TECHNICIAN && staff instanceof LabTechnician labTechnician) {
+            labTechnician.setCertificationNo(requireText(certificationNo,
+                    "Please enter the laboratory certification number."));
+            return;
+        }
+
+        if (staffType == StaffRole.BLOOD_ADMINISTRATOR && staff instanceof BloodAdministrator administrator) {
+            administrator.setDepartment(requireText(department, "Please enter the administrator department."));
+            return;
+        }
+
+        throw new RuntimeException("Staff role details are inconsistent. Please reload the page and try again.");
+    }
+
+    private void replaceStaffSubtype(Long staffId,
+                                     StaffRole staffType,
+                                     String fullName,
+                                     String username,
+                                     String phoneNo,
+                                     String icNumber,
+                                     String gender,
+                                     String email,
+                                     String storedPassword,
+                                     String licenseNo,
+                                     String position,
+                                     String certificationNo,
+                                     String department,
+                                     String updatedBy) {
+        jdbcTemplate.update("""
+                UPDATE staff
+                SET staff_type = ?,
+                    full_name = ?,
+                    username = ?,
+                    phone_no = ?,
+                    ic_number = ?,
+                    gender = ?,
+                    email = ?,
+                    password = ?,
+                    updated_at = CURRENT_TIMESTAMP,
+                    last_modified_by = ?
+                WHERE staff_id = ?
+                """, staffType.name(), fullName, username, phoneNo, icNumber, gender, email, storedPassword,
+                updatedBy, staffId);
+
+        jdbcTemplate.update("DELETE FROM medical_staff WHERE staff_id = ?", staffId);
+        jdbcTemplate.update("DELETE FROM lab_technician WHERE staff_id = ?", staffId);
+        jdbcTemplate.update("DELETE FROM blood_administrator WHERE staff_id = ?", staffId);
+
+        if (staffType == StaffRole.MEDICAL_STAFF) {
+            jdbcTemplate.update("""
+                    INSERT INTO medical_staff (staff_id, license_no, position)
+                    VALUES (?, ?, ?)
+                    """, staffId, requireText(licenseNo, "Please enter the medical license number."),
+                    requireText(position, "Please enter the medical staff position."));
             return;
         }
 
         if (staffType == StaffRole.LAB_TECHNICIAN) {
-            medicalStaffRepository.findById(staffId).ifPresent(medicalStaffRepository::delete);
-            bloodAdministratorRepository.findById(staffId).ifPresent(bloodAdministratorRepository::delete);
-
-            LabTechnician labTechnician = labTechnicianRepository.findById(staffId).orElseGet(LabTechnician::new);
-            labTechnician.setStaff(staff);
-            labTechnician.setCertificationNo(requireText(certificationNo,
-                    "Please enter the laboratory certification number."));
-            labTechnicianRepository.save(labTechnician);
+            jdbcTemplate.update("""
+                    INSERT INTO lab_technician (staff_id, certification_no)
+                    VALUES (?, ?)
+                    """, staffId, requireText(certificationNo, "Please enter the laboratory certification number."));
             return;
         }
 
-        medicalStaffRepository.findById(staffId).ifPresent(medicalStaffRepository::delete);
-        labTechnicianRepository.findById(staffId).ifPresent(labTechnicianRepository::delete);
-
-        BloodAdministrator administrator = bloodAdministratorRepository.findById(staffId)
-                .orElseGet(BloodAdministrator::new);
-        administrator.setStaff(staff);
-        administrator.setDepartment(requireText(department, "Please enter the administrator department."));
-        bloodAdministratorRepository.save(administrator);
-    }
-
-    private void deleteRoleSpecificDetails(@NonNull Long staffId) {
-        medicalStaffRepository.findById(staffId).ifPresent(medicalStaffRepository::delete);
-        labTechnicianRepository.findById(staffId).ifPresent(labTechnicianRepository::delete);
-        bloodAdministratorRepository.findById(staffId).ifPresent(bloodAdministratorRepository::delete);
+        jdbcTemplate.update("""
+                INSERT INTO blood_administrator (staff_id, department)
+                VALUES (?, ?)
+                """, staffId, requireText(department, "Please enter the administrator department."));
     }
 
     private void deleteStaffRecord(Staff staff) {
-        Long staffId = requireStaffId(staff);
-        deleteRoleSpecificDetails(staffId);
         deleteProfilePhotoFile(staff.getProfilePhoto());
         staffRepository.delete(staff);
     }

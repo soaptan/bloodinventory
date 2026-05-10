@@ -234,10 +234,44 @@
     outline: none;
 }
 
+.form-group input.is-invalid,
+.form-group select.is-invalid,
+.needs-validation.was-validated .form-group input:invalid,
+.needs-validation.was-validated .form-group select:invalid {
+    border-color: #ef4444;
+    background: #fff5f6;
+}
+
+.field-error,
+.invalid-feedback {
+    color: #dc2626;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.invalid-feedback {
+    display: none;
+}
+
+.needs-validation.was-validated .form-group input:invalid ~ .invalid-feedback,
+.needs-validation.was-validated .form-group select:invalid ~ .invalid-feedback,
+.needs-validation.was-validated .choice-row.is-invalid + .invalid-feedback {
+    display: block;
+}
+
 .choice-row {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
+}
+
+.choice-row.is-invalid,
+.needs-validation.was-validated .choice-row.is-invalid {
+    border: 1px solid #ef4444;
+    border-radius: 12px;
+    padding: 8px;
+    background: #fff5f6;
 }
 
 .check-chip {
@@ -294,6 +328,21 @@
 .workflow-table .text-btn {
     min-height: 32px;
     padding: 7px 12px;
+}
+
+.workflow-table tr {
+    transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.workflow-table tr.is-removing {
+    opacity: 0;
+    transform: translateX(10px);
+}
+
+.async-approve-btn.is-busy,
+.async-approve-btn:disabled {
+    cursor: progress;
+    opacity: 0.72;
 }
 
 .workflow-table select {

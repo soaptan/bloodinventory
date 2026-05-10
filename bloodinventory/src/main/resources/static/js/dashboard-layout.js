@@ -4,18 +4,6 @@
     const mobileQuery = window.matchMedia("(max-width: 920px)");
     const themeQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
-    function loadSystemPreferences() {
-        if (document.querySelector("link[data-system-preferences]")) {
-            return;
-        }
-
-        const link = document.createElement("link");
-        link.rel = "stylesheet";
-        link.href = "/css/system-preferences.css";
-        link.dataset.systemPreferences = "true";
-        document.head.appendChild(link);
-    }
-
     function readStoredCollapsed() {
         try {
             return window.localStorage.getItem(STORAGE_KEY) === "true";
@@ -23,8 +11,6 @@
             return false;
         }
     }
-
-    loadSystemPreferences();
 
     function writeStoredCollapsed(collapsed) {
         try {
@@ -264,6 +250,51 @@
         });
     }
 
+    function validateCheckboxGroup(group) {
+        const checkboxes = Array.from(group.querySelectorAll("input[type='checkbox']"));
+        const checked = checkboxes.some((checkbox) => checkbox.checked);
+        const message = group.dataset.requiredMessage || "Please select at least one option.";
+
+        checkboxes.forEach((checkbox, index) => {
+            checkbox.setCustomValidity(checked || index !== 0 ? "" : message);
+        });
+
+        group.classList.toggle("is-invalid", !checked);
+        return checked;
+    }
+
+    function initFrontendValidation(app) {
+        app.querySelectorAll("form.needs-validation").forEach((form) => {
+            if (!(form instanceof HTMLFormElement)) {
+                return;
+            }
+
+            const checkboxGroups = Array.from(form.querySelectorAll("[data-required-checkbox-group]"));
+
+            checkboxGroups.forEach((group) => {
+                group.addEventListener("change", () => validateCheckboxGroup(group));
+            });
+
+            form.addEventListener("submit", (event) => {
+                checkboxGroups.forEach(validateCheckboxGroup);
+
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    if (window.Toast) {
+                        window.Toast.fire({
+                            icon: "error",
+                            title: "Please fix the highlighted form fields."
+                        });
+                    }
+                }
+
+                form.classList.add("was-validated");
+            });
+        });
+    }
+
     function initDashboardApp(app) {
         if (!(app instanceof HTMLElement)) {
             return;
@@ -277,6 +308,7 @@
         initSearch(app);
         initProfileMenu(app);
         initNotificationMenu(app);
+        initFrontendValidation(app);
 
         app.querySelectorAll("[data-sidebar-toggle]").forEach((button) => {
             button.addEventListener("click", () => {

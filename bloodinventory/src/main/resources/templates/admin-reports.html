@@ -1,10 +1,10 @@
-<!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+﻿<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/master-layout}">
 <head>
     <title>Reports and Alerts</title>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" th:href="@{/css/dashboard-layout.css}">
+    <th:block layout:fragment="custom-css">
     <style>
         .main-stack { display:grid; gap:14px; }
         .page-intro { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:18px 20px; }
@@ -451,49 +451,23 @@
             }
         }
     </style>
+    </th:block>
 </head>
 <body>
-<div class="dashboard-scene">
-    <div class="dashboard-app">
-        <header class="app-header">
-            <div class="app-brand">
-                <button type="button" class="icon-button sidebar-toggle"
-                        data-sidebar-toggle aria-controls="dashboard-sidebar" aria-expanded="true" aria-label="Collapse menu">
-                    <span class="hamburger-icon" aria-hidden="true">
-                        <span></span><span></span><span></span>
-                    </span>
-                    <span class="sr-only" data-sidebar-toggle-label>Collapse menu</span>
-                </button>
 
-                <div class="app-brand-copy">
-                    <div class="app-kicker">Blood Bank Digital Platform</div>
-                    <div class="app-title">Blood Inventory Management System</div>
-                    <div class="app-subtitle">Administrative workspace for staffing, storage, monitoring, and reporting.</div>
-                </div>
-            </div>
+    <th:block layout:fragment="app-subtitle">
+        Administrative workspace for staffing, storage, monitoring, and reporting.
+    </th:block>
 
-            <form class="app-search" role="search">
-                <div class="app-search-shell">
-                    <input class="app-search-input" type="search" placeholder="Search reports or alerts">
-                    <button type="submit" class="app-search-button" aria-label="Search dashboard">
-                        <span class="search-icon" aria-hidden="true"></span>
-                    </button>
-                </div>
-            </form>
-
-            <div class="app-actions" th:replace="fragments/header-actions :: adminProfileMenu"></div>
-        </header>
-
-        <div class="layout">
-            <div th:replace="fragments/sidebar :: sidebar(
+    <th:block layout:fragment="sidebar">
+            <div th:replace="~{fragments/sidebar :: sidebar(
                 'Blood Administrator Panel',
                 'Centralized navigation for staff, storage, inventory monitoring, alerts, and reports.',
                 'reports-alerts'
-            )"></div>
+            )}"></div>
+    </th:block>
 
-            <button type="button" class="sidebar-overlay" data-sidebar-close aria-label="Close sidebar"></button>
-
-            <main class="main">
+    <th:block layout:fragment="content">
                 <div class="main-stack">
                     <section class="page-intro page-card">
                         <div>
@@ -673,97 +647,9 @@
                         </article>
                     </section>
                 </div>
-            </main>
-        </div>
+    </th:block>
 
-        <div class="report-download-backdrop" data-report-download-modal>
-            <form class="report-download-dialog" th:action="@{/admin/reports/download}" method="get">
-                <div class="download-dialog-header">
-                    <h2>Download</h2>
-                    <button type="button" class="download-close" data-report-download-close aria-label="Close download dialog">&times;</button>
-                </div>
-
-                <div class="download-dialog-body">
-                    <div class="download-field">
-                        <label for="download-report-type">Choose Report</label>
-                        <select id="download-report-type" name="type">
-                            <option value="summary">Reports Summary</option>
-                            <option value="available-stock">Available Stock by Type</option>
-                            <option value="staff-roles">Staff Totals by Role</option>
-                            <option value="near-expiry">Near Expiry Alerts</option>
-                            <option value="activity">System Activity Notifications</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <div class="download-format-title">Choose Format</div>
-                        <div class="download-format-grid">
-                            <label class="download-format-option">
-                                <input type="radio" name="format" value="csv" checked>
-                                <span class="download-format-card">
-                                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                        <path d="M14 2v6h6"></path>
-                                        <path d="m9 15 6-6"></path>
-                                        <path d="m9 9 6 6"></path>
-                                    </svg>
-                                    CSV
-                                </span>
-                            </label>
-                            <label class="download-format-option">
-                                <input type="radio" name="format" value="html">
-                                <span class="download-format-card">
-                                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                        <path d="M14 2v6h6"></path>
-                                        <path d="m10 13-2 2 2 2"></path>
-                                        <path d="m14 13 2 2-2 2"></path>
-                                    </svg>
-                                    HTML
-                                </span>
-                            </label>
-                            <label class="download-format-option">
-                                <input type="radio" name="format" value="pdf">
-                                <span class="download-format-card">
-                                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                        <path d="M14 2v6h6"></path>
-                                        <path d="M7 17h10"></path>
-                                        <path d="M8 13h2a2 2 0 0 0 0-4H8v8"></path>
-                                    </svg>
-                                    PDF
-                                </span>
-                            </label>
-                            <label class="download-format-option">
-                                <input type="radio" name="format" value="excel">
-                                <span class="download-format-card">
-                                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                        <path d="M14 2v6h6"></path>
-                                        <path d="m9 10 6 8"></path>
-                                        <path d="m15 10-6 8"></path>
-                                    </svg>
-                                    Excel
-                                </span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="download-checks">
-                        <label><input type="checkbox" disabled> Strip Rich Text</label>
-                        <label><input type="checkbox" disabled> Send as Email</label>
-                    </div>
-                </div>
-
-                <div class="download-dialog-footer">
-                    <button type="button" class="download-footer-btn" data-report-download-close>Cancel</button>
-                    <button type="submit" class="download-footer-btn primary">Download</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-<script th:src="@{/js/dashboard-layout.js}"></script>
+    <th:block layout:fragment="custom-js">
 <script>
     (() => {
         const actions = document.querySelector("[data-report-actions]");
@@ -810,5 +696,7 @@
         });
     })();
 </script>
+    </th:block>
+
 </body>
 </html>

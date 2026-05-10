@@ -1,53 +1,28 @@
-<!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+﻿<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/master-layout}">
 <head>
     <title>Transfusion Request</title>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" th:href="@{/css/dashboard-layout.css}">
+    <th:block layout:fragment="custom-css">
     <link rel="stylesheet" th:href="@{/css/medical-workflow.css}">
+    </th:block>
 </head>
 <body>
-<div class="dashboard-scene">
-    <div class="dashboard-app">
-        <header class="app-header">
-            <div class="app-brand">
-                <button type="button" class="icon-button sidebar-toggle"
-                        data-sidebar-toggle aria-controls="dashboard-sidebar" aria-expanded="true" aria-label="Collapse menu">
-                    <span class="hamburger-icon" aria-hidden="true"><span></span><span></span><span></span></span>
-                    <span class="sr-only" data-sidebar-toggle-label>Collapse menu</span>
-                </button>
 
-                <div class="app-brand-copy">
-                    <div class="app-kicker">Blood Bank Digital Platform</div>
-                    <div class="app-title">Blood Inventory Management System</div>
-                    <div class="app-subtitle">Clinical workspace for eligibility review, collection, and transfusion support.</div>
-                </div>
-            </div>
+    <th:block layout:fragment="app-subtitle">
+        Clinical workspace for eligibility review, collection, and transfusion support.
+    </th:block>
 
-            <form class="app-search" data-dashboard-search role="search">
-                <div class="app-search-shell">
-                    <label class="sr-only" for="transfusion-search">Search transfusion records</label>
-                    <input id="transfusion-search" class="app-search-input" type="search"
-                           placeholder="Search transfusion records or menu" data-dashboard-search-input>
-                    <button type="submit" class="app-search-button" aria-label="Search">
-                        <span class="search-icon" aria-hidden="true"></span>
-                    </button>
-                </div>
-            </form>
-
-            <div class="app-actions" th:replace="fragments/header-actions :: adminProfileMenu"></div>
-        </header>
-
-        <div class="layout">
-            <div th:replace="fragments/sidebar :: sidebar(
+    <th:block layout:fragment="sidebar">
+            <div th:replace="~{fragments/sidebar :: sidebar(
                 'Medical Staff Panel',
                 'Clinical workflows for donor eligibility, blood collection, and transfusion requests.',
                 'transfusion'
-            )"></div>
-            <button type="button" class="sidebar-overlay" data-sidebar-close aria-label="Close sidebar"></button>
+            )}"></div>
+    </th:block>
 
-            <main class="main">
+    <th:block layout:fragment="content">
                 <div class="main-stack">
                     <section class="page-intro page-card">
                         <div>
@@ -56,9 +31,6 @@
                             <p>Process patient requests, select released components, and save final transfusion records.</p>
                         </div>
                     </section>
-
-                    <div th:if="${successMessage}" class="alert-success" th:text="${successMessage}"></div>
-                    <div th:if="${errorMessage}" class="alert-error" th:text="${errorMessage}"></div>
 
                     <section class="workflow-grid">
                         <article class="workflow-card page-card">
@@ -141,10 +113,7 @@
                         </aside>
                     </section>
                 </div>
-            </main>
-        </div>
-    </div>
-</div>
-<script th:src="@{/js/dashboard-layout.js}"></script>
+    </th:block>
+
 </body>
 </html>

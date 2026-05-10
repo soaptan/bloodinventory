@@ -1,10 +1,10 @@
-<!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+﻿<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/master-layout}">
 <head>
     <title>Edit Your Profile</title>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" th:href="@{/css/dashboard-layout.css}">
+    <th:block layout:fragment="custom-css">
     <style>
         .main {
             overflow: auto;
@@ -541,45 +541,19 @@
             }
         }
     </style>
+    </th:block>
 </head>
 <body>
-<div class="dashboard-scene">
-    <div class="dashboard-app">
-        <header class="app-header">
-            <div class="app-brand">
-                <button type="button" class="icon-button sidebar-toggle"
-                        data-sidebar-toggle aria-controls="dashboard-sidebar" aria-expanded="true" aria-label="Collapse menu">
-                    <span class="hamburger-icon" aria-hidden="true">
-                        <span></span><span></span><span></span>
-                    </span>
-                    <span class="sr-only" data-sidebar-toggle-label>Collapse menu</span>
-                </button>
 
-                <div class="app-brand-copy">
-                    <div class="app-kicker">Blood Bank Digital Platform</div>
-                    <div class="app-title">Blood Inventory Management System</div>
-                    <div class="app-subtitle">Personal workspace for account details, contact updates, and profile photo management.</div>
-                </div>
-            </div>
+    <th:block layout:fragment="app-subtitle">
+        Personal workspace for account details, contact updates, and profile photo management.
+    </th:block>
 
-            <form class="app-search" role="search">
-                <div class="app-search-shell">
-                    <input class="app-search-input" type="search" placeholder="Search your profile or menu">
-                    <button type="submit" class="app-search-button" aria-label="Search your profile">
-                        <span class="search-icon" aria-hidden="true"></span>
-                    </button>
-                </div>
-            </form>
+    <th:block layout:fragment="sidebar">
+            <div th:replace="~{fragments/sidebar :: sidebar(${sidebarRoleLabel}, ${sidebarRoleDescription}, ${sidebarActiveMenu})}"></div>
+    </th:block>
 
-            <div class="app-actions" th:replace="fragments/header-actions :: adminProfileMenu"></div>
-        </header>
-
-        <div class="layout">
-            <div th:replace="fragments/sidebar :: sidebar(${sidebarRoleLabel}, ${sidebarRoleDescription}, ${sidebarActiveMenu})"></div>
-
-            <button type="button" class="sidebar-overlay" data-sidebar-close aria-label="Close sidebar"></button>
-
-            <main class="main">
+    <th:block layout:fragment="content">
                 <div class="main-stack">
                     <section class="profile-editor page-card" data-profile-editor>
                         <div class="editor-header">
@@ -621,9 +595,6 @@
                             </aside>
 
                             <div class="editor-content">
-                                <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
-                                <div th:if="${errorMessage}" class="alert alert-error" th:text="${errorMessage}"></div>
-
                                 <div class="profile-tabs" role="tablist" aria-label="Profile sections">
                                     <button type="button" class="profile-tab is-active" data-profile-tab="personal">Personal</button>
                                     <button type="button" class="profile-tab" data-profile-tab="dashboard">Dashboard</button>
@@ -754,11 +725,9 @@
                         </div>
                     </section>
                 </div>
-            </main>
-        </div>
-    </div>
-</div>
-<script th:src="@{/js/dashboard-layout.js}"></script>
+    </th:block>
+
+    <th:block layout:fragment="custom-js">
 <script>
     (() => {
         document.querySelectorAll("[data-profile-editor]").forEach((editor) => {
@@ -787,5 +756,7 @@
         });
     })();
 </script>
+    </th:block>
+
 </body>
 </html>

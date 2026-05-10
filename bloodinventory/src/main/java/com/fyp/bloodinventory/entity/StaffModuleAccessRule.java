@@ -10,8 +10,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 
-import java.time.LocalDateTime;
-
 @Entity
 @Table(
         name = "staff_module_access",
@@ -20,7 +18,7 @@ import java.time.LocalDateTime;
                 columnNames = {"staff_type", "module_key"}
         )
 )
-public class StaffModuleAccessRule {
+public class StaffModuleAccessRule extends Auditable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -45,12 +43,6 @@ public class StaffModuleAccessRule {
 
     @Column(name = "sort_order", nullable = false)
     private Integer sortOrder = 100;
-
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
-
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt = LocalDateTime.now();
 
     public Long getAccessId() {
         return accessId;
@@ -108,19 +100,4 @@ public class StaffModuleAccessRule {
         this.sortOrder = sortOrder;
     }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
 }

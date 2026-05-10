@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="_csrf" th:content="${_csrf != null ? _csrf.token : ''}">
+    <meta name="_csrf_header" th:content="${_csrf != null ? _csrf.headerName : ''}">
+    <title layout:title-pattern="$CONTENT_TITLE - Blood Inventory System">Blood Inventory System</title>
+    <link rel="stylesheet" th:href="@{/css/dashboard-layout.css}">
+    <th:block layout:fragment="custom-css"></th:block>
+</head>
+<body>
+<div class="dashboard-scene">
+    <div class="dashboard-app">
+        <header class="app-header">
+            <div class="app-brand">
+                <button type="button" class="icon-button sidebar-toggle"
+                        data-sidebar-toggle aria-controls="dashboard-sidebar" aria-expanded="true" aria-label="Collapse menu">
+                    <span class="hamburger-icon" aria-hidden="true"><span></span><span></span><span></span></span>
+                    <span class="sr-only" data-sidebar-toggle-label>Collapse menu</span>
+                </button>
+
+                <div class="app-brand-copy">
+                    <div class="app-kicker">Blood Bank Digital Platform</div>
+                    <div class="app-title">Blood Inventory Management System</div>
+                    <div class="app-subtitle">
+                        <th:block layout:fragment="app-subtitle">
+                            Secure workspace for blood inventory operations.
+                        </th:block>
+                    </div>
+                </div>
+            </div>
+
+            <form class="app-search" data-dashboard-search role="search">
+                <div class="app-search-shell">
+                    <label class="sr-only" for="dashboard-search-input">Search dashboard</label>
+                    <input id="dashboard-search-input" class="app-search-input" type="search"
+                           placeholder="Search dashboard or menu" data-dashboard-search-input>
+                    <button type="submit" class="app-search-button" aria-label="Search dashboard">
+                        <span class="search-icon" aria-hidden="true"></span>
+                    </button>
+                </div>
+            </form>
+
+            <div th:replace="~{fragments/header-actions :: adminProfileMenu}"></div>
+        </header>
+
+        <div class="layout">
+            <th:block layout:fragment="sidebar"></th:block>
+            <button type="button" class="sidebar-overlay" data-sidebar-close aria-label="Close sidebar"></button>
+
+            <main class="main">
+                <th:block layout:fragment="content"></th:block>
+            </main>
+        </div>
+    </div>
+</div>
+
+<script th:src="@{/js/dashboard-layout.js}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script th:inline="javascript">
+    (() => {
+        if (!window.Swal) {
+            return;
+        }
+
+        const toast = Swal.mixin({
+            toast: true,
+            position: "top-end",
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            didOpen: (element) => {
+                element.addEventListener("mouseenter", Swal.stopTimer);
+                element.addEventListener("mouseleave", Swal.resumeTimer);
+            }
+        });
+        window.Toast = toast;
+        window.BloodInventoryToast = toast;
+
+        const messages = [
+            { icon: "success", title: /*[[${successMessage}]]*/ null },
+            { icon: "error", title: /*[[${errorMessage}]]*/ null },
+            { icon: "warning", title: /*[[${warningMessage}]]*/ null }
+        ];
+
+        messages
+            .filter((message) => message.title)
+            .forEach((message) => toast.fire({
+                icon: message.icon,
+                title: String(message.title)
+            }));
+    })();
+</script>
+<th:block layout:fragment="custom-js"></th:block>
+</body>
+</html>

@@ -1,16 +1,16 @@
 package com.fyp.bloodinventory.config;
 
 import com.fyp.bloodinventory.entity.BloodAdministrator;
-import com.fyp.bloodinventory.entity.Staff;
-import com.fyp.bloodinventory.entity.StaffRole;
 import com.fyp.bloodinventory.repository.BloodAdministratorRepository;
 import com.fyp.bloodinventory.repository.StaffRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Configuration
+@Profile("legacy-db-init")
 public class DataInitializer {
 
     @Bean
@@ -21,8 +21,7 @@ public class DataInitializer {
     ) {
         return args -> {
             if (staffRepository.findByUsername("admin").isEmpty()) {
-                Staff admin = new Staff();
-                admin.setStaffType(StaffRole.BLOOD_ADMINISTRATOR);
+                BloodAdministrator admin = new BloodAdministrator();
                 admin.setFullName("System Administrator");
                 admin.setUsername("admin");
                 admin.setPassword(passwordEncoder.encode("admin123"));
@@ -32,13 +31,9 @@ public class DataInitializer {
                 admin.setEmail("admin@bloodbank.my");
                 admin.setActive(Boolean.TRUE);
                 admin.setLocked(Boolean.FALSE);
+                admin.setDepartment("System Administration");
 
-                Staff savedAdmin = staffRepository.save(admin);
-
-                BloodAdministrator bloodAdmin = new BloodAdministrator();
-                bloodAdmin.setStaff(savedAdmin);
-                bloodAdmin.setDepartment("System Administration");
-                bloodAdministratorRepository.save(bloodAdmin);
+                bloodAdministratorRepository.save(admin);
 
                 System.out.println("Default admin account created: username=admin, password=admin123");
             } else {

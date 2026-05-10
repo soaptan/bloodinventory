@@ -1,53 +1,28 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/master-layout}">
 <head>
     <title>Pending Test Queue</title>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" th:href="@{/css/dashboard-layout.css}">
+    <th:block layout:fragment="custom-css">
     <link rel="stylesheet" th:href="@{/css/medical-workflow.css}">
+    </th:block>
 </head>
 <body>
-<div class="dashboard-scene">
-    <div class="dashboard-app">
-        <header class="app-header">
-            <div class="app-brand">
-                <button type="button" class="icon-button sidebar-toggle"
-                        data-sidebar-toggle aria-controls="dashboard-sidebar" aria-expanded="true" aria-label="Collapse menu">
-                    <span class="hamburger-icon" aria-hidden="true"><span></span><span></span><span></span></span>
-                    <span class="sr-only" data-sidebar-toggle-label>Collapse menu</span>
-                </button>
 
-                <div class="app-brand-copy">
-                    <div class="app-kicker">Blood Bank Digital Platform</div>
-                    <div class="app-title">Blood Inventory Management System</div>
-                    <div class="app-subtitle">Laboratory workspace for queue control, TTI screening, and traceability updates.</div>
-                </div>
-            </div>
+    <th:block layout:fragment="app-subtitle">
+        Laboratory workspace for queue control, TTI screening, and traceability updates.
+    </th:block>
 
-            <form class="app-search" data-dashboard-search role="search">
-                <div class="app-search-shell">
-                    <label class="sr-only" for="pending-test-search">Search pending tests</label>
-                    <input id="pending-test-search" class="app-search-input" type="search"
-                           placeholder="Search pending tests or menu" data-dashboard-search-input>
-                    <button type="submit" class="app-search-button" aria-label="Search">
-                        <span class="search-icon" aria-hidden="true"></span>
-                    </button>
-                </div>
-            </form>
-
-            <div class="app-actions" th:replace="fragments/header-actions :: adminProfileMenu"></div>
-        </header>
-
-        <div class="layout">
-            <div th:replace="fragments/sidebar :: sidebar(
+    <th:block layout:fragment="sidebar">
+            <div th:replace="~{fragments/sidebar :: sidebar(
                 'Lab Technician Panel',
                 'Laboratory tools for queue management, screening validation, and component traceability.',
                 'pending-tests'
-            )"></div>
-            <button type="button" class="sidebar-overlay" data-sidebar-close aria-label="Close sidebar"></button>
+            )}"></div>
+    </th:block>
 
-            <main class="main">
+    <th:block layout:fragment="content">
                 <div class="main-stack">
                     <section class="page-intro page-card">
                         <div>
@@ -62,13 +37,19 @@
                         <div class="section-title">
                             <div>
                                 <h2>Pending Donations</h2>
-                                <p th:text="${#lists.size(pendingTests)} + ' donations require lab action'">0 donations require lab action</p>
+                                <p data-pending-count-label
+                                   th:data-pending-count="${#lists.size(pendingTests)}"
+                                   th:text="${#lists.size(pendingTests)} + ' donations require lab action'">0 donations require lab action</p>
                             </div>
                         </div>
 
-                        <div class="empty-state" th:if="${#lists.isEmpty(pendingTests)}">There are no pending lab tests at the moment.</div>
+                        <div class="empty-state"
+                             data-pending-empty
+                             th:hidden="${!#lists.isEmpty(pendingTests)}">There are no pending lab tests at the moment.</div>
 
-                        <div class="table-wrap" th:if="${!#lists.isEmpty(pendingTests)}">
+                        <div class="table-wrap"
+                             data-pending-table
+                             th:hidden="${#lists.isEmpty(pendingTests)}">
                             <table class="workflow-table">
                                 <thead>
                                 <tr>
@@ -83,7 +64,11 @@
                                 </tr>
                                 </thead>
                                 <tbody>
-                                <tr th:each="test : ${pendingTests}" data-search-item>
+                                <tr th:each="test : ${pendingTests}"
+                                    th:id="${'pending-donation-' + test.donationId}"
+                                    th:data-donation-id="${test.donationId}"
+                                    data-pending-row
+                                    data-search-item>
                                     <td th:text="${test.donationId}">1</td>
                                     <td th:text="${test.collectionTimestamp != null ? #dates.format(test.collectionTimestamp, 'yyyy-MM-dd HH:mm') : '-'}">2026-07-01 08:00</td>
                                     <td th:text="${test.donorName}">Donor Name</td>
@@ -96,7 +81,16 @@
                                         <span class="status-pill warn" th:text="${test.finalStatus}">PENDING</span>
                                     </td>
                                     <td>
-                                        <a class="text-btn" th:href="@{/lab/tti-screening}">Record Result</a>
+                                        <div class="button-row">
+                                            <button type="button"
+                                                    class="text-btn async-approve-btn"
+                                                    data-approve-pending-test
+                                                    th:data-donation-id="${test.donationId}"
+                                                    th:data-approve-url="@{/api/lab/approve/{donationId}(donationId=${test.donationId})}">
+                                                Approve Safe
+                                            </button>
+                                            <a class="text-btn" th:href="@{/lab/tti-screening}">Record Result</a>
+                                        </div>
                                     </td>
                                 </tr>
                                 </tbody>
@@ -104,10 +98,109 @@
                         </div>
                     </section>
                 </div>
-            </main>
-        </div>
-    </div>
-</div>
-<script th:src="@{/js/dashboard-layout.js}"></script>
+    </th:block>
+
+    <th:block layout:fragment="custom-js">
+        <script>
+            (() => {
+                const csrfToken = document.querySelector("meta[name='_csrf']")?.getAttribute("content");
+                const csrfHeader = document.querySelector("meta[name='_csrf_header']")?.getAttribute("content");
+                const countLabel = document.querySelector("[data-pending-count-label]");
+                const tableWrap = document.querySelector("[data-pending-table]");
+                const emptyState = document.querySelector("[data-pending-empty]");
+
+                const showToast = (icon, title) => {
+                    if (window.Toast) {
+                        window.Toast.fire({ icon, title });
+                        return;
+                    }
+
+                    if (window.Swal) {
+                        window.Swal.fire({ icon, title, timer: 3000, showConfirmButton: false });
+                    }
+                };
+
+                const pendingRows = () => Array.from(document.querySelectorAll("[data-pending-row]"));
+
+                const updatePendingCount = () => {
+                    const count = pendingRows().length;
+                    if (countLabel) {
+                        countLabel.dataset.pendingCount = String(count);
+                        countLabel.textContent = `${count} donation${count === 1 ? "" : "s"} require lab action`;
+                    }
+
+                    if (tableWrap) {
+                        tableWrap.hidden = count === 0;
+                    }
+                    if (emptyState) {
+                        emptyState.hidden = count !== 0;
+                    }
+                };
+
+                const parseJson = async (response) => {
+                    try {
+                        return await response.json();
+                    } catch (error) {
+                        return {
+                            success: response.ok,
+                            message: response.ok ? "Lab test approved." : "Unable to approve the lab test."
+                        };
+                    }
+                };
+
+                const approvePendingTest = async (button) => {
+                    const approveUrl = button.dataset.approveUrl;
+                    const donationId = button.dataset.donationId;
+                    const row = document.getElementById(`pending-donation-${donationId}`);
+                    const originalText = button.textContent;
+                    const headers = { Accept: "application/json" };
+
+                    if (csrfToken && csrfHeader) {
+                        headers[csrfHeader] = csrfToken;
+                    }
+
+                    button.disabled = true;
+                    button.classList.add("is-busy");
+                    button.textContent = "Approving...";
+
+                    try {
+                        const response = await fetch(approveUrl, {
+                            method: "POST",
+                            headers
+                        });
+                        const data = await parseJson(response);
+
+                        if (!response.ok || !data.success) {
+                            throw new Error(data.message || "Unable to approve the lab test.");
+                        }
+
+                        showToast("success", data.message || `Donation #${donationId} marked as SAFE.`);
+
+                        if (row) {
+                            row.classList.add("is-removing");
+                            window.setTimeout(() => {
+                                row.remove();
+                                updatePendingCount();
+                            }, 360);
+                        } else {
+                            updatePendingCount();
+                        }
+                    } catch (error) {
+                        button.disabled = false;
+                        button.classList.remove("is-busy");
+                        button.textContent = originalText;
+                        showToast("error", error.message || "A network error occurred.");
+                    }
+                };
+
+                document.querySelectorAll("[data-approve-pending-test]").forEach((button) => {
+                    button.addEventListener("click", () => approvePendingTest(button));
+                });
+
+                updatePendingCount();
+            })();
+        </script>
+    </th:block>
+
 </body>
 </html>
