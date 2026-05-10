@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Traceability</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" th:href="@{/css/dashboard-layout.css}">
+    <link rel="stylesheet" th:href="@{/css/medical-workflow.css}">
+</head>
+<body>
+<div class="dashboard-scene">
+    <div class="dashboard-app">
+        <header class="app-header">
+            <div class="app-brand">
+                <button type="button" class="icon-button sidebar-toggle"
+                        data-sidebar-toggle aria-controls="dashboard-sidebar" aria-expanded="true" aria-label="Collapse menu">
+                    <span class="hamburger-icon" aria-hidden="true"><span></span><span></span><span></span></span>
+                    <span class="sr-only" data-sidebar-toggle-label>Collapse menu</span>
+                </button>
+
+                <div class="app-brand-copy">
+                    <div class="app-kicker">Blood Bank Digital Platform</div>
+                    <div class="app-title">Blood Inventory Management System</div>
+                    <div class="app-subtitle">Laboratory workspace for queue control, TTI screening, and traceability updates.</div>
+                </div>
+            </div>
+
+            <form class="app-search" data-dashboard-search role="search">
+                <div class="app-search-shell">
+                    <label class="sr-only" for="traceability-search">Search traceability</label>
+                    <input id="traceability-search" class="app-search-input" type="search"
+                           placeholder="Search unit history or menu" data-dashboard-search-input>
+                    <button type="submit" class="app-search-button" aria-label="Search">
+                        <span class="search-icon" aria-hidden="true"></span>
+                    </button>
+                </div>
+            </form>
+
+            <div class="app-actions" th:replace="fragments/header-actions :: adminProfileMenu"></div>
+        </header>
+
+        <div class="layout">
+            <div th:replace="fragments/sidebar :: sidebar(
+                'Lab Technician Panel',
+                'Laboratory tools for queue management, screening validation, and component traceability.',
+                'traceability'
+            )"></div>
+            <button type="button" class="sidebar-overlay" data-sidebar-close aria-label="Close sidebar"></button>
+
+            <main class="main">
+                <div class="main-stack">
+                    <section class="page-intro page-card">
+                        <div>
+                            <div class="page-kicker">Traceability</div>
+                            <h1>Component Movement Tracking</h1>
+                            <p>Follow each blood unit from donation collection to lab review, storage, release, discard, or transfusion.</p>
+                        </div>
+                    </section>
+
+                    <section class="workflow-card page-card">
+                        <div class="section-title">
+                            <div>
+                                <h2>Traceability Records</h2>
+                                <p th:text="${#lists.size(traceabilityRecords)} + ' component lifecycle records'">0 component lifecycle records</p>
+                            </div>
+                        </div>
+
+                        <div class="empty-state" th:if="${#lists.isEmpty(traceabilityRecords)}">No traceability records were found.</div>
+
+                        <div class="table-wrap" th:if="${!#lists.isEmpty(traceabilityRecords)}">
+                            <table class="workflow-table">
+                                <thead>
+                                <tr>
+                                    <th>Stage</th>
+                                    <th>Component</th>
+                                    <th>Type</th>
+                                    <th>Donation</th>
+                                    <th>Collection</th>
+                                    <th>Donor</th>
+                                    <th>Group</th>
+                                    <th>Lab Test</th>
+                                    <th>Lab Status</th>
+                                    <th>Storage</th>
+                                    <th>Patient</th>
+                                    <th>Transfusion</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="record : ${traceabilityRecords}" data-search-item>
+                                    <td><span class="status-pill neutral" th:text="${record.lifecycleStage}">Pending screening</span></td>
+                                    <td th:text="${record.componentId}">1</td>
+                                    <td th:text="${record.componentType}">RBC</td>
+                                    <td th:text="${record.donationId}">1</td>
+                                    <td th:text="${record.collectionTimestamp != null ? #dates.format(record.collectionTimestamp, 'yyyy-MM-dd HH:mm') : '-'}">2026-07-01 08:00</td>
+                                    <td th:text="${record.donorName}">Donor Name</td>
+                                    <td th:text="${record.donorBloodGroup}">A+</td>
+                                    <td th:text="${record.testId != null ? record.testId : '-'}">1</td>
+                                    <td>
+                                        <span class="status-pill"
+                                              th:classappend="${#strings.equalsIgnoreCase(record.labFinalStatus, 'SAFE')} ? ' good' : (${#strings.equalsIgnoreCase(record.labFinalStatus, 'DISCARDED')} ? ' bad' : ' warn')"
+                                              th:text="${record.labFinalStatus != null ? record.labFinalStatus : 'PENDING'}">PENDING</span>
+                                    </td>
+                                    <td th:text="${record.locationDescription}">Storage</td>
+                                    <td th:text="${record.patientName != null ? record.patientName : '-'}">Patient</td>
+                                    <td th:text="${record.transfusionTimestamp != null ? #dates.format(record.transfusionTimestamp, 'yyyy-MM-dd HH:mm') : '-'}">2026-07-01 08:00</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+            </main>
+        </div>
+    </div>
+</div>
+<script th:src="@{/js/dashboard-layout.js}"></script>
+</body>
+</html>

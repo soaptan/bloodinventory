@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Component Status</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" th:href="@{/css/dashboard-layout.css}">
+    <link rel="stylesheet" th:href="@{/css/medical-workflow.css}">
+</head>
+<body>
+<div class="dashboard-scene">
+    <div class="dashboard-app">
+        <header class="app-header">
+            <div class="app-brand">
+                <button type="button" class="icon-button sidebar-toggle"
+                        data-sidebar-toggle aria-controls="dashboard-sidebar" aria-expanded="true" aria-label="Collapse menu">
+                    <span class="hamburger-icon" aria-hidden="true"><span></span><span></span><span></span></span>
+                    <span class="sr-only" data-sidebar-toggle-label>Collapse menu</span>
+                </button>
+
+                <div class="app-brand-copy">
+                    <div class="app-kicker">Blood Bank Digital Platform</div>
+                    <div class="app-title">Blood Inventory Management System</div>
+                    <div class="app-subtitle">Laboratory workspace for queue control, TTI screening, and traceability updates.</div>
+                </div>
+            </div>
+
+            <form class="app-search" data-dashboard-search role="search">
+                <div class="app-search-shell">
+                    <label class="sr-only" for="component-status-search">Search component status</label>
+                    <input id="component-status-search" class="app-search-input" type="search"
+                           placeholder="Search components or menu" data-dashboard-search-input>
+                    <button type="submit" class="app-search-button" aria-label="Search">
+                        <span class="search-icon" aria-hidden="true"></span>
+                    </button>
+                </div>
+            </form>
+
+            <div class="app-actions" th:replace="fragments/header-actions :: adminProfileMenu"></div>
+        </header>
+
+        <div class="layout">
+            <div th:replace="fragments/sidebar :: sidebar(
+                'Lab Technician Panel',
+                'Laboratory tools for queue management, screening validation, and component traceability.',
+                'component-status'
+            )"></div>
+            <button type="button" class="sidebar-overlay" data-sidebar-close aria-label="Close sidebar"></button>
+
+            <main class="main">
+                <div class="main-stack">
+                    <section class="page-intro page-card">
+                        <div>
+                            <div class="page-kicker">Component Status</div>
+                            <h1>Validation Progress</h1>
+                            <p>Release safe components, keep uncertain units quarantined, or discard unsafe units after screening.</p>
+                        </div>
+                    </section>
+
+                    <div th:if="${successMessage}" class="alert-success" th:text="${successMessage}"></div>
+                    <div th:if="${errorMessage}" class="alert-error" th:text="${errorMessage}"></div>
+
+                    <section class="workflow-card page-card">
+                        <div class="section-title">
+                            <div>
+                                <h2>Blood Components</h2>
+                                <p th:text="${#lists.size(components)} + ' components tracked in inventory'">0 components tracked in inventory</p>
+                            </div>
+                        </div>
+
+                        <div class="empty-state" th:if="${#lists.isEmpty(components)}">No blood components were found.</div>
+
+                        <div class="table-wrap" th:if="${!#lists.isEmpty(components)}">
+                            <table class="workflow-table">
+                                <thead>
+                                <tr>
+                                    <th>Component</th>
+                                    <th>Type</th>
+                                    <th>Donation</th>
+                                    <th>Donor</th>
+                                    <th>Group</th>
+                                    <th>Expiry</th>
+                                    <th>Location</th>
+                                    <th>Lab Result</th>
+                                    <th>Current Status</th>
+                                    <th>Update</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="component : ${components}" data-search-item>
+                                    <td th:text="${component.componentId}">1</td>
+                                    <td><span class="status-pill neutral" th:text="${component.componentType}">RBC</span></td>
+                                    <td th:text="${component.donationId}">1</td>
+                                    <td th:text="${component.donorName}">Donor Name</td>
+                                    <td th:text="${component.donorBloodGroup}">A+</td>
+                                    <td th:text="${component.expiryTimestamp != null ? #dates.format(component.expiryTimestamp, 'yyyy-MM-dd HH:mm') : '-'}">2026-08-01 08:00</td>
+                                    <td th:text="${component.locationDescription}">Storage</td>
+                                    <td>
+                                        <span class="status-pill"
+                                              th:classappend="${#strings.equalsIgnoreCase(component.finalStatus, 'SAFE')} ? ' good' : (${#strings.equalsIgnoreCase(component.finalStatus, 'DISCARDED')} ? ' bad' : ' warn')"
+                                              th:text="${component.finalStatus != null ? component.finalStatus : 'PENDING'}">PENDING</span>
+                                    </td>
+                                    <td>
+                                        <span class="status-pill"
+                                              th:classappend="${#strings.equalsIgnoreCase(component.status, 'AVAILABLE')} ? ' available' : (${#strings.equalsIgnoreCase(component.status, 'RESERVED')} ? ' reserved' : (${#strings.equalsIgnoreCase(component.status, 'DISCARDED')} ? ' bad' : (${#strings.equalsIgnoreCase(component.status, 'USED')} ? ' used' : ' quarantined')))"
+                                              th:text="${component.status}">QUARANTINED</span>
+                                    </td>
+                                    <td>
+                                        <form class="button-row" th:action="@{/lab/component-status/update}" method="post">
+                                            <input type="hidden" name="componentId" th:value="${component.componentId}">
+                                            <label class="sr-only" th:for="${'component-status-' + component.componentId}">Status</label>
+                                            <select th:id="${'component-status-' + component.componentId}" name="status" required>
+                                                <option th:each="status : ${componentStatuses}"
+                                                        th:value="${status}"
+                                                        th:text="${status}"
+                                                        th:selected="${#strings.equalsIgnoreCase(status, component.status)}">AVAILABLE</option>
+                                            </select>
+                                            <button type="submit" class="secondary-btn">Save</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+            </main>
+        </div>
+    </div>
+</div>
+<script th:src="@{/js/dashboard-layout.js}"></script>
+</body>
+</html>

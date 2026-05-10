@@ -30,6 +30,8 @@ public class DataInitializer {
                 admin.setIcNumber("800101-10-9999");
                 admin.setGender("FEMALE");
                 admin.setEmail("admin@bloodbank.my");
+                admin.setActive(Boolean.TRUE);
+                admin.setLocked(Boolean.FALSE);
 
                 Staff savedAdmin = staffRepository.save(admin);
 

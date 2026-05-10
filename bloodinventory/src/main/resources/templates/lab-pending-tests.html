@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Pending Test Queue</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" th:href="@{/css/dashboard-layout.css}">
+    <link rel="stylesheet" th:href="@{/css/medical-workflow.css}">
+</head>
+<body>
+<div class="dashboard-scene">
+    <div class="dashboard-app">
+        <header class="app-header">
+            <div class="app-brand">
+                <button type="button" class="icon-button sidebar-toggle"
+                        data-sidebar-toggle aria-controls="dashboard-sidebar" aria-expanded="true" aria-label="Collapse menu">
+                    <span class="hamburger-icon" aria-hidden="true"><span></span><span></span><span></span></span>
+                    <span class="sr-only" data-sidebar-toggle-label>Collapse menu</span>
+                </button>
+
+                <div class="app-brand-copy">
+                    <div class="app-kicker">Blood Bank Digital Platform</div>
+                    <div class="app-title">Blood Inventory Management System</div>
+                    <div class="app-subtitle">Laboratory workspace for queue control, TTI screening, and traceability updates.</div>
+                </div>
+            </div>
+
+            <form class="app-search" data-dashboard-search role="search">
+                <div class="app-search-shell">
+                    <label class="sr-only" for="pending-test-search">Search pending tests</label>
+                    <input id="pending-test-search" class="app-search-input" type="search"
+                           placeholder="Search pending tests or menu" data-dashboard-search-input>
+                    <button type="submit" class="app-search-button" aria-label="Search">
+                        <span class="search-icon" aria-hidden="true"></span>
+                    </button>
+                </div>
+            </form>
+
+            <div class="app-actions" th:replace="fragments/header-actions :: adminProfileMenu"></div>
+        </header>
+
+        <div class="layout">
+            <div th:replace="fragments/sidebar :: sidebar(
+                'Lab Technician Panel',
+                'Laboratory tools for queue management, screening validation, and component traceability.',
+                'pending-tests'
+            )"></div>
+            <button type="button" class="sidebar-overlay" data-sidebar-close aria-label="Close sidebar"></button>
+
+            <main class="main">
+                <div class="main-stack">
+                    <section class="page-intro page-card">
+                        <div>
+                            <div class="page-kicker">Pending Test Queue</div>
+                            <h1>Samples Awaiting Screening</h1>
+                            <p>Review quarantined donations from inventory before saving TTI and blood type match outcomes.</p>
+                        </div>
+                        <a class="secondary-btn" th:href="@{/lab/tti-screening}">Open TTI Screening</a>
+                    </section>
+
+                    <section class="workflow-card page-card">
+                        <div class="section-title">
+                            <div>
+                                <h2>Pending Donations</h2>
+                                <p th:text="${#lists.size(pendingTests)} + ' donations require lab action'">0 donations require lab action</p>
+                            </div>
+                        </div>
+
+                        <div class="empty-state" th:if="${#lists.isEmpty(pendingTests)}">There are no pending lab tests at the moment.</div>
+
+                        <div class="table-wrap" th:if="${!#lists.isEmpty(pendingTests)}">
+                            <table class="workflow-table">
+                                <thead>
+                                <tr>
+                                    <th>Donation</th>
+                                    <th>Collection Time</th>
+                                    <th>Donor</th>
+                                    <th>Group</th>
+                                    <th>Component Types</th>
+                                    <th>Components</th>
+                                    <th>Latest Result</th>
+                                    <th>Action</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="test : ${pendingTests}" data-search-item>
+                                    <td th:text="${test.donationId}">1</td>
+                                    <td th:text="${test.collectionTimestamp != null ? #dates.format(test.collectionTimestamp, 'yyyy-MM-dd HH:mm') : '-'}">2026-07-01 08:00</td>
+                                    <td th:text="${test.donorName}">Donor Name</td>
+                                    <td><span class="status-pill neutral" th:text="${test.bloodGroup}">A+</span></td>
+                                    <td th:text="${test.componentTypes}">RBC, PLASMA</td>
+                                    <td>
+                                        <span class="status-pill warn" th:text="${test.componentStatuses}">QUARANTINED</span>
+                                    </td>
+                                    <td>
+                                        <span class="status-pill warn" th:text="${test.finalStatus}">PENDING</span>
+                                    </td>
+                                    <td>
+                                        <a class="text-btn" th:href="@{/lab/tti-screening}">Record Result</a>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+            </main>
+        </div>
+    </div>
+</div>
+<script th:src="@{/js/dashboard-layout.js}"></script>
+</body>
+</html>

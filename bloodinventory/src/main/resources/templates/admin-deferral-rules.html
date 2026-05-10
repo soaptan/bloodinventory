@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Deferral Rules</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" th:href="@{/css/dashboard-layout.css}">
+    <style>
+        .main-stack { display: grid; gap: 14px; }
+        .page-intro { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:18px 20px; }
+        .page-kicker { font-size:11px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:#7f94ae; margin-bottom:6px; }
+        .page-intro h1 { font-size:34px; color:#1f3f67; margin-bottom:6px; }
+        .page-intro p { color:#5f7796; font-size:14px; line-height:1.5; max-width:760px; }
+
+        .rules-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 14px;
+        }
+
+        .module-card {
+            background: white;
+            border-radius: 22px;
+            padding: 20px;
+            box-shadow: 0 10px 24px rgba(52,114,184,.08);
+            border: 1px solid #e5eef8;
+        }
+
+        .module-card h2 {
+            font-size: 22px;
+            color: #204a7a;
+            margin-bottom: 8px;
+        }
+
+        .module-card p {
+            color: #6b85a3;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+
+        .alert-error {
+            background: #ffe7ea;
+            color: #b42334;
+            border: 1px solid #ffc6ce;
+            border-radius: 12px;
+            padding: 12px 14px;
+            margin-bottom: 14px;
+            font-size: 14px;
+        }
+
+        .rules-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .rules-table th,
+        .rules-table td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #e9f1fb;
+            text-align: left;
+            font-size: 13px;
+            vertical-align: top;
+        }
+
+        .rules-table th {
+            color: #67809f;
+            font-weight: 700;
+        }
+
+        .rule-badge {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            color: white;
+            background: linear-gradient(135deg, #2f80ed 0%, #59a9ff 100%);
+        }
+
+        .summary-list {
+            display: grid;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .summary-item {
+            padding: 16px;
+            border-radius: 18px;
+            background: #f8fbff;
+            border: 1px solid #e4eef9;
+        }
+
+        .summary-item .label {
+            font-size: 13px;
+            color: #6b85a3;
+            margin-bottom: 6px;
+        }
+
+        .summary-item .value {
+            font-size: 28px;
+            font-weight: 800;
+            color: #1f4c82;
+        }
+
+        .form-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-size: 13px;
+            font-weight: 700;
+            color: #35506f;
+            margin-bottom: 6px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #ccdcef;
+            border-radius: 12px;
+            outline: none;
+            font-size: 14px;
+            background: white;
+        }
+
+        .submit-btn {
+            border: none;
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 14px;
+            font-weight: 700;
+            color: white;
+            background: linear-gradient(90deg, #d62839 0%, #ff5d6c 100%);
+            cursor: pointer;
+            margin-top: 6px;
+        }
+
+        @media (max-width: 1000px) {
+            .rules-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="dashboard-scene">
+    <div class="dashboard-app">
+        <header class="app-header">
+            <div class="app-brand">
+                <button type="button" class="icon-button sidebar-toggle"
+                        data-sidebar-toggle aria-controls="dashboard-sidebar" aria-expanded="true" aria-label="Collapse menu">
+                    <span class="hamburger-icon" aria-hidden="true">
+                        <span></span><span></span><span></span>
+                    </span>
+                    <span class="sr-only" data-sidebar-toggle-label>Collapse menu</span>
+                </button>
+
+                <div class="app-brand-copy">
+                    <div class="app-kicker">Blood Bank Digital Platform</div>
+                    <div class="app-title">Blood Inventory Management System</div>
+                    <div class="app-subtitle">Administrative workspace for staffing, storage, monitoring, and reporting.</div>
+                </div>
+            </div>
+
+            <form class="app-search" role="search">
+                <div class="app-search-shell">
+                    <input class="app-search-input" type="search" placeholder="Search deferral rules or menu">
+                    <button type="submit" class="app-search-button" aria-label="Search dashboard">
+                        <span class="search-icon" aria-hidden="true"></span>
+                    </button>
+                </div>
+            </form>
+
+            <div class="app-actions" th:replace="fragments/header-actions :: adminProfileMenu"></div>
+        </header>
+
+        <div class="layout">
+            <div th:replace="fragments/sidebar :: sidebar(
+                'Blood Administrator Panel',
+                'Centralized navigation for staff, storage, inventory monitoring, alerts, and reports.',
+                'deferral-rules'
+            )"></div>
+
+            <button type="button" class="sidebar-overlay" data-sidebar-close aria-label="Close sidebar"></button>
+
+            <main class="main">
+                <div class="main-stack">
+                    <section class="page-intro page-card">
+                        <div>
+                            <div class="page-kicker">Deferral Rules</div>
+                            <h1>Eligibility Deferral Rules</h1>
+                            <p>
+                                Review and maintain donor deferral reasons and cooling-off periods used in the eligibility control process.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="rules-grid">
+                        <article class="module-card">
+                            <h2>Configured Deferral Rules</h2>
+                            <p>Live data from the <code>deferral_reason</code> table using PostgreSQL function.</p>
+
+                            <table class="rules-table">
+                                <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Reason</th>
+                                    <th>Cooling-off Period</th>
+                                    <th>Staff ID</th>
+                                    <th>Status</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="rule : ${rules}">
+                                    <td th:text="${rule.reasonId}">1</td>
+                                    <td th:text="${rule.description}">Sample reason</td>
+                                    <td th:text="${rule.defaultCoolingPeriodDays} + ' days'">30 days</td>
+                                    <td th:text="${rule.staffId}">41</td>
+                                    <td><span class="rule-badge">Active</span></td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </article>
+
+                        <article class="module-card">
+                            <h2>Rule Summary & Create Rule</h2>
+                            <p>Uses PostgreSQL function for count and procedure for insertion.</p>
+
+                            <div th:if="${errorMessage}" class="alert-error" th:text="${errorMessage}"></div>
+
+                            <div class="summary-list">
+                                <div class="summary-item">
+                                    <div class="label">Total Deferral Rules</div>
+                                    <div class="value" th:text="${ruleCount}">0</div>
+                                </div>
+
+                                <div class="summary-item">
+                                    <div class="label">Total Staff</div>
+                                    <div class="value" th:text="${stats.totalStaff}">0</div>
+                                </div>
+
+                                <div class="summary-item">
+                                    <div class="label">Total Donors</div>
+                                    <div class="value" th:text="${stats.totalDonors}">0</div>
+                                </div>
+                            </div>
+
+                            <form th:action="@{/admin/deferral-rules/add}" th:object="${ruleRequest}" method="post">
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label>Description</label>
+                                        <input type="text" th:field="*{description}" placeholder="Enter deferral reason" required>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label>Cooling-off Period (Days)</label>
+                                        <input type="number" th:field="*{defaultCoolingPeriodDays}" placeholder="Enter days" required>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label>Administrator Staff ID</label>
+                                        <input type="number" th:field="*{staffId}" placeholder="Enter blood administrator staff ID" required>
+                                    </div>
+
+                                    <button type="submit" class="submit-btn">Create Rule</button>
+                                </div>
+                            </form>
+                        </article>
+                    </section>
+                </div>
+            </main>
+        </div>
+    </div>
+</div>
+<script th:src="@{/js/dashboard-layout.js}"></script>
+</body>
+</html>

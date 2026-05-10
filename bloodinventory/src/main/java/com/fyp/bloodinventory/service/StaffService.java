@@ -1,5 +1,9 @@
 package com.fyp.bloodinventory.service;
 
+import com.fyp.bloodinventory.config.PasswordHashSupport;
+import com.fyp.bloodinventory.dto.StaffManagementRequest;
+import com.fyp.bloodinventory.dto.StaffProfileDto;
+import com.fyp.bloodinventory.dto.StaffProfileUpdateRequest;
 import com.fyp.bloodinventory.dto.StaffRegistrationRequest;
 import com.fyp.bloodinventory.entity.BloodAdministrator;
 import com.fyp.bloodinventory.entity.LabTechnician;
@@ -10,99 +14,612 @@ import com.fyp.bloodinventory.repository.BloodAdministratorRepository;
 import com.fyp.bloodinventory.repository.LabTechnicianRepository;
 import com.fyp.bloodinventory.repository.MedicalStaffRepository;
 import com.fyp.bloodinventory.repository.StaffRepository;
+import org.springframework.data.domain.Sort;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.lang.NonNull;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 @Service
 public class StaffService {
+
+    private static final String DEFAULT_PHOTO = "staff/default.png";
 
     private final StaffRepository staffRepository;
     private final MedicalStaffRepository medicalStaffRepository;
     private final LabTechnicianRepository labTechnicianRepository;
     private final BloodAdministratorRepository bloodAdministratorRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JdbcTemplate jdbcTemplate;
 
-    public StaffService(
-            StaffRepository staffRepository,
-            MedicalStaffRepository medicalStaffRepository,
-            LabTechnicianRepository labTechnicianRepository,
-            BloodAdministratorRepository bloodAdministratorRepository,
-            PasswordEncoder passwordEncoder
-    ) {
+    public StaffService(StaffRepository staffRepository,
+                        MedicalStaffRepository medicalStaffRepository,
+                        LabTechnicianRepository labTechnicianRepository,
+                        BloodAdministratorRepository bloodAdministratorRepository,
+                        PasswordEncoder passwordEncoder,
+                        JdbcTemplate jdbcTemplate) {
         this.staffRepository = staffRepository;
         this.medicalStaffRepository = medicalStaffRepository;
         this.labTechnicianRepository = labTechnicianRepository;
         this.bloodAdministratorRepository = bloodAdministratorRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Transactional
-    public Staff registerStaff(StaffRegistrationRequest request) {
-        if (staffRepository.existsByUsername(request.getUsername())) {
-            throw new RuntimeException("Username already exists");
-        }
+    public void registerStaff(StaffRegistrationRequest request, MultipartFile photoFile) throws Exception {
+        StaffRole staffType = requireStaffType(request.getStaffType());
+        String fullName = requireText(request.getFullName(), "Please enter the staff member's full name.");
+        String username = requireText(request.getUsername(), "Please enter a username.");
+        String password = requirePassword(request.getPassword(), true);
+        String icNumber = requireText(request.getIcNumber(), "Please enter the IC number.");
+        String gender = requireText(request.getGender(), "Please select a gender.");
+        String email = trimToNull(request.getEmail());
+        String phoneNo = trimToNull(request.getPhoneNo());
 
-        if (staffRepository.existsByIcNumber(request.getIcNumber())) {
-            throw new RuntimeException("IC number already exists");
-        }
-
-        if (request.getEmail() != null && !request.getEmail().isBlank()
-                && staffRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email already exists");
-        }
-
-        if (request.getStaffType() == null) {
-            throw new RuntimeException("Staff role is required");
-        }
+        validateAccountUniqueness(username, icNumber, email, null);
+        validateRoleSpecificDetails(staffType, request.getLicenseNo(), request.getPosition(),
+                request.getCertificationNo(), request.getDepartment(), null);
 
         Staff staff = new Staff();
-        staff.setFullName(request.getFullName());
-        staff.setUsername(request.getUsername());
-        staff.setPassword(passwordEncoder.encode(request.getPassword()));
-        staff.setPhoneNo(request.getPhoneNo());
-        staff.setIcNumber(request.getIcNumber());
-        staff.setGender(request.getGender());
-        staff.setEmail(request.getEmail());
-        staff.setStaffType(request.getStaffType());
+        staff.setStaffType(staffType);
+        staff.setFullName(fullName);
+        staff.setUsername(username);
+        staff.setPassword(prepareStoredPassword(password));
+        staff.setPhoneNo(phoneNo);
+        staff.setIcNumber(icNumber);
+        staff.setGender(gender.toUpperCase());
+        staff.setEmail(email);
+        staff.setActive(Boolean.TRUE);
+        staff.setLocked(Boolean.FALSE);
+        staff.setProfilePhoto(storeProfilePhoto(photoFile, username));
 
         Staff savedStaff = staffRepository.save(staff);
+        syncRoleSpecificDetails(savedStaff, staffType, request.getLicenseNo(), request.getPosition(),
+                request.getCertificationNo(), request.getDepartment());
+    }
 
-        if (request.getStaffType() == StaffRole.MEDICAL_STAFF) {
-            if (request.getLicenseNo() == null || request.getLicenseNo().isBlank()) {
-                throw new RuntimeException("License number is required for medical staff");
-            }
-            if (request.getPosition() == null || request.getPosition().isBlank()) {
-                throw new RuntimeException("Position is required for medical staff");
-            }
+    public List<StaffProfileDto> getAllStaffProfiles() {
+        List<Staff> staffList = staffRepository.findAll(Sort.by(Sort.Direction.ASC, "fullName"));
+        List<StaffProfileDto> profiles = new ArrayList<>();
 
-            MedicalStaff medicalStaff = new MedicalStaff();
-            medicalStaff.setStaff(savedStaff);
-            medicalStaff.setLicenseNo(request.getLicenseNo());
-            medicalStaff.setPosition(request.getPosition());
-            medicalStaffRepository.save(medicalStaff);
-
-        } else if (request.getStaffType() == StaffRole.LAB_TECHNICIAN) {
-            if (request.getCertificationNo() == null || request.getCertificationNo().isBlank()) {
-                throw new RuntimeException("Certification number is required for lab technician");
-            }
-
-            LabTechnician labTechnician = new LabTechnician();
-            labTechnician.setStaff(savedStaff);
-            labTechnician.setCertificationNo(request.getCertificationNo());
-            labTechnicianRepository.save(labTechnician);
-
-        } else if (request.getStaffType() == StaffRole.BLOOD_ADMINISTRATOR) {
-            if (request.getDepartment() == null || request.getDepartment().isBlank()) {
-                throw new RuntimeException("Department is required for blood administrator");
-            }
-
-            BloodAdministrator admin = new BloodAdministrator();
-            admin.setStaff(savedStaff);
-            admin.setDepartment(request.getDepartment());
-            bloodAdministratorRepository.save(admin);
+        for (Staff staff : staffList) {
+            profiles.add(buildStaffProfile(staff));
         }
 
-        return savedStaff;
+        return profiles;
+    }
+
+    public StaffProfileDto getStaffProfileByUsername(@NonNull String username) {
+        Staff staff = findStaffByUsername(username);
+        return buildStaffProfile(staff);
+    }
+
+    public StaffProfileUpdateRequest getProfileUpdateRequestByUsername(@NonNull String username) {
+        Staff staff = findStaffByUsername(username);
+        StaffProfileUpdateRequest request = new StaffProfileUpdateRequest();
+
+        request.setFullName(emptyText(staff.getFullName()));
+        request.setPhoneNo(emptyText(staff.getPhoneNo()));
+        request.setEmail(emptyText(staff.getEmail()));
+        request.setGender(emptyText(staff.getGender()));
+        return request;
+    }
+
+    public void updateOwnProfile(@NonNull String username, StaffProfileUpdateRequest request) {
+        Staff staff = findStaffByUsername(username);
+
+        String fullName = requireText(request.getFullName(), "Please enter your full name.");
+        String email = requireText(request.getEmail(), "Please enter your email address.");
+        String gender = requireText(request.getGender(), "Please select your gender.");
+        String phoneNo = trimToNull(request.getPhoneNo());
+
+        String currentEmail = emptyText(staff.getEmail());
+        if (!currentEmail.equalsIgnoreCase(email) && staffRepository.existsByEmail(email)) {
+            throw new RuntimeException("Email already exists.");
+        }
+
+        staff.setFullName(fullName);
+        staff.setEmail(email);
+        staff.setPhoneNo(phoneNo);
+        staff.setGender(gender.toUpperCase());
+        staffRepository.save(staff);
+    }
+
+    @Transactional
+    public void updateStaff(@NonNull Long staffId, StaffManagementRequest request, String currentUsername) {
+        Long requiredStaffId = Objects.requireNonNull(staffId, "Staff ID must not be null.");
+        Staff staff = findStaffById(requiredStaffId);
+
+        StaffRole staffType = requireStaffType(request.getStaffType());
+        String fullName = requireText(request.getFullName(), "Please enter the staff member's full name.");
+        String username = requireText(request.getUsername(), "Please enter a username.");
+        String icNumber = requireText(request.getIcNumber(), "Please enter the IC number.");
+        String gender = requireText(request.getGender(), "Please select a gender.");
+        String email = trimToNull(request.getEmail());
+        String phoneNo = trimToNull(request.getPhoneNo());
+        boolean active = !Boolean.FALSE.equals(request.getActive());
+
+        boolean editingOwnAccount = isCurrentUser(staff, currentUsername);
+        if (editingOwnAccount) {
+            if (!staff.getUsername().equalsIgnoreCase(username)) {
+                throw new RuntimeException("Use My Profile to change your own username.");
+            }
+
+            if (staff.getStaffType() != staffType) {
+                throw new RuntimeException("Use another administrator account to change your own role.");
+            }
+
+            if (!active) {
+                throw new RuntimeException("You cannot deactivate your own account from staff management.");
+            }
+        }
+
+        validateAccountUniqueness(username, icNumber, email, requiredStaffId);
+        validateRoleSpecificDetails(staffType, request.getLicenseNo(), request.getPosition(),
+                request.getCertificationNo(), request.getDepartment(), requiredStaffId);
+
+        staff.setFullName(fullName);
+        staff.setUsername(username);
+        staff.setPhoneNo(phoneNo);
+        staff.setIcNumber(icNumber);
+        staff.setGender(gender.toUpperCase());
+        staff.setEmail(email);
+        staff.setStaffType(staffType);
+
+        String password = trimToNull(request.getPassword());
+        if (password != null) {
+            staff.setPassword(prepareStoredPassword(requirePassword(password, false)));
+        }
+
+        staffRepository.save(staff);
+        syncRoleSpecificDetails(staff, staffType, request.getLicenseNo(), request.getPosition(),
+                request.getCertificationNo(), request.getDepartment());
+        applyAccountStatus(requiredStaffId, active);
+    }
+
+    @Transactional
+    public void deleteStaff(@NonNull Long staffId, String currentUsername) {
+        Long requiredStaffId = Objects.requireNonNull(staffId, "Staff ID must not be null.");
+        Staff staff = findStaffById(requiredStaffId);
+
+        if (isCurrentUser(staff, currentUsername)) {
+            throw new RuntimeException("You cannot delete your own account from staff management.");
+        }
+
+        deleteStaffRecord(staff);
+    }
+
+    @Transactional
+    public int deleteSelectedStaff(List<Long> staffIds, String currentUsername) {
+        List<Long> uniqueStaffIds = uniqueStaffIds(staffIds);
+        if (uniqueStaffIds.isEmpty()) {
+            throw new RuntimeException("Select at least one staff record to delete.");
+        }
+
+        List<Staff> selectedStaff = new ArrayList<>();
+        for (Long selectedStaffId : uniqueStaffIds) {
+            Long requiredStaffId = Objects.requireNonNull(selectedStaffId, "Staff ID must not be null.");
+            selectedStaff.add(findStaffById(requiredStaffId));
+        }
+
+        for (Staff staff : selectedStaff) {
+            if (isCurrentUser(staff, currentUsername)) {
+                throw new RuntimeException("Deselect your own account before deleting staff records.");
+            }
+        }
+
+        selectedStaff.forEach(this::deleteStaffRecord);
+        return selectedStaff.size();
+    }
+
+    public void updateStaffPhoto(@NonNull Long staffId, MultipartFile photoFile) throws Exception {
+        Long requiredStaffId = Objects.requireNonNull(staffId, "Staff ID must not be null.");
+        Staff staff = findStaffById(requiredStaffId);
+        updateProfilePhoto(staff, photoFile);
+    }
+
+    public void updateStaffPhotoByUsername(@NonNull String username, MultipartFile photoFile) throws Exception {
+        Staff staff = findStaffByUsername(username);
+        updateProfilePhoto(staff, photoFile);
+    }
+
+    private void updateProfilePhoto(Staff staff, MultipartFile photoFile) throws Exception {
+        Long staffId = requireStaffId(staff);
+
+        if (photoFile == null || photoFile.isEmpty()) {
+            throw new RuntimeException("Please select an image file.");
+        }
+
+        String newFileName = storeUploadedFile(photoFile, "staff_" + staffId);
+        deleteProfilePhotoFile(staff.getProfilePhoto());
+
+        staff.setProfilePhoto("staff/" + newFileName);
+        staffRepository.save(staff);
+    }
+
+    private StaffProfileDto buildStaffProfile(Staff staff) {
+        Long staffId = requireStaffId(staff);
+        StaffProfileDto profile = new StaffProfileDto();
+
+        profile.setStaffId(staffId);
+        profile.setFullName(defaultText(staff.getFullName()));
+        profile.setUsername(defaultText(staff.getUsername()));
+        profile.setEmail(defaultText(staff.getEmail()));
+        profile.setPhoneNo(defaultText(staff.getPhoneNo()));
+        profile.setIcNumber(defaultText(staff.getIcNumber()));
+        profile.setGender(emptyText(staff.getGender()));
+        profile.setGenderLabel(formatTextValue(staff.getGender()));
+        profile.setStaffType(staff.getStaffType());
+        profile.setInitials(buildInitials(staff.getFullName()));
+        profile.setActive(!Boolean.FALSE.equals(staff.getActive()));
+        profile.setLocked(Boolean.TRUE.equals(staff.getLocked()));
+
+        if (!profile.getActive()) {
+            profile.setStatusLabel("Inactive");
+            profile.setStatusAccentClass("inactive");
+        } else if (profile.getLocked()) {
+            profile.setStatusLabel("Locked");
+            profile.setStatusAccentClass("locked");
+        } else {
+            profile.setStatusLabel("Active");
+            profile.setStatusAccentClass("active");
+        }
+
+        if (staff.getProfilePhoto() != null
+                && !staff.getProfilePhoto().isBlank()
+                && !DEFAULT_PHOTO.equals(staff.getProfilePhoto())) {
+            profile.setPhotoUrl("/" + staff.getProfilePhoto().replace("\\", "/"));
+        }
+
+        if (staff.getStaffType() == StaffRole.BLOOD_ADMINISTRATOR) {
+            profile.setStaffTypeLabel("Blood Administrator");
+            profile.setRoleAccentClass("administrator");
+
+            bloodAdministratorRepository.findById(staffId).ifPresent(admin -> {
+                profile.setDepartment(emptyText(admin.getDepartment()));
+                profile.setPrimaryDetailLabel("Department");
+                profile.setPrimaryDetailValue(defaultText(admin.getDepartment()));
+            });
+        } else if (staff.getStaffType() == StaffRole.MEDICAL_STAFF) {
+            profile.setStaffTypeLabel("Medical Staff");
+            profile.setRoleAccentClass("medical");
+
+            medicalStaffRepository.findById(staffId).ifPresent(medical -> {
+                profile.setLicenseNo(emptyText(medical.getLicenseNo()));
+                profile.setPosition(emptyText(medical.getPosition()));
+                profile.setPrimaryDetailLabel("License No");
+                profile.setPrimaryDetailValue(defaultText(medical.getLicenseNo()));
+                profile.setSecondaryDetailLabel("Position");
+                profile.setSecondaryDetailValue(defaultText(medical.getPosition()));
+            });
+        } else if (staff.getStaffType() == StaffRole.LAB_TECHNICIAN) {
+            profile.setStaffTypeLabel("Lab Technician");
+            profile.setRoleAccentClass("lab");
+
+            labTechnicianRepository.findById(staffId).ifPresent(lab -> {
+                profile.setCertificationNo(emptyText(lab.getCertificationNo()));
+                profile.setPrimaryDetailLabel("Certification No");
+                profile.setPrimaryDetailValue(defaultText(lab.getCertificationNo()));
+            });
+        } else {
+            profile.setStaffTypeLabel("Staff");
+            profile.setRoleAccentClass("lab");
+        }
+
+        return profile;
+    }
+
+    private void validateAccountUniqueness(String username, String icNumber, String email, Long staffId) {
+        boolean duplicateUsername = staffId == null
+                ? staffRepository.existsByUsername(username)
+                : staffRepository.existsByUsernameAndStaffIdNot(username, staffId);
+        if (duplicateUsername) {
+            throw new RuntimeException("Username already exists.");
+        }
+
+        boolean duplicateIcNumber = staffId == null
+                ? staffRepository.existsByIcNumber(icNumber)
+                : staffRepository.existsByIcNumberAndStaffIdNot(icNumber, staffId);
+        if (duplicateIcNumber) {
+            throw new RuntimeException("IC number already exists.");
+        }
+
+        if (email != null) {
+            boolean duplicateEmail = staffId == null
+                    ? staffRepository.existsByEmail(email)
+                    : staffRepository.existsByEmailAndStaffIdNot(email, staffId);
+            if (duplicateEmail) {
+                throw new RuntimeException("Email already exists.");
+            }
+        }
+    }
+
+    private void validateRoleSpecificDetails(StaffRole staffType,
+                                             String licenseNo,
+                                             String position,
+                                             String certificationNo,
+                                             String department,
+                                             Long staffId) {
+        if (staffType == StaffRole.MEDICAL_STAFF) {
+            String normalizedLicenseNo = requireText(licenseNo, "Please enter the medical license number.");
+            requireText(position, "Please enter the medical staff position.");
+
+            boolean duplicateLicenseNo = staffId == null
+                    ? medicalStaffRepository.existsByLicenseNo(normalizedLicenseNo)
+                    : medicalStaffRepository.existsByLicenseNoAndStaffIdNot(normalizedLicenseNo, staffId);
+            if (duplicateLicenseNo) {
+                throw new RuntimeException("Medical license number already exists.");
+            }
+            return;
+        }
+
+        if (staffType == StaffRole.LAB_TECHNICIAN) {
+            String normalizedCertificationNo = requireText(certificationNo,
+                    "Please enter the laboratory certification number.");
+
+            boolean duplicateCertificationNo = staffId == null
+                    ? labTechnicianRepository.existsByCertificationNo(normalizedCertificationNo)
+                    : labTechnicianRepository.existsByCertificationNoAndStaffIdNot(normalizedCertificationNo, staffId);
+            if (duplicateCertificationNo) {
+                throw new RuntimeException("Laboratory certification number already exists.");
+            }
+            return;
+        }
+
+        requireText(department, "Please enter the administrator department.");
+    }
+
+    private void syncRoleSpecificDetails(Staff staff,
+                                         StaffRole staffType,
+                                         String licenseNo,
+                                         String position,
+                                         String certificationNo,
+                                         String department) {
+        Long staffId = requireStaffId(staff);
+
+        if (staffType == StaffRole.MEDICAL_STAFF) {
+            labTechnicianRepository.findById(staffId).ifPresent(labTechnicianRepository::delete);
+            bloodAdministratorRepository.findById(staffId).ifPresent(bloodAdministratorRepository::delete);
+
+            MedicalStaff medicalStaff = medicalStaffRepository.findById(staffId).orElseGet(MedicalStaff::new);
+            medicalStaff.setStaff(staff);
+            medicalStaff.setLicenseNo(requireText(licenseNo, "Please enter the medical license number."));
+            medicalStaff.setPosition(requireText(position, "Please enter the medical staff position."));
+            medicalStaffRepository.save(medicalStaff);
+            return;
+        }
+
+        if (staffType == StaffRole.LAB_TECHNICIAN) {
+            medicalStaffRepository.findById(staffId).ifPresent(medicalStaffRepository::delete);
+            bloodAdministratorRepository.findById(staffId).ifPresent(bloodAdministratorRepository::delete);
+
+            LabTechnician labTechnician = labTechnicianRepository.findById(staffId).orElseGet(LabTechnician::new);
+            labTechnician.setStaff(staff);
+            labTechnician.setCertificationNo(requireText(certificationNo,
+                    "Please enter the laboratory certification number."));
+            labTechnicianRepository.save(labTechnician);
+            return;
+        }
+
+        medicalStaffRepository.findById(staffId).ifPresent(medicalStaffRepository::delete);
+        labTechnicianRepository.findById(staffId).ifPresent(labTechnicianRepository::delete);
+
+        BloodAdministrator administrator = bloodAdministratorRepository.findById(staffId)
+                .orElseGet(BloodAdministrator::new);
+        administrator.setStaff(staff);
+        administrator.setDepartment(requireText(department, "Please enter the administrator department."));
+        bloodAdministratorRepository.save(administrator);
+    }
+
+    private void deleteRoleSpecificDetails(@NonNull Long staffId) {
+        medicalStaffRepository.findById(staffId).ifPresent(medicalStaffRepository::delete);
+        labTechnicianRepository.findById(staffId).ifPresent(labTechnicianRepository::delete);
+        bloodAdministratorRepository.findById(staffId).ifPresent(bloodAdministratorRepository::delete);
+    }
+
+    private void deleteStaffRecord(Staff staff) {
+        Long staffId = requireStaffId(staff);
+        deleteRoleSpecificDetails(staffId);
+        deleteProfilePhotoFile(staff.getProfilePhoto());
+        staffRepository.delete(staff);
+    }
+
+    private List<Long> uniqueStaffIds(List<Long> staffIds) {
+        List<Long> uniqueStaffIds = new ArrayList<>();
+        if (staffIds == null) {
+            return uniqueStaffIds;
+        }
+
+        for (Long staffId : staffIds) {
+            if (staffId != null && !uniqueStaffIds.contains(staffId)) {
+                uniqueStaffIds.add(staffId);
+            }
+        }
+
+        return uniqueStaffIds;
+    }
+
+    private void applyAccountStatus(@NonNull Long staffId, boolean active) {
+        jdbcTemplate.update("CALL sp_set_staff_account_status(?, ?)", staffId, active);
+    }
+
+    private String storeProfilePhoto(MultipartFile photoFile, String filePrefix) throws Exception {
+        if (photoFile == null || photoFile.isEmpty()) {
+            return DEFAULT_PHOTO;
+        }
+
+        return "staff/" + storeUploadedFile(photoFile, filePrefix);
+    }
+
+    private String storeUploadedFile(MultipartFile photoFile, String filePrefix) throws Exception {
+        Path uploadDir = Paths.get("uploads", "staff").toAbsolutePath().normalize();
+        Files.createDirectories(uploadDir);
+
+        String originalFilename = photoFile.getOriginalFilename();
+        String extension = "";
+
+        if (originalFilename != null && originalFilename.contains(".")) {
+            extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+        }
+
+        String newFileName = filePrefix + "_" + System.currentTimeMillis() + extension;
+        Path destination = uploadDir.resolve(newFileName);
+        File destinationFile = Objects.requireNonNull(destination.toFile(), "Destination file must not be null.");
+        photoFile.transferTo(destinationFile);
+        return newFileName;
+    }
+
+    private void deleteProfilePhotoFile(String photoPath) {
+        if (photoPath == null || photoPath.isBlank() || DEFAULT_PHOTO.equals(photoPath)) {
+            return;
+        }
+
+        File oldFile = Paths.get("uploads").resolve(photoPath).toAbsolutePath().normalize().toFile();
+        if (oldFile.exists()) {
+            oldFile.delete();
+        }
+    }
+
+    private @NonNull Long requireStaffId(Staff staff) {
+        return Objects.requireNonNull(staff.getStaffId(), "Staff ID must not be null.");
+    }
+
+    private Staff findStaffById(@NonNull Long staffId) {
+        return staffRepository.findById(staffId)
+                .orElseThrow(() -> new RuntimeException("Staff not found."));
+    }
+
+    private Staff findStaffByUsername(@NonNull String username) {
+        return staffRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Staff not found."));
+    }
+
+    private boolean isCurrentUser(Staff staff, String currentUsername) {
+        return currentUsername != null && currentUsername.equalsIgnoreCase(emptyText(staff.getUsername()));
+    }
+
+    private String defaultText(String value) {
+        if (value == null || value.isBlank()) {
+            return "Not provided";
+        }
+
+        return value;
+    }
+
+    private String emptyText(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private StaffRole requireStaffType(StaffRole staffType) {
+        if (staffType == null) {
+            throw new RuntimeException("Please select a staff role.");
+        }
+
+        return staffType;
+    }
+
+    private String requirePassword(String password, boolean required) {
+        String normalizedPassword = trimToNull(password);
+        if (normalizedPassword == null) {
+            if (required) {
+                throw new RuntimeException("Please enter a password.");
+            }
+            return null;
+        }
+
+        if (normalizedPassword.length() < 8) {
+            throw new RuntimeException("Password must contain at least 8 characters.");
+        }
+
+        return normalizedPassword;
+    }
+
+    private String prepareStoredPassword(String password) {
+        String normalizedPassword = PasswordHashSupport.normalizeStoredPassword(password);
+        if (PasswordHashSupport.isBcryptHash(normalizedPassword)) {
+            return normalizedPassword;
+        }
+
+        return passwordEncoder.encode(normalizedPassword);
+    }
+
+    private String requireText(String value, String message) {
+        String normalized = trimToNull(value);
+        if (normalized == null) {
+            throw new RuntimeException(message);
+        }
+
+        return normalized;
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+
+        String normalized = value.trim();
+        return normalized.isEmpty() ? null : normalized;
+    }
+
+    private String formatTextValue(String value) {
+        if (value == null || value.isBlank()) {
+            return "Not provided";
+        }
+
+        String[] words = value.toLowerCase().split("_");
+        StringBuilder builder = new StringBuilder();
+
+        for (String word : words) {
+            if (word.isBlank()) {
+                continue;
+            }
+
+            if (builder.length() > 0) {
+                builder.append(' ');
+            }
+
+            builder.append(Character.toUpperCase(word.charAt(0)));
+            if (word.length() > 1) {
+                builder.append(word.substring(1));
+            }
+        }
+
+        return builder.toString();
+    }
+
+    private String buildInitials(String fullName) {
+        if (fullName == null || fullName.isBlank()) {
+            return "SP";
+        }
+
+        String[] parts = fullName.trim().split("\\s+");
+        StringBuilder initials = new StringBuilder();
+
+        for (String part : parts) {
+            if (!part.isBlank()) {
+                initials.append(Character.toUpperCase(part.charAt(0)));
+            }
+
+            if (initials.length() == 2) {
+                break;
+            }
+        }
+
+        if (initials.length() == 0) {
+            return "SP";
+        }
+
+        return initials.toString();
     }
 }

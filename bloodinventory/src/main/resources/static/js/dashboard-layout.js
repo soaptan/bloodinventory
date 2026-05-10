@@ -1,6 +1,20 @@
 (() => {
     const STORAGE_KEY = "bloodinventory.dashboard.sidebarCollapsed";
+    const THEME_STORAGE_KEY = "bloodinventory.dashboard.theme";
     const mobileQuery = window.matchMedia("(max-width: 920px)");
+    const themeQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+    function loadSystemPreferences() {
+        if (document.querySelector("link[data-system-preferences]")) {
+            return;
+        }
+
+        const link = document.createElement("link");
+        link.rel = "stylesheet";
+        link.href = "/css/system-preferences.css";
+        link.dataset.systemPreferences = "true";
+        document.head.appendChild(link);
+    }
 
     function readStoredCollapsed() {
         try {
@@ -10,12 +24,81 @@
         }
     }
 
+    loadSystemPreferences();
+
     function writeStoredCollapsed(collapsed) {
         try {
             window.localStorage.setItem(STORAGE_KEY, String(collapsed));
         } catch (error) {
             // Ignore storage failures and keep the UI working.
         }
+    }
+
+    function readStoredTheme() {
+        try {
+            const theme = window.localStorage.getItem(THEME_STORAGE_KEY);
+            return theme === "dark" || theme === "light" ? theme : null;
+        } catch (error) {
+            return null;
+        }
+    }
+
+    function writeStoredTheme(isDark) {
+        try {
+            window.localStorage.setItem(THEME_STORAGE_KEY, isDark ? "dark" : "light");
+        } catch (error) {
+            // Ignore storage failures and keep the UI working.
+        }
+    }
+
+    function isDarkThemeActive() {
+        const storedTheme = readStoredTheme();
+        if (storedTheme !== null) {
+            return storedTheme === "dark";
+        }
+
+        return themeQuery.matches;
+    }
+
+    function updateThemeButtons(isDark) {
+        const nextLabel = isDark ? "Switch to light mode" : "Switch to dark mode";
+
+        document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
+            if (!(button instanceof HTMLButtonElement)) {
+                return;
+            }
+
+            button.classList.toggle("is-dark", isDark);
+            button.setAttribute("aria-pressed", String(isDark));
+            button.setAttribute("aria-label", nextLabel);
+            button.title = nextLabel;
+
+            const labelTarget = button.querySelector("[data-theme-toggle-label]");
+            if (labelTarget instanceof HTMLElement) {
+                labelTarget.textContent = nextLabel;
+            }
+        });
+    }
+
+    function applyTheme(isDark) {
+        document.body.classList.toggle("theme-dark", isDark);
+        updateThemeButtons(isDark);
+    }
+
+    function initThemeToggle() {
+        applyTheme(isDarkThemeActive());
+
+        document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
+            if (!(button instanceof HTMLButtonElement)) {
+                return;
+            }
+
+            button.addEventListener("click", () => {
+                const nextIsDark = !document.body.classList.contains("theme-dark");
+                writeStoredTheme(nextIsDark);
+                applyTheme(nextIsDark);
+            });
+        });
     }
 
     function updateButtons(app, expanded) {
@@ -85,6 +168,102 @@
         });
     }
 
+    function initProfileMenu(app) {
+        const menus = app.querySelectorAll("[data-profile-menu]");
+
+        if (!menus.length) {
+            return;
+        }
+
+        const closeMenus = () => {
+            menus.forEach((menu) => {
+                menu.classList.remove("open");
+
+                const toggle = menu.querySelector("[data-profile-toggle]");
+                if (toggle instanceof HTMLElement) {
+                    toggle.setAttribute("aria-expanded", "false");
+                }
+            });
+        };
+
+        menus.forEach((menu) => {
+            const toggle = menu.querySelector("[data-profile-toggle]");
+            const panel = menu.querySelector("[data-profile-panel]");
+
+            if (!(toggle instanceof HTMLButtonElement) || !(panel instanceof HTMLElement)) {
+                return;
+            }
+
+            toggle.addEventListener("click", (event) => {
+                event.stopPropagation();
+                const willOpen = !menu.classList.contains("open");
+                closeMenus();
+                menu.classList.toggle("open", willOpen);
+                toggle.setAttribute("aria-expanded", String(willOpen));
+            });
+
+            panel.addEventListener("click", (event) => {
+                event.stopPropagation();
+            });
+        });
+
+        document.addEventListener("click", closeMenus);
+
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") {
+                closeMenus();
+            }
+        });
+    }
+
+    function initNotificationMenu(app) {
+        const menus = app.querySelectorAll("[data-notification-menu]");
+
+        if (!menus.length) {
+            return;
+        }
+
+        const closeMenus = () => {
+            menus.forEach((menu) => {
+                menu.classList.remove("open");
+
+                const toggle = menu.querySelector("[data-notification-toggle]");
+                if (toggle instanceof HTMLElement) {
+                    toggle.setAttribute("aria-expanded", "false");
+                }
+            });
+        };
+
+        menus.forEach((menu) => {
+            const toggle = menu.querySelector("[data-notification-toggle]");
+            const panel = menu.querySelector("[data-notification-panel]");
+
+            if (!(toggle instanceof HTMLButtonElement) || !(panel instanceof HTMLElement)) {
+                return;
+            }
+
+            toggle.addEventListener("click", (event) => {
+                event.stopPropagation();
+                const willOpen = !menu.classList.contains("open");
+                closeMenus();
+                menu.classList.toggle("open", willOpen);
+                toggle.setAttribute("aria-expanded", String(willOpen));
+            });
+
+            panel.addEventListener("click", (event) => {
+                event.stopPropagation();
+            });
+        });
+
+        document.addEventListener("click", closeMenus);
+
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") {
+                closeMenus();
+            }
+        });
+    }
+
     function initDashboardApp(app) {
         if (!(app instanceof HTMLElement)) {
             return;
@@ -96,6 +275,8 @@
 
         syncState(app);
         initSearch(app);
+        initProfileMenu(app);
+        initNotificationMenu(app);
 
         app.querySelectorAll("[data-sidebar-toggle]").forEach((button) => {
             button.addEventListener("click", () => {
@@ -119,6 +300,8 @@
         });
     }
 
+    initThemeToggle();
+
     document.querySelectorAll(".dashboard-app").forEach(initDashboardApp);
 
     mobileQuery.addEventListener("change", (event) => {
@@ -136,5 +319,13 @@
 
             syncState(app);
         });
+    });
+
+    themeQuery.addEventListener("change", (event) => {
+        if (readStoredTheme() !== null) {
+            return;
+        }
+
+        applyTheme(event.matches);
     });
 })();

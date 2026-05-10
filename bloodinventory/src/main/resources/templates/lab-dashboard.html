@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" th:href="@{/css/dashboard-layout.css}">
+    <link rel="stylesheet" th:href="@{/css/medical-workflow.css}">
     <style>
         .main-stack {
             display: grid;
@@ -59,6 +60,21 @@
             font-weight: 700;
         }
 
+        body.theme-dark .hero-card h1,
+        body.theme-dark .workflow-card h2 {
+            color: #e8f1fb;
+        }
+
+        body.theme-dark .hero-card p,
+        body.theme-dark .workflow-card p,
+        body.theme-dark .eyebrow {
+            color: #93a7c1;
+        }
+
+        body.theme-dark .workflow-card a {
+            color: #6bb6ff;
+        }
+
         @media (max-width: 720px) {
             .workflow-grid {
                 grid-template-columns: 1fr;
@@ -104,9 +120,7 @@
                 </div>
             </form>
 
-            <div class="app-actions">
-                <span class="header-chip">Lab Technician Workspace</span>
-            </div>
+            <div class="app-actions" th:replace="fragments/header-actions :: adminProfileMenu"></div>
         </header>
 
         <div class="layout">
@@ -123,6 +137,25 @@
                         <div class="eyebrow">Dashboard</div>
                         <h1>Lab Technician Dashboard</h1>
                         <p>Monitor pending tests, validate screening outcomes, and keep blood component traceability records organized.</p>
+                    </section>
+
+                    <section class="medical-stat-grid">
+                        <article class="medical-stat-card page-card" data-search-item>
+                            <div class="medical-stat-label">Pending Tests</div>
+                            <div class="medical-stat-value" th:text="${labSummary.pendingTests}">0</div>
+                        </article>
+                        <article class="medical-stat-card page-card" data-search-item>
+                            <div class="medical-stat-label">Completed Tests</div>
+                            <div class="medical-stat-value" th:text="${labSummary.completedTests}">0</div>
+                        </article>
+                        <article class="medical-stat-card page-card" data-search-item>
+                            <div class="medical-stat-label">Safe Components</div>
+                            <div class="medical-stat-value" th:text="${labSummary.safeComponents}">0</div>
+                        </article>
+                        <article class="medical-stat-card page-card" data-search-item>
+                            <div class="medical-stat-label">Discarded Components</div>
+                            <div class="medical-stat-value" th:text="${labSummary.discardedComponents}">0</div>
+                        </article>
                     </section>
 
                     <section class="workflow-grid">
@@ -148,6 +181,72 @@
                             <h2>Traceability</h2>
                             <p>Track blood unit movement from testing through storage and final downstream usage.</p>
                             <a th:href="@{/lab/traceability}">Open traceability</a>
+                        </article>
+                    </section>
+
+                    <section class="two-column-grid">
+                        <article class="workflow-card page-card" data-search-item>
+                            <div class="section-title">
+                                <div>
+                                    <h2>Pending Queue</h2>
+                                    <p th:text="${#lists.size(pendingTests)} + ' samples awaiting screening'">0 samples awaiting screening</p>
+                                </div>
+                            </div>
+                            <div class="empty-state" th:if="${#lists.isEmpty(pendingTests)}">No donations are waiting for lab screening.</div>
+                            <div class="table-wrap" th:if="${!#lists.isEmpty(pendingTests)}">
+                                <table class="workflow-table">
+                                    <thead>
+                                    <tr>
+                                        <th>Donation</th>
+                                        <th>Donor</th>
+                                        <th>Group</th>
+                                        <th>Components</th>
+                                        <th>Status</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr th:each="test : ${pendingTests}">
+                                        <td th:text="${test.donationId}">1</td>
+                                        <td th:text="${test.donorName}">Donor</td>
+                                        <td><span class="status-pill neutral" th:text="${test.bloodGroup}">A+</span></td>
+                                        <td th:text="${test.componentTypes}">RBC</td>
+                                        <td><span class="status-pill warn" th:text="${test.finalStatus}">PENDING</span></td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </article>
+
+                        <article class="workflow-card page-card" data-search-item>
+                            <div class="section-title">
+                                <div>
+                                    <h2>Recent Lab Results</h2>
+                                    <p th:text="${#lists.size(recentLabTests)} + ' latest records'">0 latest records</p>
+                                </div>
+                            </div>
+                            <div class="empty-state" th:if="${#lists.isEmpty(recentLabTests)}">No lab screening records have been saved yet.</div>
+                            <div class="table-wrap" th:if="${!#lists.isEmpty(recentLabTests)}">
+                                <table class="workflow-table">
+                                    <thead>
+                                    <tr>
+                                        <th>Test</th>
+                                        <th>Donation</th>
+                                        <th>TTI</th>
+                                        <th>Match</th>
+                                        <th>Final</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr th:each="test : ${recentLabTests}">
+                                        <td th:text="${test.testId}">1</td>
+                                        <td th:text="${test.donationId}">1</td>
+                                        <td><span class="status-pill" th:classappend="${#strings.equalsIgnoreCase(test.ttiScreening, 'NEGATIVE')} ? ' good' : (${#strings.equalsIgnoreCase(test.ttiScreening, 'POSITIVE')} ? ' bad' : ' warn')" th:text="${test.ttiScreening}">NEGATIVE</span></td>
+                                        <td><span class="status-pill" th:classappend="${#strings.equalsIgnoreCase(test.bloodTypeMatch, 'MATCHED')} ? ' good' : (${#strings.equalsIgnoreCase(test.bloodTypeMatch, 'MISMATCHED')} ? ' bad' : ' warn')" th:text="${test.bloodTypeMatch}">MATCHED</span></td>
+                                        <td><span class="status-pill" th:classappend="${#strings.equalsIgnoreCase(test.finalStatus, 'SAFE')} ? ' good' : (${#strings.equalsIgnoreCase(test.finalStatus, 'DISCARDED')} ? ' bad' : ' warn')" th:text="${test.finalStatus}">SAFE</span></td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </article>
                     </section>
                 </div>

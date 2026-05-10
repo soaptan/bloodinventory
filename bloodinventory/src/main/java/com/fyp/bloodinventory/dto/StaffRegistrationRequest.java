@@ -17,6 +17,7 @@ public class StaffRegistrationRequest {
     private String position;
     private String certificationNo;
     private String department;
+    private String profilePhoto;
 
     public String getFullName() {
         return fullName;
@@ -112,5 +113,12 @@ public class StaffRegistrationRequest {
 
     public void setDepartment(String department) {
         this.department = department;
+    }
+    public String getProfilePhoto() {
+    return profilePhoto;
+    }
+
+    public void setProfilePhoto(String profilePhoto) {
+    this.profilePhoto = profilePhoto;
     }
 }

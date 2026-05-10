@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Forgot Username - Blood Inventory Management System</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" th:href="@{/css/auth-pages.css}">
+</head>
+<body>
+<div class="background-shape-left"></div>
+<div class="background-shape-right"></div>
+
+<main class="auth-card">
+    <div class="brand-badge">Blood Bank Digital Platform</div>
+    <div class="auth-header">
+        <h1>Forgot Username</h1>
+        <p>Enter the email and IC number registered with your staff account.</p>
+    </div>
+
+    <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+    <div th:if="${errorMessage}" class="alert alert-error" th:text="${errorMessage}"></div>
+
+    <form th:action="@{/forgot-username}" method="post">
+        <div class="form-group">
+            <label for="email">Registered Email</label>
+            <input id="email" name="email" type="email" autocomplete="email" required
+                   th:value="${email}" placeholder="name@bloodbank.my">
+        </div>
+        <div class="form-group">
+            <label for="icNumber">IC Number</label>
+            <input id="icNumber" name="icNumber" type="text" autocomplete="off" required
+                   th:value="${icNumber}" placeholder="850101-10-2001">
+        </div>
+        <button type="submit" class="primary-btn">Find Username</button>
+    </form>
+
+    <div class="auth-links">
+        <a th:href="@{/login}">Back to login</a>
+        <a th:href="@{/forgot-password}">Reset password</a>
+    </div>
+    <p class="security-note">For security, only active staff accounts can be recovered here.</p>
+</main>
+</body>
+</html>

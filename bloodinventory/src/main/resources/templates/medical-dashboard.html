@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" th:href="@{/css/dashboard-layout.css}">
+    <link rel="stylesheet" th:href="@{/css/medical-workflow.css}">
     <style>
         .main-stack {
             display: grid;
@@ -59,6 +60,21 @@
             font-weight: 700;
         }
 
+        body.theme-dark .hero-card h1,
+        body.theme-dark .module-card h2 {
+            color: #e8f1fb;
+        }
+
+        body.theme-dark .hero-card p,
+        body.theme-dark .module-card p,
+        body.theme-dark .eyebrow {
+            color: #93a7c1;
+        }
+
+        body.theme-dark .module-card a {
+            color: #6bb6ff;
+        }
+
         @media (max-width: 720px) {
             .module-grid {
                 grid-template-columns: 1fr;
@@ -104,9 +120,7 @@
                 </div>
             </form>
 
-            <div class="app-actions">
-                <span class="header-chip">Medical Staff Workspace</span>
-            </div>
+            <div class="app-actions" th:replace="fragments/header-actions :: adminProfileMenu"></div>
         </header>
 
         <div class="layout">
@@ -123,6 +137,25 @@
                         <div class="eyebrow">Dashboard</div>
                         <h1>Medical Staff Dashboard</h1>
                         <p>Access donor review, collection workflows, compatibility checks, and transfusion support from one coordinated workspace.</p>
+                    </section>
+
+                    <section class="medical-stat-grid">
+                        <article class="medical-stat-card page-card" data-search-item>
+                            <div class="medical-stat-label">Eligible Donors</div>
+                            <div class="medical-stat-value" th:text="${medicalSummary.eligibleDonors}">0</div>
+                        </article>
+                        <article class="medical-stat-card page-card" data-search-item>
+                            <div class="medical-stat-label">Deferred Donors</div>
+                            <div class="medical-stat-value" th:text="${medicalSummary.deferredDonors}">0</div>
+                        </article>
+                        <article class="medical-stat-card page-card" data-search-item>
+                            <div class="medical-stat-label">Available Components</div>
+                            <div class="medical-stat-value" th:text="${medicalSummary.availableComponents}">0</div>
+                        </article>
+                        <article class="medical-stat-card page-card" data-search-item>
+                            <div class="medical-stat-label">Transfusion Events</div>
+                            <div class="medical-stat-value" th:text="${medicalSummary.transfusionEvents}">0</div>
+                        </article>
                     </section>
 
                     <section class="module-grid">
@@ -148,6 +181,66 @@
                             <h2>Safe Blood Match</h2>
                             <p>Support compatibility checks and safe recommendation of suitable blood components.</p>
                             <a th:href="@{/medical/components}">Open safe blood match</a>
+                        </article>
+                    </section>
+
+                    <section class="two-column-grid">
+                        <article class="workflow-card page-card" data-search-item>
+                            <div class="section-title">
+                                <div>
+                                    <h2>Recent Collections</h2>
+                                    <p th:text="${#lists.size(recentDonations)} + ' latest sessions'">0 latest sessions</p>
+                                </div>
+                            </div>
+                            <div class="table-wrap">
+                                <table class="workflow-table">
+                                    <thead>
+                                    <tr>
+                                        <th>Donation</th>
+                                        <th>Donor</th>
+                                        <th>Group</th>
+                                        <th>Status</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr th:each="donation : ${recentDonations}">
+                                        <td th:text="${donation.donationId}">1</td>
+                                        <td th:text="${donation.donorName}">Donor</td>
+                                        <td th:text="${donation.bloodGroup}">A+</td>
+                                        <td><span class="status-pill neutral" th:text="${donation.componentStatuses}">AVAILABLE</span></td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </article>
+
+                        <article class="workflow-card page-card" data-search-item>
+                            <div class="section-title">
+                                <div>
+                                    <h2>Ready Components</h2>
+                                    <p th:text="${#lists.size(safeComponents)} + ' components'">0 components</p>
+                                </div>
+                            </div>
+                            <div class="table-wrap">
+                                <table class="workflow-table">
+                                    <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Type</th>
+                                        <th>Group</th>
+                                        <th>Status</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr th:each="component : ${safeComponents}">
+                                        <td th:text="${component.componentId}">1</td>
+                                        <td th:text="${component.componentType}">RBC</td>
+                                        <td th:text="${component.donorBloodGroup}">A+</td>
+                                        <td><span class="status-pill available" th:text="${component.status}">AVAILABLE</span></td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </article>
                     </section>
                 </div>

@@ -4,4 +4,7 @@ import com.fyp.bloodinventory.entity.LabTechnician;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface LabTechnicianRepository extends JpaRepository<LabTechnician, Long> {
+    boolean existsByCertificationNo(String certificationNo);
+
+    boolean existsByCertificationNoAndStaffIdNot(String certificationNo, Long staffId);
 }

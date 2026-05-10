@@ -22,9 +22,16 @@ public class PasswordMigrationRunner {
 
             for (Staff staff : staffList) {
                 String currentPassword = staff.getPassword();
+                String normalizedPassword = PasswordHashSupport.normalizeStoredPassword(currentPassword);
 
-                if (currentPassword != null && !currentPassword.startsWith("$2a$")) {
-                    staff.setPassword(passwordEncoder.encode(currentPassword));
+                if (normalizedPassword != null && PasswordHashSupport.isBcryptHash(normalizedPassword)) {
+                    if (!normalizedPassword.equals(currentPassword)) {
+                        staff.setPassword(normalizedPassword);
+                        staffRepository.save(staff);
+                        System.out.println("Password hash normalized for user: " + staff.getUsername());
+                    }
+                } else if (normalizedPassword != null && !normalizedPassword.isBlank()) {
+                    staff.setPassword(passwordEncoder.encode(normalizedPassword));
                     staffRepository.save(staff);
                     System.out.println("Password updated for user: " + staff.getUsername());
                 }

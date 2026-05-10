@@ -1,0 +1,2328 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Staff Management</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" th:href="@{/css/dashboard-layout.css}">
+    <style>
+        .main {
+            overflow: auto;
+        }
+
+        .main-stack {
+            display: grid;
+            gap: 14px;
+        }
+
+        .page-intro {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            padding: 18px 20px;
+        }
+
+        .page-kicker {
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #7f94ae;
+            margin-bottom: 6px;
+        }
+
+        .page-intro h1 {
+            font-size: 30px;
+            color: #1f3f67;
+            margin-bottom: 6px;
+        }
+
+        .page-intro p {
+            color: #5f7796;
+            font-size: 14px;
+            line-height: 1.55;
+            max-width: 760px;
+        }
+
+        .intro-count {
+            min-width: 150px;
+            padding: 16px 18px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #2f80ed 0%, #59a9ff 100%);
+            color: white;
+            box-shadow: 0 14px 28px rgba(52, 114, 184, 0.18);
+        }
+
+        .intro-count span {
+            display: block;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.84);
+            margin-bottom: 8px;
+        }
+
+        .intro-count strong {
+            display: block;
+            font-size: 34px;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .summary-card {
+            display: grid;
+            align-content: center;
+            min-height: 86px;
+            background: white;
+            border-radius: 20px;
+            padding: 16px 18px;
+            border: 1px solid #e5eef8;
+            box-shadow: 0 10px 24px rgba(52, 114, 184, 0.08);
+        }
+
+        .summary-label {
+            color: #6b85a3;
+            font-size: 13px;
+            margin-bottom: 6px;
+        }
+
+        .summary-value {
+            font-size: 28px;
+            font-weight: 800;
+            color: #1f4c82;
+        }
+
+        .alert {
+            padding: 12px 14px;
+            border-radius: 14px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .alert-success {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #166534;
+        }
+
+        .alert-error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+        }
+
+        .management-toolbar {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 16px;
+            align-items: center;
+            padding: 16px 18px;
+        }
+
+        .toolbar-copy {
+            display: grid;
+            gap: 10px;
+        }
+
+        .toolbar-copy h2 {
+            font-size: 21px;
+            color: #1f3f67;
+            margin: 0;
+        }
+
+        .toolbar-copy p {
+            font-size: 12px;
+            line-height: 1.45;
+            color: #67809f;
+            max-width: 680px;
+        }
+
+        .toolbar-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .toolbar-chip {
+            display: grid;
+            gap: 4px;
+            min-width: 150px;
+            padding: 10px 12px;
+            border-radius: 16px;
+            background: linear-gradient(180deg, #f8fbff 0%, #eef5fd 100%);
+            border: 1px solid #dce8f4;
+        }
+
+        .toolbar-chip span {
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #7c93ad;
+        }
+
+        .toolbar-chip strong {
+            font-size: 22px;
+            font-weight: 800;
+            color: #1f4c82;
+            line-height: 1;
+        }
+
+        .toolbar-chip p {
+            font-size: 11px;
+            line-height: 1.4;
+            color: #617b99;
+            max-width: none;
+        }
+
+        .toolbar-actions {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 8px;
+        }
+
+        .add-staff-btn {
+            min-width: 150px;
+        }
+
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background: rgba(8, 18, 33, 0.62);
+            backdrop-filter: blur(10px);
+            z-index: 1200;
+        }
+
+        .modal-backdrop.is-open {
+            display: flex;
+        }
+
+        .modal-dialog {
+            width: min(980px, 100%);
+            max-height: calc(100vh - 48px);
+            overflow: auto;
+            border-radius: 28px;
+            background: #102031;
+            border: 1px solid #24415d;
+            box-shadow: 0 32px 60px rgba(3, 11, 22, 0.35);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 22px 24px 18px;
+            border-bottom: 1px solid #20384f;
+        }
+
+        .modal-header h2 {
+            font-size: 28px;
+            color: #f3f8ff;
+            margin-bottom: 6px;
+        }
+
+        .modal-header p {
+            font-size: 13px;
+            line-height: 1.55;
+            color: #9fb3ca;
+            max-width: 640px;
+        }
+
+        .modal-close {
+            min-width: 42px;
+            min-height: 42px;
+            border-radius: 999px;
+            border: 1px solid #294761;
+            background: rgba(255, 255, 255, 0.04);
+            color: #dce8f4;
+            font-size: 20px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .modal-body {
+            padding: 22px 24px 24px;
+            display: grid;
+            gap: 18px;
+        }
+
+        .modal-insights {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .modal-card {
+            padding: 16px;
+            border-radius: 18px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.03) 100%);
+            border: 1px solid #24415d;
+        }
+
+        .modal-card h3 {
+            font-size: 14px;
+            color: #f3f8ff;
+            margin-bottom: 8px;
+        }
+
+        .modal-card p,
+        .modal-card li {
+            font-size: 12px;
+            line-height: 1.55;
+            color: #9fb3ca;
+        }
+
+        .modal-card ul {
+            margin: 0;
+            padding-left: 18px;
+            display: grid;
+            gap: 8px;
+        }
+
+        .management-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.5fr) minmax(320px, 0.9fr);
+            gap: 16px;
+            align-items: start;
+        }
+
+        .register-shell,
+        .policy-shell,
+        .profiles-shell {
+            padding: 20px;
+            display: grid;
+            gap: 16px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 14px;
+        }
+
+        .section-header h2 {
+            font-size: 24px;
+            color: #1f3f67;
+            margin-bottom: 4px;
+        }
+
+        .section-header p {
+            color: #67809f;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .section-badge {
+            display: inline-flex;
+            align-items: center;
+            min-height: 36px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: #eef5fd;
+            border: 1px solid #dce9f7;
+            color: #2f80ed;
+            font-size: 12px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .staff-controls {
+            display: grid;
+            gap: 12px;
+        }
+
+        .staff-controls-bar {
+            display: grid;
+            grid-template-columns: minmax(260px, 1.5fr) repeat(3, minmax(150px, 0.7fr)) auto auto;
+            gap: 12px;
+            align-items: end;
+        }
+
+        .staff-control-field {
+            display: grid;
+            gap: 8px;
+        }
+
+        .staff-control-field label {
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #7d93ac;
+        }
+
+        .staff-control-field input,
+        .staff-control-field select {
+            width: 100%;
+            min-height: 42px;
+            padding: 10px 14px;
+            border-radius: 14px;
+            border: 1px solid #d7e5f4;
+            background: #f8fbff;
+            color: #28496f;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+        }
+
+        .staff-control-field input:focus,
+        .staff-control-field select:focus {
+            border-color: #2f80ed;
+            background: #ffffff;
+            box-shadow: 0 0 0 4px rgba(47, 128, 237, 0.08);
+        }
+
+        .staff-controls-summary {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .staff-controls-copy {
+            font-size: 12px;
+            line-height: 1.5;
+            color: #67809f;
+        }
+
+        .selection-summary {
+            font-size: 11px;
+            line-height: 1.35;
+            color: #6f86a4;
+        }
+
+        .staff-toolbar-delete-form {
+            margin: 0;
+        }
+        
+        .row-select input,
+        .staff-select-all {
+            width: 16px;
+            height: 16px;
+            accent-color: #2f80ed;
+            flex-shrink: 0;
+        }
+
+        .register-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            gap: 16px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .form-field {
+            display: grid;
+            gap: 8px;
+        }
+
+        .form-field.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-field label {
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #5f7b9d;
+        }
+
+        .form-field input,
+        .form-field select,
+        .form-field textarea {
+            width: 100%;
+            min-height: 44px;
+            padding: 11px 14px;
+            border-radius: 14px;
+            border: 1px solid #d9e5f3;
+            background: #f9fbfe;
+            color: #27476d;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+        }
+
+        .form-field input:focus,
+        .form-field select:focus,
+        .form-field textarea:focus {
+            border-color: #2f80ed;
+            background: #ffffff;
+            box-shadow: 0 0 0 4px rgba(47, 128, 237, 0.08);
+        }
+
+        .form-field input[type="file"] {
+            padding: 10px 12px;
+            background: #ffffff;
+            font-size: 12px;
+        }
+
+        .field-note {
+            font-size: 12px;
+            line-height: 1.5;
+            color: #6d86a3;
+        }
+
+        .role-panel {
+            display: none;
+            grid-column: 1 / -1;
+            gap: 14px;
+            padding: 16px;
+            border-radius: 18px;
+            background: linear-gradient(180deg, #f8fbff 0%, #f2f7fd 100%);
+            border: 1px solid #dbe8f4;
+        }
+
+        .role-panel.is-visible {
+            display: grid;
+        }
+
+        .register-actions,
+        .editor-actions,
+        .card-actions {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .action-copy {
+            font-size: 12px;
+            color: #6d86a3;
+            line-height: 1.5;
+            max-width: 520px;
+        }
+
+        .primary-btn,
+        .secondary-btn,
+        .danger-btn,
+        .ghost-btn {
+            border: none;
+            border-radius: 14px;
+            min-height: 42px;
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+            text-decoration: none;
+        }
+
+        .primary-btn {
+            color: white;
+            background: linear-gradient(90deg, #d62839 0%, #ff5d6c 100%);
+            box-shadow: 0 12px 24px rgba(214, 40, 57, 0.2);
+        }
+
+        .secondary-btn {
+            color: #2f80ed;
+            background: #eef5fd;
+            border: 1px solid #d7e5f4;
+        }
+
+        .ghost-btn {
+            color: #537294;
+            background: transparent;
+            border: 1px solid #d6e3f0;
+        }
+
+        .danger-btn {
+            color: white;
+            background: linear-gradient(90deg, #bd1e32 0%, #ef4444 100%);
+            box-shadow: 0 10px 22px rgba(189, 30, 50, 0.2);
+        }
+
+        .primary-btn:disabled,
+        .secondary-btn:disabled,
+        .danger-btn:disabled,
+        .ghost-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.52;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .primary-btn:hover,
+        .secondary-btn:hover,
+        .danger-btn:hover,
+        .ghost-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .primary-btn:disabled:hover,
+        .secondary-btn:disabled:hover,
+        .danger-btn:disabled:hover,
+        .ghost-btn:disabled:hover {
+            transform: none;
+        }
+
+        .policy-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .policy-card {
+            padding: 16px;
+            border-radius: 18px;
+            background: linear-gradient(180deg, #f7fbff 0%, #eef5fd 100%);
+            border: 1px solid #dce8f4;
+        }
+
+        .policy-card h3 {
+            font-size: 15px;
+            color: #26486d;
+            margin-bottom: 8px;
+        }
+
+        .policy-card p,
+        .policy-card li {
+            font-size: 13px;
+            line-height: 1.55;
+            color: #607998;
+        }
+
+        .policy-card ul {
+            margin: 0;
+            padding-left: 18px;
+            display: grid;
+            gap: 8px;
+        }
+
+        .policy-stat {
+            display: grid;
+            gap: 8px;
+            padding: 16px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #2f80ed 0%, #59a9ff 100%);
+            color: white;
+            box-shadow: 0 14px 28px rgba(52, 114, 184, 0.16);
+        }
+
+        .policy-stat span {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: rgba(255, 255, 255, 0.84);
+        }
+
+        .policy-stat strong {
+            font-size: 30px;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .staff-table-shell {
+            overflow-x: auto;
+            border-radius: 24px;
+            border: 1px solid #d9e6f2;
+            background: white;
+            box-shadow: 0 14px 30px rgba(52, 114, 184, 0.08);
+        }
+
+        .staff-table {
+            width: 100%;
+            min-width: 1280px;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .staff-table thead th {
+            padding: 14px 16px;
+            background: #f6faff;
+            border-bottom: 1px solid #dfeaf5;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #6f86a4;
+            white-space: nowrap;
+        }
+
+        .staff-record + .staff-record .staff-row td {
+            border-top: 1px solid #eaf1f8;
+        }
+
+        .staff-row td {
+            padding: 18px 16px;
+            vertical-align: top;
+            background: white;
+        }
+
+        .staff-record.is-selected .staff-row td {
+            background: #eef5fd;
+        }
+
+        .staff-table .staff-select-col,
+        .staff-table .staff-edit-col {
+            width: 46px;
+            min-width: 46px;
+            text-align: center;
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+
+        .row-select {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .row-edit-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            border: 1px solid #cfe0f3;
+            background: #f8fbff;
+            color: #2f80ed;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+        }
+
+        .row-edit-btn:hover {
+            transform: translateY(-1px);
+            border-color: #92bee9;
+            background: #eef5fd;
+        }
+
+        .row-edit-btn svg {
+            width: 18px;
+            height: 18px;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .staff-identity {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            min-width: 250px;
+        }
+
+        .staff-avatar {
+            position: relative;
+            width: 60px;
+            height: 60px;
+            border-radius: 18px;
+            overflow: hidden;
+            flex-shrink: 0;
+            background: linear-gradient(135deg, #2f80ed 0%, #59a9ff 100%);
+            box-shadow: 0 12px 24px rgba(47, 128, 237, 0.22);
+        }
+
+        .staff-avatar img,
+        .staff-avatar-fallback {
+            width: 100%;
+            height: 100%;
+        }
+
+        .staff-avatar img {
+            display: block;
+            object-fit: cover;
+        }
+
+        .staff-avatar-fallback {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+        }
+
+        .staff-name-copy {
+            min-width: 0;
+            display: grid;
+            gap: 5px;
+        }
+
+        .staff-name-copy h3 {
+            font-size: 21px;
+            color: #24476f;
+            line-height: 1.2;
+            margin: 0;
+        }
+
+        .staff-meta {
+            color: #7189a6;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .role-badge,
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            min-height: 32px;
+            padding: 7px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            border: 1px solid transparent;
+        }
+
+        .role-badge.administrator {
+            background: #fff2f4;
+            border-color: #ffd1d8;
+            color: #c5283d;
+        }
+
+        .role-badge.medical {
+            background: #effaf4;
+            border-color: #c6ecd2;
+            color: #2c8653;
+        }
+
+        .role-badge.lab {
+            background: #eef7ff;
+            border-color: #d1e6fa;
+            color: #2f80ed;
+        }
+
+        .status-badge.active {
+            background: #effaf4;
+            border-color: #c6ecd2;
+            color: #1f7a46;
+        }
+
+        .status-badge.inactive {
+            background: #fff5f5;
+            border-color: #ffd0d6;
+            color: #c5283d;
+        }
+
+        .status-badge.locked {
+            background: #fff9eb;
+            border-color: #f4ddb0;
+            color: #a66a00;
+        }
+
+        .staff-table-stack {
+            display: grid;
+            gap: 10px;
+            min-width: 150px;
+        }
+
+        .staff-table-pair {
+            display: grid;
+            gap: 5px;
+        }
+
+        .detail-label,
+        .staff-table-label {
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #7d93ac;
+        }
+
+        .detail-label {
+            margin-bottom: 6px;
+        }
+
+        .detail-value,
+        .staff-table-value {
+            font-size: 13px;
+            font-weight: 600;
+            color: #28496f;
+            line-height: 1.4;
+            word-break: break-word;
+        }
+
+        .staff-table-muted {
+            font-size: 12px;
+            color: #7e92ab;
+        }
+
+        .compact-btn {
+            min-height: 38px;
+            padding: 8px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .staff-protected-note {
+            font-size: 12px;
+            font-weight: 700;
+            color: #6f86a4;
+        }
+
+        .staff-photo-form {
+            padding-top: 0;
+            border-top: none;
+        }
+
+        .photo-form {
+            display: grid;
+            gap: 10px;
+            padding-top: 14px;
+            border-top: 1px solid #edf3fb;
+        }
+
+        .photo-form-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .photo-form label {
+            font-size: 12px;
+            font-weight: 700;
+            color: #6b85a3;
+        }
+
+        .photo-form input[type="file"] {
+            flex: 1;
+            min-width: 190px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid #d5e4f3;
+            background: #fbfdff;
+            font-size: 12px;
+        }
+
+        .staff-edit-dialog {
+            width: min(980px, 100%);
+            background: #ffffff;
+            border-color: #d9e6f2;
+            color: #28496f;
+        }
+
+        .staff-edit-dialog .modal-header {
+            background: #ffffff;
+            border-bottom-color: #e4edf7;
+        }
+
+        .staff-edit-dialog .modal-header h2 {
+            color: #1f3f67;
+            font-size: 22px;
+        }
+
+        .staff-edit-dialog .modal-header p {
+            color: #67809f;
+        }
+
+        .staff-edit-dialog .modal-close {
+            color: #2f80ed;
+            background: #f8fbff;
+            border-color: #cfe0f3;
+        }
+
+        .staff-edit-dialog .modal-body {
+            max-height: min(720px, calc(100vh - 160px));
+            overflow: auto;
+            padding-bottom: 12px;
+        }
+
+        .staff-modal-identity {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px;
+            border-radius: 18px;
+            background: #f8fbff;
+            border: 1px solid #e1ebf6;
+        }
+
+        .staff-modal-identity h3 {
+            color: #24476f;
+            font-size: 18px;
+            margin-bottom: 3px;
+        }
+
+        .staff-modal-identity p {
+            color: #6f86a4;
+            font-size: 12px;
+        }
+
+        .staff-modal-footer {
+            position: sticky;
+            bottom: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 24px 18px;
+            background: #ffffff;
+            border-top: 1px solid #e4edf7;
+            border-radius: 0 0 28px 28px;
+        }
+
+        .staff-modal-footer-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .staff-modal-footer form {
+            margin: 0;
+        }
+
+        .empty-state {
+            padding: 32px 20px;
+            text-align: center;
+            border-radius: 20px;
+            background: white;
+            border: 1px dashed #cfe0f3;
+            color: #67809f;
+        }
+
+        .empty-state[hidden] {
+            display: none;
+        }
+
+        body.theme-dark .summary-label,
+        body.theme-dark .toolbar-copy p,
+        body.theme-dark .toolbar-chip p {
+            color: #93a7c1;
+        }
+
+        body.theme-dark .summary-value,
+        body.theme-dark .toolbar-copy h2,
+        body.theme-dark .toolbar-chip strong {
+            color: #dbeafe;
+        }
+
+        body.theme-dark .toolbar-chip {
+            background: #0f1d2c;
+            border-color: #294158;
+        }
+
+        body.theme-dark .toolbar-chip span {
+            color: #8fb5db;
+        }
+
+        body.theme-dark .staff-control-field label,
+        body.theme-dark .staff-controls-copy {
+            color: #93a7c1;
+        }
+
+        body.theme-dark .staff-control-field input,
+        body.theme-dark .staff-control-field select {
+            background: #0a1622;
+            border-color: #294158;
+            color: #e8f1fb;
+        }
+
+        body.theme-dark .staff-control-field input::placeholder {
+            color: #7f94ae;
+        }
+
+        body.theme-dark .staff-table-shell {
+            background: #0f1d2c;
+            border-color: #22384d;
+            box-shadow: 0 16px 34px rgba(0, 0, 0, 0.24);
+        }
+
+        body.theme-dark .staff-edit-dialog {
+            background: #0f1d2c;
+            border-color: #22384d;
+            box-shadow: 0 16px 34px rgba(0, 0, 0, 0.24);
+        }
+
+        body.theme-dark .staff-edit-dialog .modal-header h2,
+        body.theme-dark .staff-modal-identity h3 {
+            color: #e8f1fb;
+        }
+
+        body.theme-dark .selection-summary,
+        body.theme-dark .staff-edit-dialog .modal-header p,
+        body.theme-dark .staff-modal-identity p {
+            color: #93a7c1;
+        }
+
+        body.theme-dark .row-edit-btn,
+        body.theme-dark .staff-modal-identity {
+            background: #132334;
+        }
+
+        body.theme-dark .staff-edit-dialog .modal-header,
+        body.theme-dark .staff-modal-footer {
+            border-color: #22384d;
+        }
+
+        body.theme-dark .staff-edit-dialog .modal-header,
+        body.theme-dark .staff-modal-footer {
+            background: #0f1d2c;
+        }
+
+        body.theme-dark .staff-edit-dialog .modal-close,
+        body.theme-dark .row-edit-btn {
+            border-color: #294158;
+            color: #a6d4ff;
+        }
+
+        body.theme-dark .staff-table thead th {
+            background: #132334;
+            border-bottom-color: #22384d;
+            color: #98aec6;
+        }
+
+        body.theme-dark .staff-record + .staff-record .staff-row td {
+            border-top-color: #203447;
+        }
+
+        body.theme-dark .staff-row td {
+            background: #0f1d2c;
+        }
+
+        body.theme-dark .staff-record.is-selected .staff-row td {
+            background: #132334;
+        }
+
+        body.theme-dark .staff-name-copy h3,
+        body.theme-dark .staff-table-value {
+            color: #e8f1fb;
+        }
+
+        body.theme-dark .staff-meta,
+        body.theme-dark .staff-table-label,
+        body.theme-dark .staff-table-muted,
+        body.theme-dark .staff-protected-note {
+            color: #93a7c1;
+        }
+
+        .self-note {
+            font-size: 12px;
+            color: #a36a00;
+            background: #fff9eb;
+            border: 1px solid #f4ddb0;
+            border-radius: 14px;
+            padding: 10px 12px;
+        }
+
+        @media (max-width: 1220px) {
+            .management-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .staff-controls-bar {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 1180px) {
+            .summary-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 840px) {
+            .page-intro,
+            .section-header,
+            .modal-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .management-toolbar {
+                grid-template-columns: 1fr;
+            }
+
+            .toolbar-actions {
+                align-items: stretch;
+            }
+        }
+
+        @media (max-width: 720px) {
+            .summary-grid,
+            .form-grid,
+            .modal-insights {
+                grid-template-columns: 1fr;
+            }
+
+            .register-actions,
+            .staff-modal-footer,
+            .staff-modal-footer-actions,
+            .card-actions,
+            .photo-form-row,
+            .toolbar-meta,
+            .staff-controls-summary {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .primary-btn,
+            .secondary-btn,
+            .danger-btn,
+            .ghost-btn,
+            .add-staff-btn {
+                width: 100%;
+                text-align: center;
+            }
+
+            .staff-controls-bar {
+                grid-template-columns: 1fr;
+            }
+
+            .staff-table-shell {
+                border-radius: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="dashboard-scene">
+    <div class="dashboard-app">
+        <header class="app-header">
+            <div class="app-brand">
+                <button type="button" class="icon-button sidebar-toggle"
+                        data-sidebar-toggle aria-controls="dashboard-sidebar" aria-expanded="true" aria-label="Collapse menu">
+                    <span class="hamburger-icon" aria-hidden="true">
+                        <span></span><span></span><span></span>
+                    </span>
+                    <span class="sr-only" data-sidebar-toggle-label>Collapse menu</span>
+                </button>
+
+                <div class="app-brand-copy">
+                    <div class="app-kicker">Blood Bank Digital Platform</div>
+                    <div class="app-title">Blood Inventory Management System</div>
+                    <div class="app-subtitle">Administrative workspace for staffing, storage, monitoring, and reporting.</div>
+                </div>
+            </div>
+
+            <form class="app-search" role="search">
+                <div class="app-search-shell">
+                    <input class="app-search-input" type="search" placeholder="Search staff management or menu">
+                    <button type="submit" class="app-search-button" aria-label="Search staff management">
+                        <span class="search-icon" aria-hidden="true"></span>
+                    </button>
+                </div>
+            </form>
+
+            <div class="app-actions" th:replace="fragments/header-actions :: adminProfileMenu"></div>
+        </header>
+
+        <div class="layout">
+            <div th:replace="fragments/sidebar :: sidebar(
+                'Blood Administrator Panel',
+                'Centralized navigation for staff, storage, inventory monitoring, alerts, and reports.',
+                'staff-management'
+            )"></div>
+
+            <button type="button" class="sidebar-overlay" data-sidebar-close aria-label="Close sidebar"></button>
+
+            <main class="main">
+                <div class="main-stack">
+                    <section class="page-intro page-card">
+                        <div>
+                            <div class="page-kicker">Staff Management</div>
+                            <h1>Staff Management</h1>
+                            <p>
+                                Review staff accounts, edit role-specific profile details, update account status, and add new staff from the action button when needed.
+                            </p>
+                        </div>
+
+                        <div class="intro-count">
+                            <span>Total Staff</span>
+                            <strong th:text="${staffCount}">0</strong>
+                        </div>
+                    </section>
+
+                    <section class="summary-grid">
+                        <article class="summary-card">
+                            <div class="summary-label">Blood Administrators</div>
+                            <div class="summary-value" th:text="${administratorCount}">0</div>
+                        </article>
+                        <article class="summary-card">
+                            <div class="summary-label">Medical Staff</div>
+                            <div class="summary-value" th:text="${medicalCount}">0</div>
+                        </article>
+                        <article class="summary-card">
+                            <div class="summary-label">Lab Technicians</div>
+                            <div class="summary-value" th:text="${labCount}">0</div>
+                        </article>
+                    </section>
+
+                    <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+                    <div th:if="${errorMessage}" class="alert alert-error" th:text="${errorMessage}"></div>
+
+                    <section class="management-toolbar page-card">
+                        <div class="toolbar-copy">
+                            <div>
+                                <div class="page-kicker">People Workspace</div>
+                                <h2>Manage Staff Records</h2>
+                                <p>
+                                    Keep staff records focused, control registration from the action button, and use table actions for selected records.
+                                </p>
+                            </div>
+
+                            <div class="toolbar-meta">
+                                <article class="toolbar-chip">
+                                    <span>Inactive Accounts</span>
+                                    <strong th:text="${inactiveCount}">0</strong>
+                                </article>
+
+                                <article class="toolbar-chip">
+                                    <span>Account Protection</span>
+                                    <p>Inactive accounts are locked by the database procedure and blocked from signing in.</p>
+                                </article>
+                            </div>
+                        </div>
+
+                        <div class="toolbar-actions">
+                            <a th:href="@{/admin/staff/register}" class="primary-btn add-staff-btn" data-register-open>
+                                Add Staff Member
+                            </a>
+                            <div class="section-badge">Admin controlled</div>
+                        </div>
+                    </section>
+
+                    <section class="profiles-shell page-card">
+                        <div class="section-header">
+                            <div>
+                                <h2>All Staff Accounts</h2>
+                                <p>Each row shows the current staff profile, edit controls, and toolbar actions for selected records.</p>
+                            </div>
+                            <div class="section-badge" data-staff-count-badge th:text="${staffCount + ' staff records'}">0 staff records</div>
+                        </div>
+
+                        <div th:if="${!#lists.isEmpty(staffProfiles)}" class="staff-controls" data-staff-controls>
+                            <div class="staff-controls-bar">
+                                <div class="staff-control-field">
+                                    <label for="staff-list-search">Search Staff</label>
+                                    <input id="staff-list-search"
+                                           type="search"
+                                           placeholder="Search by name, username, email, or IC number"
+                                           data-staff-search>
+                                </div>
+
+                                <div class="staff-control-field">
+                                    <label for="staff-role-filter">Role Filter</label>
+                                    <select id="staff-role-filter" data-staff-role-filter>
+                                        <option value="all">All roles</option>
+                                        <option value="administrator">Blood Administrator</option>
+                                        <option value="medical">Medical Staff</option>
+                                        <option value="lab">Lab Technician</option>
+                                    </select>
+                                </div>
+
+                                <div class="staff-control-field">
+                                    <label for="staff-status-filter">Status Filter</label>
+                                    <select id="staff-status-filter" data-staff-status-filter>
+                                        <option value="all">All statuses</option>
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
+                                        <option value="locked">Locked</option>
+                                    </select>
+                                </div>
+
+                                <div class="staff-control-field">
+                                    <label for="staff-sort">Sort By</label>
+                                    <select id="staff-sort" data-staff-sort>
+                                        <option value="name-asc">Name A-Z</option>
+                                        <option value="name-desc">Name Z-A</option>
+                                        <option value="id-desc">Newest Staff ID</option>
+                                        <option value="id-asc">Oldest Staff ID</option>
+                                        <option value="role-asc">Role</option>
+                                        <option value="status-asc">Status</option>
+                                    </select>
+                                </div>
+
+                                <button type="button" class="ghost-btn" data-clear-staff-filters>Reset Filters</button>
+                                <form method="post"
+                                      th:action="@{/admin/staff/delete-selected}"
+                                      class="staff-toolbar-delete-form"
+                                      data-selected-staff-delete-form>
+                                    <input type="hidden"
+                                           th:if="${_csrf != null}"
+                                           th:name="${_csrf.parameterName}"
+                                           th:value="${_csrf.token}">
+                                    <span data-selected-staff-delete-fields></span>
+                                    <button type="submit"
+                                            class="danger-btn"
+                                            data-selected-staff-delete-button
+                                            disabled>
+                                        Delete
+                                    </button>
+                                </form>
+                            </div>
+
+                            <div class="staff-controls-summary">
+                                <div class="staff-controls-copy" data-staff-results-summary>
+                                    Showing all staff records.
+                                </div>
+                                <div class="selection-summary" data-staff-selection-summary>
+                                    0 rows selected
+                                </div>
+                            </div>
+                        </div>
+
+                        <div th:if="${#lists.isEmpty(staffProfiles)}" class="empty-state">
+                            No staff profiles are available yet.
+                        </div>
+
+                        <div th:if="${!#lists.isEmpty(staffProfiles)}" class="staff-table-shell">
+                            <table class="staff-table" data-staff-grid>
+                                <thead>
+                                <tr>
+                                    <th class="staff-select-col">
+                                        <input type="checkbox" class="staff-select-all" data-staff-select-all aria-label="Select all visible staff">
+                                    </th>
+                                    <th class="staff-edit-col">Edit</th>
+                                    <th>Staff</th>
+                                    <th>Role</th>
+                                    <th>Contact</th>
+                                    <th>IC Number</th>
+                                    <th>Gender</th>
+                                    <th>Role Details</th>
+                                    <th>Status</th>
+                                </tr>
+                                </thead>
+
+                                <tbody th:each="profile : ${staffProfiles}"
+                                       th:with="currentEdit=${editingStaffId != null and editingStaffId.equals(profile.staffId) ? editStaffRequest : null}"
+                                       class="staff-record"
+                                       th:attr="data-staff-card='true',
+                                                data-staff-id=${profile.staffId},
+                                                data-name=${currentEdit != null ? currentEdit.fullName : profile.fullName},
+                                                data-username=${currentEdit != null ? currentEdit.username : profile.username},
+                                                data-email=${currentEdit != null ? currentEdit.email : profile.email},
+                                                data-phone=${currentEdit != null ? currentEdit.phoneNo : profile.phoneNo},
+                                                data-ic-number=${currentEdit != null ? currentEdit.icNumber : profile.icNumber},
+                                                data-gender=${currentEdit != null ? currentEdit.gender : profile.gender},
+                                                data-staff-type=${currentEdit != null ? currentEdit.staffType : profile.staffType},
+                                                data-active=${currentEdit != null ? currentEdit.active : profile.active},
+                                                data-license-no=${currentEdit != null ? currentEdit.licenseNo : profile.licenseNo},
+                                                data-position=${currentEdit != null ? currentEdit.position : profile.position},
+                                                data-certification-no=${currentEdit != null ? currentEdit.certificationNo : profile.certificationNo},
+                                                data-department=${currentEdit != null ? currentEdit.department : profile.department},
+                                                data-role=${profile.staffTypeLabel},
+                                                data-role-class=${profile.roleAccentClass},
+                                                data-status=${profile.statusLabel},
+                                                data-status-class=${profile.statusAccentClass},
+                                                data-photo-url=${profile.photoUrl},
+                                                data-initials=${profile.initials},
+                                                data-self=${currentUsername == profile.username}">
+                                <tr class="staff-row">
+                                    <td class="staff-select-col">
+                                        <label class="row-select">
+                                            <input type="checkbox"
+                                                   data-staff-row-check
+                                                   th:attr="aria-label=${'Select ' + profile.fullName}">
+                                        </label>
+                                    </td>
+
+                                    <td class="staff-edit-col">
+                                        <button type="button"
+                                                class="row-edit-btn"
+                                                th:attr="data-editor-toggle=${profile.staffId},aria-label=${'Edit ' + profile.fullName}">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                                <path d="M12 20h9"/>
+                                                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+                                            </svg>
+                                        </button>
+                                    </td>
+
+                                    <td>
+                                        <div class="staff-identity">
+                                            <div class="staff-avatar">
+                                                <img th:if="${profile.photoUrl != null}"
+                                                     th:src="${profile.photoUrl}"
+                                                     alt="Staff profile photo"
+                                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                                <div class="staff-avatar-fallback"
+                                                     th:style="${profile.photoUrl != null ? 'display:none;' : ''}"
+                                                     th:text="${profile.initials}">SP</div>
+                                            </div>
+
+                                            <div class="staff-name-copy">
+                                                <h3 th:text="${profile.fullName}">Staff Name</h3>
+                                                <div class="staff-meta" th:text="${'ID #' + profile.staffId + ' | ' + profile.username}">ID #1 | username</div>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <td>
+                                        <div class="badge-row">
+                                            <div class="role-badge"
+                                                 th:classappend="${profile.roleAccentClass}"
+                                                 th:text="${profile.staffTypeLabel}">Blood Administrator</div>
+                                        </div>
+                                    </td>
+
+                                    <td>
+                                        <div class="staff-table-stack">
+                                            <div class="staff-table-pair">
+                                                <div class="staff-table-label">Email</div>
+                                                <div class="staff-table-value" th:text="${profile.email}">staff@example.com</div>
+                                            </div>
+                                            <div class="staff-table-pair">
+                                                <div class="staff-table-label">Phone</div>
+                                                <div class="staff-table-value" th:text="${profile.phoneNo}">01x-xxxxxxx</div>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <td>
+                                        <div class="staff-table-value" th:text="${profile.icNumber}">000000-00-0000</div>
+                                    </td>
+
+                                    <td>
+                                        <div class="staff-table-value" th:text="${profile.genderLabel}">Male</div>
+                                    </td>
+
+                                    <td>
+                                        <div class="staff-table-stack">
+                                            <div class="staff-table-pair" th:if="${profile.primaryDetailLabel != null}">
+                                                <div class="staff-table-label" th:text="${profile.primaryDetailLabel}">Department</div>
+                                                <div class="staff-table-value" th:text="${profile.primaryDetailValue}">Operations</div>
+                                            </div>
+                                            <div class="staff-table-pair" th:if="${profile.secondaryDetailLabel != null}">
+                                                <div class="staff-table-label" th:text="${profile.secondaryDetailLabel}">Position</div>
+                                                <div class="staff-table-value" th:text="${profile.secondaryDetailValue}">Senior Nurse</div>
+                                            </div>
+                                            <div class="staff-table-muted"
+                                                 th:if="${profile.primaryDetailLabel == null and profile.secondaryDetailLabel == null}">
+                                                No role-specific details
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <td>
+                                        <div class="badge-row">
+                                            <div class="status-badge"
+                                                 th:classappend="${profile.statusAccentClass}"
+                                                 th:text="${profile.statusLabel}">Active</div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="empty-state" data-filter-empty hidden>
+                            No staff records match the current search, filter, or sort selection.
+                        </div>
+                    </section>
+
+                    <div class="modal-backdrop staff-edit-backdrop"
+                         data-staff-edit-modal
+                         th:classappend="${editingStaffId != null} ? ' is-open'"
+                         th:attr="data-open-staff-editor-id=${editingStaffId}">
+                        <div class="modal-dialog staff-edit-dialog" role="dialog" aria-modal="true" aria-labelledby="staff-edit-modal-title">
+                            <div class="modal-header">
+                                <div>
+                                    <div class="page-kicker">Staff Form</div>
+                                    <h2 id="staff-edit-modal-title">Edit Staff Profile</h2>
+                                    <p>Update account details, role-specific information, profile photo, and account status in one focused form.</p>
+                                </div>
+
+                                <button type="button" class="modal-close" aria-label="Close staff edit form" data-staff-edit-close>
+                                    &times;
+                                </button>
+                            </div>
+
+                            <div class="modal-body">
+                                <div th:if="${editingStaffId != null and #strings.isNotEmpty(errorMessage)}"
+                                     class="alert alert-error"
+                                     th:text="${errorMessage}"></div>
+
+                                <div class="staff-modal-identity">
+                                    <div class="staff-avatar">
+                                        <img data-staff-modal-photo
+                                             alt="Staff profile photo"
+                                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                        <div class="staff-avatar-fallback" data-staff-modal-initials>SP</div>
+                                    </div>
+                                    <div>
+                                        <h3 data-staff-modal-name>Staff Name</h3>
+                                        <p data-staff-modal-meta>ID #0 | username</p>
+                                    </div>
+                                </div>
+
+                                <form id="staff-edit-form"
+                                      method="post"
+                                      class="register-layout"
+                                      data-role-form
+                                      data-staff-edit-form>
+                                    <div class="form-grid">
+                                        <div class="form-field">
+                                            <label for="modal-edit-full-name">Full Name</label>
+                                            <input id="modal-edit-full-name" type="text" name="fullName" required data-modal-field="fullName">
+                                        </div>
+
+                                        <div class="form-field">
+                                            <label for="modal-edit-username">Username</label>
+                                            <input id="modal-edit-username" type="text" name="username" required data-modal-field="username">
+                                        </div>
+
+                                        <div class="form-field">
+                                            <label for="modal-edit-password">New Password</label>
+                                            <input id="modal-edit-password" type="password" name="password" placeholder="Leave blank to keep current password">
+                                        </div>
+
+                                        <div class="form-field">
+                                            <label for="modal-edit-ic">IC Number</label>
+                                            <input id="modal-edit-ic" type="text" name="icNumber" required data-modal-field="icNumber">
+                                        </div>
+
+                                        <div class="form-field">
+                                            <label for="modal-edit-email">Email Address</label>
+                                            <input id="modal-edit-email" type="email" name="email" placeholder="staff@bloodbank.my" data-modal-field="email">
+                                        </div>
+
+                                        <div class="form-field">
+                                            <label for="modal-edit-phone">Phone Number</label>
+                                            <input id="modal-edit-phone" type="text" name="phoneNo" placeholder="01x-xxxxxxx" data-modal-field="phoneNo">
+                                        </div>
+
+                                        <div class="form-field">
+                                            <label for="modal-edit-gender">Gender</label>
+                                            <select id="modal-edit-gender" name="gender" required data-modal-field="gender">
+                                                <option value="">Select gender</option>
+                                                <option value="MALE">Male</option>
+                                                <option value="FEMALE">Female</option>
+                                                <option value="OTHER">Other</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="form-field">
+                                            <label for="modal-edit-role">Assigned Role</label>
+                                            <select id="modal-edit-role" name="staffType" data-role-select data-modal-field="staffType" required>
+                                                <option value="">Select role</option>
+                                                <option th:each="role : ${roles}"
+                                                        th:value="${role}"
+                                                        th:text="${#strings.replace(role.name(), '_', ' ')}">ROLE</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="form-field full-width">
+                                            <label for="modal-edit-status">Account Status</label>
+                                            <select id="modal-edit-status" name="active" required data-modal-field="active">
+                                                <option value="true">Active</option>
+                                                <option value="false">Inactive</option>
+                                            </select>
+                                            <div class="field-note">Inactive accounts are locked by the database trigger and blocked from sign-in.</div>
+                                        </div>
+
+                                        <div class="role-panel" data-role-section="MEDICAL_STAFF">
+                                            <div class="form-grid">
+                                                <div class="form-field">
+                                                    <label for="modal-edit-license">Medical License No</label>
+                                                    <input id="modal-edit-license"
+                                                           type="text"
+                                                           name="licenseNo"
+                                                           placeholder="e.g. APC-12345"
+                                                           data-modal-field="licenseNo">
+                                                </div>
+                                                <div class="form-field">
+                                                    <label for="modal-edit-position">Clinical Position</label>
+                                                    <input id="modal-edit-position"
+                                                           type="text"
+                                                           name="position"
+                                                           placeholder="e.g. Senior Nurse"
+                                                           data-modal-field="position">
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="role-panel" data-role-section="LAB_TECHNICIAN">
+                                            <div class="form-field">
+                                                <label for="modal-edit-certification">Laboratory Certification No</label>
+                                                <input id="modal-edit-certification"
+                                                       type="text"
+                                                       name="certificationNo"
+                                                       placeholder="e.g. LAB-2048"
+                                                       data-modal-field="certificationNo">
+                                            </div>
+                                        </div>
+
+                                        <div class="role-panel" data-role-section="BLOOD_ADMINISTRATOR">
+                                            <div class="form-field">
+                                                <label for="modal-edit-department">Department</label>
+                                                <input id="modal-edit-department"
+                                                       type="text"
+                                                       name="department"
+                                                       placeholder="e.g. Eligibility Management"
+                                                       data-modal-field="department">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="self-note" data-staff-self-note hidden>
+                                        Your own username, role, and account status are protected in this view.
+                                    </div>
+                                </form>
+
+                                <form id="staff-photo-form"
+                                      method="post"
+                                      enctype="multipart/form-data"
+                                      class="photo-form staff-photo-form"
+                                      data-staff-photo-form>
+                                    <label for="modal-photo-file">Profile photo</label>
+                                    <div class="photo-form-row">
+                                        <input id="modal-photo-file" type="file" name="photoFile" accept="image/*" required>
+                                        <button type="submit" class="ghost-btn">Update Photo</button>
+                                    </div>
+                                </form>
+                            </div>
+
+                            <div class="staff-modal-footer">
+                                <div class="action-copy">
+                                    Leave the password field empty if you only want to update profile details.
+                                </div>
+
+                                <div class="staff-modal-footer-actions">
+                                    <button type="button" class="ghost-btn" data-staff-edit-close>Cancel</button>
+                                    <button type="submit" class="primary-btn" form="staff-edit-form">Apply Changes</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-backdrop"
+                         data-register-modal
+                         th:classappend="${openRegisterModal} ? ' is-open'">
+                        <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="register-modal-title">
+                            <div class="modal-header">
+                                <div>
+                                    <div class="page-kicker">Create Staff Account</div>
+                                    <h2 id="register-modal-title">Register Staff Member</h2>
+                                    <p>Use this focused form to create a new staff account without taking over the full management page.</p>
+                                </div>
+
+                                <a th:href="@{/admin/staff/management}" class="modal-close" aria-label="Close register form" data-register-close>
+                                    ×
+                                </a>
+                            </div>
+
+                            <div class="modal-body">
+                                <div th:if="${openRegisterModal == true and #strings.isNotEmpty(errorMessage)}"
+                                     class="alert alert-error"
+                                     th:text="${errorMessage}"></div>
+
+                                <div class="modal-insights">
+                                    <article class="modal-card">
+                                        <h3>Before you submit</h3>
+                                        <ul>
+                                            <li>Username and IC number must be unique.</li>
+                                            <li>Role-specific fields are required for the selected role.</li>
+                                            <li>Newly created accounts start as active by default.</li>
+                                        </ul>
+                                    </article>
+
+                                    <article class="modal-card">
+                                        <h3>Inactive account rule</h3>
+                                        <p>The database procedure and trigger keep `is_active`, `is_locked`, and `locked_at` synchronized so inactive staff cannot sign in.</p>
+                                    </article>
+                                </div>
+
+                                <form th:action="@{/admin/staff/register}"
+                                      th:object="${staffRequest}"
+                                      method="post"
+                                      enctype="multipart/form-data"
+                                      class="register-layout"
+                                      data-role-form>
+                                    <div class="form-grid">
+                                        <div class="form-field">
+                                            <label for="register-full-name">Full Name</label>
+                                            <input id="register-full-name" type="text" th:field="*{fullName}" placeholder="Full legal name" required>
+                                        </div>
+
+                                        <div class="form-field">
+                                            <label for="register-username">Username</label>
+                                            <input id="register-username" type="text" th:field="*{username}" placeholder="Unique username" required>
+                                        </div>
+
+                                        <div class="form-field">
+                                            <label for="register-password">Password</label>
+                                            <input id="register-password" type="password" th:field="*{password}" placeholder="Minimum 8 characters" required>
+                                        </div>
+
+                                        <div class="form-field">
+                                            <label for="register-ic">IC Number</label>
+                                            <input id="register-ic" type="text" th:field="*{icNumber}" placeholder="000000-00-0000" required>
+                                        </div>
+
+                                        <div class="form-field">
+                                            <label for="register-email">Email Address</label>
+                                            <input id="register-email" type="email" th:field="*{email}" placeholder="staff@bloodbank.my">
+                                        </div>
+
+                                        <div class="form-field">
+                                            <label for="register-phone">Phone Number</label>
+                                            <input id="register-phone" type="text" th:field="*{phoneNo}" placeholder="01x-xxxxxxx">
+                                        </div>
+
+                                        <div class="form-field">
+                                            <label for="register-gender">Gender</label>
+                                            <select id="register-gender" th:field="*{gender}" required>
+                                                <option value="">Select gender</option>
+                                                <option value="MALE">Male</option>
+                                                <option value="FEMALE">Female</option>
+                                                <option value="OTHER">Other</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="form-field">
+                                            <label for="register-role">Assigned Role</label>
+                                            <select id="register-role" th:field="*{staffType}" data-role-select required>
+                                                <option value="">Select role</option>
+                                                <option th:each="role : ${roles}"
+                                                        th:value="${role}"
+                                                        th:text="${#strings.replace(role.name(), '_', ' ')}">ROLE</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="form-field full-width">
+                                            <label for="register-photo">Profile Photo</label>
+                                            <input id="register-photo" type="file" name="photoFile" accept="image/*">
+                                            <div class="field-note">Optional. Supported formats include JPG and PNG.</div>
+                                        </div>
+
+                                        <div class="role-panel" data-role-section="MEDICAL_STAFF">
+                                            <div class="form-grid">
+                                                <div class="form-field">
+                                                    <label for="register-license">Medical License No</label>
+                                                    <input id="register-license" type="text" th:field="*{licenseNo}" placeholder="e.g. APC-12345">
+                                                </div>
+                                                <div class="form-field">
+                                                    <label for="register-position">Clinical Position</label>
+                                                    <input id="register-position" type="text" th:field="*{position}" placeholder="e.g. Senior Nurse">
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="role-panel" data-role-section="LAB_TECHNICIAN">
+                                            <div class="form-field">
+                                                <label for="register-certification">Laboratory Certification No</label>
+                                                <input id="register-certification" type="text" th:field="*{certificationNo}" placeholder="e.g. LAB-2048">
+                                            </div>
+                                        </div>
+
+                                        <div class="role-panel" data-role-section="BLOOD_ADMINISTRATOR">
+                                            <div class="form-field">
+                                                <label for="register-department">Department</label>
+                                                <input id="register-department" type="text" th:field="*{department}" placeholder="e.g. Eligibility Management">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="register-actions">
+                                        <div class="action-copy">
+                                            Use the staff cards after creation if you need to change the account status, role details, or profile photo.
+                                        </div>
+                                        <button type="submit" class="primary-btn">Create Staff Account</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+</div>
+<script th:src="@{/js/dashboard-layout.js}"></script>
+<script>
+    (() => {
+        const registerModal = document.querySelector("[data-register-modal]");
+        const staffEditModal = document.querySelector("[data-staff-edit-modal]");
+        const staffEditForm = document.querySelector("[data-staff-edit-form]");
+        const staffPhotoForm = document.querySelector("[data-staff-photo-form]");
+        const staffSelfNote = document.querySelector("[data-staff-self-note]");
+
+        const syncBodyScroll = () => {
+            document.body.style.overflow = document.querySelector(".modal-backdrop.is-open") ? "hidden" : "";
+        };
+
+        const setRegisterModalOpen = (isOpen) => {
+            if (!registerModal) {
+                return;
+            }
+
+            registerModal.classList.toggle("is-open", isOpen);
+            syncBodyScroll();
+        };
+
+        const cleanValue = (value) => {
+            if (!value || value === "Not provided" || value === "null") {
+                return "";
+            }
+
+            return value;
+        };
+
+        const syncRolePanels = (container) => {
+            const roleSelect = container.querySelector("[data-role-select]");
+            const rolePanels = container.querySelectorAll("[data-role-section]");
+
+            if (!roleSelect || !rolePanels.length) {
+                return;
+            }
+
+            const selectedRole = roleSelect.value;
+            rolePanels.forEach((panel) => {
+                panel.classList.toggle("is-visible", panel.getAttribute("data-role-section") === selectedRole);
+            });
+        };
+
+        const cardData = (card) => ({
+            element: card,
+            staffId: Number(card.getAttribute("data-staff-id") || "0"),
+            name: card.getAttribute("data-name") || "",
+            username: card.getAttribute("data-username") || "",
+            email: card.getAttribute("data-email") || "",
+            phoneNo: card.getAttribute("data-phone") || "",
+            icNumber: card.getAttribute("data-ic-number") || "",
+            gender: card.getAttribute("data-gender") || "",
+            staffType: card.getAttribute("data-staff-type") || "",
+            active: card.getAttribute("data-active") || "true",
+            licenseNo: card.getAttribute("data-license-no") || "",
+            position: card.getAttribute("data-position") || "",
+            certificationNo: card.getAttribute("data-certification-no") || "",
+            department: card.getAttribute("data-department") || "",
+            role: card.getAttribute("data-role") || "",
+            roleClass: (card.getAttribute("data-role-class") || "").toLowerCase(),
+            status: card.getAttribute("data-status") || "",
+            statusClass: (card.getAttribute("data-status-class") || "").toLowerCase(),
+            photoUrl: card.getAttribute("data-photo-url") || "",
+            initials: card.getAttribute("data-initials") || "SP",
+            self: card.getAttribute("data-self") === "true"
+        });
+
+        const setStaffEditModalOpen = (isOpen) => {
+            if (!staffEditModal) {
+                return;
+            }
+
+            staffEditModal.classList.toggle("is-open", isOpen);
+            syncBodyScroll();
+        };
+
+        const populateStaffEditModal = (card) => {
+            if (!card || !staffEditModal || !staffEditForm) {
+                return;
+            }
+
+            const details = cardData(card);
+            const formActionBase = `/admin/staff/${details.staffId}`;
+            const modalName = staffEditModal.querySelector("[data-staff-modal-name]");
+            const modalMeta = staffEditModal.querySelector("[data-staff-modal-meta]");
+            const modalPhoto = staffEditModal.querySelector("[data-staff-modal-photo]");
+            const modalInitials = staffEditModal.querySelector("[data-staff-modal-initials]");
+
+            staffEditForm.action = `${formActionBase}/update`;
+
+            if (staffPhotoForm) {
+                staffPhotoForm.action = `${formActionBase}/photo`;
+            }
+
+            if (staffSelfNote) {
+                staffSelfNote.hidden = !details.self;
+            }
+
+            if (modalName) {
+                modalName.textContent = details.name || "Staff profile";
+            }
+
+            if (modalMeta) {
+                modalMeta.textContent = `ID #${details.staffId} | ${details.username || "username"}`;
+            }
+
+            if (modalInitials) {
+                modalInitials.textContent = details.initials || "SP";
+                modalInitials.style.display = details.photoUrl ? "none" : "flex";
+            }
+
+            if (modalPhoto) {
+                if (details.photoUrl) {
+                    modalPhoto.src = details.photoUrl;
+                    modalPhoto.style.display = "block";
+                } else {
+                    modalPhoto.removeAttribute("src");
+                    modalPhoto.style.display = "none";
+                }
+            }
+
+            staffEditForm.querySelector("[data-modal-field='fullName']").value = cleanValue(details.name);
+            staffEditForm.querySelector("[data-modal-field='username']").value = cleanValue(details.username);
+            staffEditForm.querySelector("[data-modal-field='icNumber']").value = cleanValue(details.icNumber);
+            staffEditForm.querySelector("[data-modal-field='email']").value = cleanValue(details.email);
+            staffEditForm.querySelector("[data-modal-field='phoneNo']").value = cleanValue(details.phoneNo);
+            staffEditForm.querySelector("[data-modal-field='gender']").value = cleanValue(details.gender);
+            staffEditForm.querySelector("[data-modal-field='staffType']").value = cleanValue(details.staffType);
+            staffEditForm.querySelector("[data-modal-field='active']").value = details.active === "false" ? "false" : "true";
+            staffEditForm.querySelector("[data-modal-field='licenseNo']").value = cleanValue(details.licenseNo);
+            staffEditForm.querySelector("[data-modal-field='position']").value = cleanValue(details.position);
+            staffEditForm.querySelector("[data-modal-field='certificationNo']").value = cleanValue(details.certificationNo);
+            staffEditForm.querySelector("[data-modal-field='department']").value = cleanValue(details.department);
+
+            const passwordField = staffEditForm.querySelector("input[name='password']");
+            if (passwordField) {
+                passwordField.value = "";
+            }
+
+            const photoInput = staffPhotoForm?.querySelector("input[type='file']");
+            if (photoInput) {
+                photoInput.value = "";
+            }
+
+            syncRolePanels(staffEditForm);
+        };
+
+        const initStaffListControls = () => {
+            const grid = document.querySelector("[data-staff-grid]");
+            if (!grid) {
+                return;
+            }
+
+            const cards = Array.from(grid.querySelectorAll("[data-staff-card]"));
+            if (!cards.length) {
+                return;
+            }
+
+            const searchInput = document.querySelector("[data-staff-search]");
+            const roleFilter = document.querySelector("[data-staff-role-filter]");
+            const statusFilter = document.querySelector("[data-staff-status-filter]");
+            const sortSelect = document.querySelector("[data-staff-sort]");
+            const clearButton = document.querySelector("[data-clear-staff-filters]");
+            const emptyState = document.querySelector("[data-filter-empty]");
+            const countBadge = document.querySelector("[data-staff-count-badge]");
+            const resultsSummary = document.querySelector("[data-staff-results-summary]");
+            const selectionSummary = document.querySelector("[data-staff-selection-summary]");
+            const selectAll = document.querySelector("[data-staff-select-all]");
+            const selectedDeleteForm = document.querySelector("[data-selected-staff-delete-form]");
+            const selectedDeleteButton = document.querySelector("[data-selected-staff-delete-button]");
+            const selectedDeleteFields = document.querySelector("[data-selected-staff-delete-fields]");
+            const rowChecks = cards
+                .map((card) => card.querySelector("[data-staff-row-check]"))
+                .filter(Boolean);
+            const totalCount = cards.length;
+            const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+            const statusOrder = { active: 0, locked: 1, inactive: 2 };
+
+            const sortComparators = {
+                "name-asc": (left, right) =>
+                    collator.compare(left.name, right.name) || left.staffId - right.staffId,
+                "name-desc": (left, right) =>
+                    collator.compare(right.name, left.name) || right.staffId - left.staffId,
+                "id-asc": (left, right) => left.staffId - right.staffId,
+                "id-desc": (left, right) => right.staffId - left.staffId,
+                "role-asc": (left, right) =>
+                    collator.compare(left.role, right.role)
+                    || collator.compare(left.name, right.name)
+                    || left.staffId - right.staffId,
+                "status-asc": (left, right) =>
+                    (statusOrder[left.statusClass] ?? 99) - (statusOrder[right.statusClass] ?? 99)
+                    || collator.compare(left.name, right.name)
+                    || left.staffId - right.staffId
+            };
+
+            const selectedStaffDetails = () => cards
+                .filter((card) => card.querySelector("[data-staff-row-check]")?.checked)
+                .map(cardData);
+
+            const syncSelectedDeleteFields = (selectedDetails) => {
+                if (!selectedDeleteFields) {
+                    return;
+                }
+
+                selectedDeleteFields.innerHTML = "";
+                selectedDetails.forEach((details) => {
+                    const input = document.createElement("input");
+                    input.type = "hidden";
+                    input.name = "staffIds";
+                    input.value = String(details.staffId);
+                    selectedDeleteFields.appendChild(input);
+                });
+            };
+
+            const updateSelectionSummary = () => {
+                const selectedDetails = selectedStaffDetails();
+                const selectedCount = selectedDetails.length;
+                const containsSelf = selectedDetails.some((details) => details.self);
+
+                cards.forEach((card) => {
+                    const checkbox = card.querySelector("[data-staff-row-check]");
+                    card.classList.toggle("is-selected", Boolean(checkbox?.checked));
+                });
+
+                if (selectionSummary) {
+                    selectionSummary.textContent = `${selectedCount} row${selectedCount === 1 ? "" : "s"} selected`;
+                }
+
+                if (selectedDeleteForm && selectedDeleteButton) {
+                    syncSelectedDeleteFields(selectedDetails);
+
+                    if (selectedCount > 0 && !containsSelf) {
+                        selectedDeleteButton.disabled = false;
+                        selectedDeleteButton.title = selectedCount === 1
+                            ? `Delete ${selectedDetails[0].name || "selected staff"}`
+                            : `Delete ${selectedCount} selected staff records`;
+                    } else {
+                        selectedDeleteButton.disabled = true;
+                        selectedDeleteButton.title = containsSelf
+                            ? "Deselect your own account before deleting staff records."
+                            : "Select one or more staff rows to delete.";
+                    }
+                }
+
+                if (!selectAll) {
+                    return;
+                }
+
+                const visibleChecks = cards
+                    .filter((card) => !card.hidden)
+                    .map((card) => card.querySelector("[data-staff-row-check]"))
+                    .filter(Boolean);
+                const selectedVisibleCount = visibleChecks.filter((input) => input.checked).length;
+
+                selectAll.checked = visibleChecks.length > 0 && selectedVisibleCount === visibleChecks.length;
+                selectAll.indeterminate = selectedVisibleCount > 0 && selectedVisibleCount < visibleChecks.length;
+            };
+
+            const applyListControls = () => {
+                const query = (searchInput?.value || "").trim().toLowerCase();
+                const roleValue = (roleFilter?.value || "all").toLowerCase();
+                const statusValue = (statusFilter?.value || "all").toLowerCase();
+                const sortValue = sortSelect?.value || "name-asc";
+
+                const visibleCards = cards.filter((card) => {
+                    const details = cardData(card);
+                    const searchHaystack = [
+                        details.name,
+                        details.username,
+                        details.email,
+                        details.icNumber,
+                        details.role,
+                        details.status
+                    ].join(" ").toLowerCase();
+
+                    const matchesQuery = !query || searchHaystack.includes(query);
+                    const matchesRole = roleValue === "all" || details.roleClass === roleValue;
+                    const matchesStatus = statusValue === "all" || details.statusClass === statusValue;
+
+                    return matchesQuery && matchesRole && matchesStatus;
+                });
+
+                const sortedVisibleCards = visibleCards
+                    .map(cardData)
+                    .sort(sortComparators[sortValue] || sortComparators["name-asc"]);
+
+                const visibleElements = new Set(sortedVisibleCards.map((item) => item.element));
+                const fragment = document.createDocumentFragment();
+
+                sortedVisibleCards.forEach((item) => {
+                    item.element.hidden = false;
+                    fragment.appendChild(item.element);
+                });
+
+                cards.forEach((card) => {
+                    if (visibleElements.has(card)) {
+                        return;
+                    }
+
+                    card.hidden = true;
+                    fragment.appendChild(card);
+                });
+
+                grid.appendChild(fragment);
+
+                const visibleCount = sortedVisibleCards.length;
+
+                if (countBadge) {
+                    countBadge.textContent = visibleCount === totalCount
+                        ? `${totalCount} staff records`
+                        : `${visibleCount} of ${totalCount} staff records`;
+                }
+
+                if (resultsSummary) {
+                    resultsSummary.textContent = visibleCount === totalCount
+                        ? `Showing all ${totalCount} staff records.`
+                        : `Showing ${visibleCount} of ${totalCount} staff records after search, filter, and sort.`;
+                }
+
+                if (emptyState) {
+                    emptyState.hidden = visibleCount !== 0;
+                }
+
+                updateSelectionSummary();
+            };
+
+            searchInput?.addEventListener("input", applyListControls);
+            roleFilter?.addEventListener("change", applyListControls);
+            statusFilter?.addEventListener("change", applyListControls);
+            sortSelect?.addEventListener("change", applyListControls);
+
+            rowChecks.forEach((input) => {
+                input.addEventListener("change", updateSelectionSummary);
+            });
+
+            selectAll?.addEventListener("change", () => {
+                cards
+                    .filter((card) => !card.hidden)
+                    .forEach((card) => {
+                        const checkbox = card.querySelector("[data-staff-row-check]");
+                        if (checkbox) {
+                            checkbox.checked = selectAll.checked;
+                        }
+                    });
+
+                updateSelectionSummary();
+            });
+
+            clearButton?.addEventListener("click", () => {
+                if (searchInput) {
+                    searchInput.value = "";
+                }
+
+                if (roleFilter) {
+                    roleFilter.value = "all";
+                }
+
+                if (statusFilter) {
+                    statusFilter.value = "all";
+                }
+
+                if (sortSelect) {
+                    sortSelect.value = "name-asc";
+                }
+
+                applyListControls();
+            });
+
+            selectedDeleteForm?.addEventListener("submit", (event) => {
+                const selectedDetails = selectedStaffDetails();
+                const containsSelf = selectedDetails.some((details) => details.self);
+
+                if (!selectedDetails.length || containsSelf || selectedDeleteButton?.disabled) {
+                    event.preventDefault();
+                    return;
+                }
+
+                syncSelectedDeleteFields(selectedDetails);
+
+                const deleteLabel = selectedDetails.length === 1
+                    ? selectedDetails[0].name || "this staff profile"
+                    : `${selectedDetails.length} selected staff profiles`;
+
+                if (!confirm(`Delete ${deleteLabel} permanently?`)) {
+                    event.preventDefault();
+                }
+            });
+
+            document.querySelectorAll("[data-editor-toggle]").forEach((button) => {
+                button.addEventListener("click", () => {
+                    const staffId = button.getAttribute("data-editor-toggle");
+                    const card = cards.find((candidate) => candidate.getAttribute("data-staff-id") === staffId);
+
+                    populateStaffEditModal(card);
+                    setStaffEditModalOpen(Boolean(card));
+                });
+            });
+
+            applyListControls();
+
+            const initialEditorId = staffEditModal?.getAttribute("data-open-staff-editor-id");
+            if (initialEditorId) {
+                const initialCard = cards.find((card) => card.getAttribute("data-staff-id") === initialEditorId);
+
+                if (initialCard) {
+                    populateStaffEditModal(initialCard);
+                    setStaffEditModalOpen(true);
+                }
+            }
+        };
+
+        document.querySelectorAll("[data-role-form]").forEach((form) => {
+            syncRolePanels(form);
+
+            const roleSelect = form.querySelector("[data-role-select]");
+            if (roleSelect) {
+                roleSelect.addEventListener("change", () => syncRolePanels(form));
+            }
+        });
+
+        document.querySelectorAll("[data-staff-edit-close]").forEach((button) => {
+            button.addEventListener("click", () => setStaffEditModalOpen(false));
+        });
+
+        staffEditModal?.addEventListener("click", (event) => {
+            if (event.target === staffEditModal) {
+                setStaffEditModalOpen(false);
+            }
+        });
+
+        document.querySelectorAll("[data-register-open]").forEach((button) => {
+            button.addEventListener("click", (event) => {
+                event.preventDefault();
+                setRegisterModalOpen(true);
+            });
+        });
+
+        document.querySelectorAll("[data-register-close]").forEach((button) => {
+            button.addEventListener("click", (event) => {
+                event.preventDefault();
+                setRegisterModalOpen(false);
+            });
+        });
+
+        if (registerModal) {
+            registerModal.addEventListener("click", (event) => {
+                if (event.target === registerModal) {
+                    setRegisterModalOpen(false);
+                }
+            });
+        }
+
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") {
+                setRegisterModalOpen(false);
+                setStaffEditModalOpen(false);
+            }
+        });
+
+        setRegisterModalOpen(registerModal ? registerModal.classList.contains("is-open") : false);
+        initStaffListControls();
+        syncBodyScroll();
+    })();
+</script>
+</body>
+</html>

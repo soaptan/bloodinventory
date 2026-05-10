@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Safe Blood Match</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" th:href="@{/css/dashboard-layout.css}">
+    <link rel="stylesheet" th:href="@{/css/medical-workflow.css}">
+</head>
+<body>
+<div class="dashboard-scene">
+    <div class="dashboard-app">
+        <header class="app-header">
+            <div class="app-brand">
+                <button type="button" class="icon-button sidebar-toggle"
+                        data-sidebar-toggle aria-controls="dashboard-sidebar" aria-expanded="true" aria-label="Collapse menu">
+                    <span class="hamburger-icon" aria-hidden="true"><span></span><span></span><span></span></span>
+                    <span class="sr-only" data-sidebar-toggle-label>Collapse menu</span>
+                </button>
+
+                <div class="app-brand-copy">
+                    <div class="app-kicker">Blood Bank Digital Platform</div>
+                    <div class="app-title">Blood Inventory Management System</div>
+                    <div class="app-subtitle">Clinical workspace for eligibility review, collection, and transfusion support.</div>
+                </div>
+            </div>
+
+            <form class="app-search" data-dashboard-search role="search">
+                <div class="app-search-shell">
+                    <label class="sr-only" for="component-search">Search components</label>
+                    <input id="component-search" class="app-search-input" type="search"
+                           placeholder="Search components or menu" data-dashboard-search-input>
+                    <button type="submit" class="app-search-button" aria-label="Search">
+                        <span class="search-icon" aria-hidden="true"></span>
+                    </button>
+                </div>
+            </form>
+
+            <div class="app-actions" th:replace="fragments/header-actions :: adminProfileMenu"></div>
+        </header>
+
+        <div class="layout">
+            <div th:replace="fragments/sidebar :: sidebar(
+                'Medical Staff Panel',
+                'Clinical workflows for donor eligibility, blood collection, and transfusion requests.',
+                'safe-match'
+            )"></div>
+            <button type="button" class="sidebar-overlay" data-sidebar-close aria-label="Close sidebar"></button>
+
+            <main class="main">
+                <div class="main-stack">
+                    <section class="page-intro page-card">
+                        <div>
+                            <div class="page-kicker">Safe Blood Match</div>
+                            <h1>Compatibility Review</h1>
+                            <p>Filter released components by recipient blood group and reserve suitable blood units.</p>
+                        </div>
+                    </section>
+
+                    <div th:if="${successMessage}" class="alert-success" th:text="${successMessage}"></div>
+                    <div th:if="${errorMessage}" class="alert-error" th:text="${errorMessage}"></div>
+
+                    <section class="two-column-grid">
+                        <article class="form-card page-card">
+                            <div class="section-title">
+                                <div>
+                                    <h2>Match Criteria</h2>
+                                    <p>Recipient group and component type</p>
+                                </div>
+                            </div>
+
+                            <form th:action="@{/medical/components}" th:object="${safeMatchRequest}" method="get">
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label for="recipientBloodGroup">Recipient Blood Group</label>
+                                        <select id="recipientBloodGroup" th:field="*{recipientBloodGroup}">
+                                            <option value="">All groups</option>
+                                            <option th:each="group : ${bloodGroups}" th:value="${group}" th:text="${group}">A+</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="componentType">Component Type</label>
+                                        <select id="componentType" th:field="*{componentType}">
+                                            <option value="">All types</option>
+                                            <option th:each="type : ${componentTypes}" th:value="${type}" th:text="${type}">RBC</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group full">
+                                        <button type="submit" class="submit-btn">Apply Match</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </article>
+
+                        <article class="medical-stat-card page-card">
+                            <div class="medical-stat-label">Components in Review</div>
+                            <div class="medical-stat-value" th:text="${#lists.size(safeComponents)}">0</div>
+                        </article>
+                    </section>
+
+                    <section class="workflow-card page-card">
+                        <div class="section-title">
+                            <div>
+                                <h2>Available Components</h2>
+                                <p>Ordered by compatibility and expiry time</p>
+                            </div>
+                        </div>
+
+                        <div class="empty-state" th:if="${#lists.isEmpty(safeComponents)}">No components match the current criteria.</div>
+
+                        <div class="table-wrap" th:if="${!#lists.isEmpty(safeComponents)}">
+                            <table class="workflow-table">
+                                <thead>
+                                <tr>
+                                    <th>Component</th>
+                                    <th>Type</th>
+                                    <th>Donor</th>
+                                    <th>Donor Group</th>
+                                    <th>Expiry</th>
+                                    <th>Location</th>
+                                    <th>Status</th>
+                                    <th>Match</th>
+                                    <th>Action</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="component : ${safeComponents}" data-search-item>
+                                    <td th:text="${component.componentId}">1</td>
+                                    <td><span class="status-pill neutral" th:text="${component.componentType}">RBC</span></td>
+                                    <td th:text="${component.donorName}">Donor</td>
+                                    <td th:text="${component.donorBloodGroup}">A+</td>
+                                    <td th:text="${#dates.format(component.expiryTimestamp, 'yyyy-MM-dd HH:mm')}">2026-08-01 08:00</td>
+                                    <td th:text="${component.locationDescription}">Storage</td>
+                                    <td>
+                                        <span class="status-pill"
+                                              th:classappend="${#strings.equalsIgnoreCase(component.status, 'RESERVED')} ? ' reserved' : ' available'"
+                                              th:text="${component.status}">AVAILABLE</span>
+                                    </td>
+                                    <td>
+                                        <span class="status-pill"
+                                              th:classappend="${component.compatible} ? ' compatible' : ' incompatible'"
+                                              th:text="${component.compatibilityNote}">Compatible</span>
+                                    </td>
+                                    <td>
+                                        <div class="button-row">
+                                            <form th:if="${#strings.equalsIgnoreCase(component.status, 'AVAILABLE')}"
+                                                  class="compact-form" th:action="@{/medical/components/reserve}" method="post">
+                                                <input type="hidden" name="componentId" th:value="${component.componentId}">
+                                                <button type="submit" class="secondary-btn">Reserve</button>
+                                            </form>
+                                            <form th:if="${#strings.equalsIgnoreCase(component.status, 'RESERVED')}"
+                                                  class="compact-form" th:action="@{/medical/components/release}" method="post">
+                                                <input type="hidden" name="componentId" th:value="${component.componentId}">
+                                                <button type="submit" class="text-btn">Release</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+            </main>
+        </div>
+    </div>
+</div>
+<script th:src="@{/js/dashboard-layout.js}"></script>
+</body>
+</html>

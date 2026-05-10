@@ -2,6 +2,8 @@ package com.fyp.bloodinventory.entity;
 
 import jakarta.persistence.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "staff")
 public class Staff {
@@ -35,6 +37,18 @@ public class Staff {
 
     @Column(name = "email", unique = true, length = 100)
     private String email;
+
+    @Column(name = "profile_photo", length = 255)
+    private String profilePhoto;
+
+    @Column(name = "is_active")
+    private Boolean active = Boolean.TRUE;
+
+    @Column(name = "is_locked")
+    private Boolean locked = Boolean.FALSE;
+
+    @Column(name = "locked_at")
+    private LocalDateTime lockedAt;
 
     public Long getStaffId() {
         return staffId;
@@ -106,5 +120,36 @@ public class Staff {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+    public String getProfilePhoto() {
+    return profilePhoto;
+    }
+    
+    public void setProfilePhoto(String profilePhoto) {
+        this.profilePhoto = profilePhoto;
+    }
+
+    public Boolean getActive() {
+        return active;
+    }
+
+    public void setActive(Boolean active) {
+        this.active = active;
+    }
+
+    public Boolean getLocked() {
+        return locked;
+    }
+
+    public void setLocked(Boolean locked) {
+        this.locked = locked;
+    }
+
+    public LocalDateTime getLockedAt() {
+        return lockedAt;
+    }
+
+    public void setLockedAt(LocalDateTime lockedAt) {
+        this.lockedAt = lockedAt;
     }
 }

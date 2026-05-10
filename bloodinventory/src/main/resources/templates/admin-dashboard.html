@@ -7,10 +7,10 @@
     <link rel="stylesheet" th:href="@{/css/dashboard-layout.css}">
     <style>
         .main-stack {
-            height: 100%;
-            min-height: 0;
+            min-height: 100%;
             display: grid;
-            grid-template-rows: auto auto minmax(0, 1fr);
+            grid-template-rows: auto auto auto;
+            align-content: start;
             gap: 10px;
         }
 
@@ -69,32 +69,376 @@
         }
 
         .stat-card {
-            min-height: 84px;
-            padding: 12px 14px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+            min-height: 164px;
+            padding: 18px 20px 16px 92px;
+            display: grid;
+            grid-template-rows: auto auto auto minmax(58px, 1fr);
             gap: 6px;
+            position: relative;
         }
 
         .stat-label {
-            font-size: 10px;
+            font-size: 12px;
             font-weight: 800;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            color: rgba(255, 255, 255, 0.9);
+            letter-spacing: 0;
+            text-transform: none;
+            color: #64748b;
         }
 
         .stat-value {
-            font-size: 28px;
+            font-size: 30px;
             font-weight: 800;
             line-height: 1;
+            color: #0f172a;
         }
 
         .stat-note {
             font-size: 10.5px;
             line-height: 1.25;
-            color: rgba(255, 255, 255, 0.92);
+            color: #64748b;
+        }
+
+        .stat-chart {
+            width: 100%;
+            height: 64px;
+            align-self: end;
+            display: block;
+            margin-top: 4px;
+        }
+
+        .stat-card.metric-card::before {
+            content: none;
+            display: none;
+        }
+
+        .stat-logo {
+            position: absolute;
+            left: 20px;
+            top: 20px;
+            width: 54px;
+            height: 54px;
+            border-radius: 18px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            background: var(--metric-accent, #2878ff);
+            box-shadow: 0 14px 28px rgba(15, 23, 42, 0.18);
+        }
+
+        .stat-logo svg {
+            width: 28px;
+            height: 28px;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        body.theme-dark .stat-label,
+        body.theme-dark .stat-note {
+            color: #94a3b8;
+        }
+
+        body.theme-dark .stat-value {
+            color: #f8fafc;
+        }
+
+        .overview-panel {
+            display: grid;
+            gap: 12px;
+            padding: 14px 16px;
+        }
+
+        .overview-header {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(440px, 690px);
+            gap: 14px;
+            align-items: start;
+        }
+
+        .overview-header h2 {
+            font-size: 20px;
+            color: #1f3f67;
+            margin-bottom: 4px;
+        }
+
+        .overview-subtitle {
+            color: #67809f;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        .overview-subtitle code {
+            background: #eaf4ff;
+            color: #2467ad;
+            padding: 2px 6px;
+            border-radius: 8px;
+        }
+
+        .overview-controls {
+            display: grid;
+            gap: 8px;
+            justify-items: stretch;
+        }
+
+        .overview-control {
+            display: grid;
+            grid-template-columns: 78px minmax(0, 1fr);
+            align-items: center;
+            gap: 6px;
+        }
+
+        .overview-control label,
+        .overview-control-label {
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #7f94ae;
+        }
+
+        .mini-filter-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .mini-filter-button {
+            min-height: 30px;
+            padding: 6px 10px;
+            border: 1px solid #d9e6f2;
+            border-radius: 999px;
+            background: white;
+            color: #28496f;
+            font-family: inherit;
+            font-size: 11px;
+            font-weight: 800;
+            line-height: 1;
+            outline: none;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+        }
+
+        .mini-filter-button:hover {
+            border-color: #9bc6f6;
+            color: #2f80ed;
+            transform: translateY(-1px);
+        }
+
+        .mini-filter-button:focus-visible {
+            border-color: #2f80ed;
+            box-shadow: 0 0 0 4px rgba(47, 128, 237, 0.08);
+        }
+
+        .mini-filter-button.is-active {
+            color: #ffffff;
+            background: #2f80ed;
+            border-color: #2f80ed;
+            box-shadow: 0 8px 18px rgba(47, 128, 237, 0.22);
+        }
+
+        .overview-visual-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.35fr) minmax(340px, 0.65fr);
+            gap: 12px;
+            align-items: stretch;
+        }
+
+        .chart-shell,
+        .timeline-table-shell {
+            border: 1px solid #e4eef9;
+            border-radius: 18px;
+            background: white;
+        }
+
+        .chart-shell {
+            min-height: 300px;
+            padding: 12px;
+            display: grid;
+            grid-template-rows: auto minmax(220px, 1fr) auto;
+            gap: 10px;
+            overflow: hidden;
+        }
+
+        .chart-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .chart-meta-item {
+            display: grid;
+            gap: 2px;
+        }
+
+        .chart-meta-item span {
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #7f94ae;
+        }
+
+        .chart-meta-item strong {
+            font-size: 22px;
+            color: #24476f;
+            line-height: 1;
+        }
+
+        .overview-chart {
+            width: 100%;
+            height: 100%;
+            min-height: 220px;
+            display: block;
+        }
+
+        .chart-legend {
+            min-height: 24px;
+            display: flex;
+            align-items: center;
+            gap: 8px 14px;
+            flex-wrap: wrap;
+        }
+
+        .chart-legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #5f7796;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            flex-shrink: 0;
+        }
+
+        .legend-icon {
+            width: 22px;
+            height: 22px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            flex-shrink: 0;
+        }
+
+        .legend-icon svg {
+            width: 14px;
+            height: 14px;
+            stroke: currentColor;
+            stroke-width: 2.2;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .timeline-table-shell {
+            max-height: 336px;
+            overflow: auto;
+        }
+
+        .timeline-table {
+            width: 100%;
+            min-width: 560px;
+            border-collapse: collapse;
+        }
+
+        .timeline-table th,
+        .timeline-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e9f1fb;
+            text-align: left;
+            font-size: 12px;
+            color: #28496f;
+            white-space: nowrap;
+        }
+
+        .timeline-table th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background: #f6faff;
+            color: #67809f;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .metric-token {
+            display: inline-flex;
+            min-width: 42px;
+            justify-content: center;
+            padding: 5px 8px;
+            border-radius: 999px;
+            color: white;
+            background: linear-gradient(135deg, #2f80ed 0%, #59a9ff 100%);
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        body.theme-dark .overview-header h2,
+        body.theme-dark .chart-meta-item strong,
+        body.theme-dark .timeline-table td {
+            color: #e8f1fb;
+        }
+
+        body.theme-dark .overview-subtitle,
+        body.theme-dark .overview-control label,
+        body.theme-dark .overview-control-label,
+        body.theme-dark .chart-meta-item span,
+        body.theme-dark .chart-legend-item,
+        body.theme-dark .timeline-table th {
+            color: #93a7c1;
+        }
+
+        body.theme-dark .overview-subtitle code {
+            background: #132334;
+            color: #a6d4ff;
+        }
+
+        body.theme-dark .chart-shell,
+        body.theme-dark .timeline-table-shell {
+            background: #0b1622;
+            border-color: #22384d;
+            color: #e8f1fb;
+        }
+
+        body.theme-dark .mini-filter-button {
+            background: #0b1622;
+            border-color: #22384d;
+            color: #c7d7ea;
+        }
+
+        body.theme-dark .mini-filter-button:hover {
+            border-color: #3e8cff;
+            color: #a6d4ff;
+        }
+
+        body.theme-dark .mini-filter-button.is-active {
+            background: #2f80ed;
+            border-color: #2f80ed;
+            color: #ffffff;
+        }
+
+        body.theme-dark .timeline-table th {
+            background: #132334;
+        }
+
+        body.theme-dark .timeline-table th,
+        body.theme-dark .timeline-table td {
+            border-bottom-color: #203447;
         }
 
         .content-grid {
@@ -170,6 +514,7 @@
             color: #67809f;
             margin-bottom: 4px;
             overflow: hidden;
+            line-clamp: 2;
             display: -webkit-box;
             -webkit-box-orient: vertical;
             -webkit-line-clamp: 2;
@@ -218,6 +563,7 @@
             color: #7b93ad;
             line-height: 1.3;
             overflow: hidden;
+            line-clamp: 2;
             display: -webkit-box;
             -webkit-box-orient: vertical;
             -webkit-line-clamp: 2;
@@ -259,7 +605,9 @@
             }
 
             .stat-card {
-                min-height: 78px;
+                min-height: 148px;
+                padding-top: 16px;
+                padding-bottom: 14px;
             }
 
             .stat-value {
@@ -268,6 +616,7 @@
 
             .action-item p,
             .summary-copy span {
+                line-clamp: 1;
                 -webkit-line-clamp: 1;
             }
         }
@@ -285,6 +634,15 @@
             .content-grid {
                 grid-template-columns: 1fr;
             }
+
+            .overview-header,
+            .overview-visual-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .mini-filter-buttons {
+                justify-content: flex-start;
+            }
         }
 
         @media (max-width: 1100px) {
@@ -300,7 +658,12 @@
             }
 
             .action-list,
-            .summary-list {
+            .summary-list,
+            .overview-controls {
+                grid-template-columns: 1fr;
+            }
+
+            .overview-control {
                 grid-template-columns: 1fr;
             }
         }
@@ -320,7 +683,7 @@
             }
 
             .stat-card {
-                min-height: 88px;
+                min-height: 154px;
             }
         }
     </style>
@@ -358,10 +721,7 @@
                 </div>
             </form>
 
-            <div class="app-actions">
-                <span class="header-chip">Administrator Workspace</span>
-                <a th:href="@{/admin/staff/register}" class="header-action">Create Staff</a>
-            </div>
+            <div class="app-actions" th:replace="fragments/header-actions :: adminProfileMenu"></div>
         </header>
 
         <div class="layout">
@@ -383,44 +743,124 @@
                             </p>
                         </div>
 
-                        <a th:href="@{/admin/staff/register}" class="intro-link">Open Staff Registration</a>
                     </section>
 
                     <section class="stats-grid">
                         <article class="stat-card metric-card primary">
+                            <span class="stat-logo" aria-hidden="true">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="9" cy="7" r="4"/>
+                                    <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                                </svg>
+                            </span>
                             <div class="stat-label">Total Staff</div>
                             <div class="stat-value" th:text="${stats.totalStaff}">0</div>
                             <div class="stat-note">Authorized personnel registered in the system.</div>
+                            <svg class="stat-chart"
+                                 data-stat-sparkline
+                                 th:data-value="${stats.totalStaff}"
+                                 data-points="0.78,0.84,0.72,0.9,0.82,1"
+                                 data-color="#22c55e"
+                                 aria-hidden="true"></svg>
                         </article>
 
                         <article class="stat-card metric-card info">
+                            <span class="stat-logo" aria-hidden="true">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 12 5.36 5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/>
+                                    <path d="M12 5.36 12 21"/>
+                                </svg>
+                            </span>
                             <div class="stat-label">Total Donors</div>
                             <div class="stat-value" th:text="${stats.totalDonors}">0</div>
                             <div class="stat-note">Donor records available for review and processing.</div>
+                            <svg class="stat-chart"
+                                 data-stat-sparkline
+                                 th:data-value="${stats.totalDonors}"
+                                 data-points="0.68,0.76,0.72,0.88,0.92,1"
+                                 data-color="#ff5a1f"
+                                 aria-hidden="true"></svg>
                         </article>
 
                         <article class="stat-card metric-card success">
+                            <span class="stat-logo" aria-hidden="true">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="m7.5 4.27 9 5.15"/>
+                                    <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+                                    <path d="m3.3 7 8.7 5 8.7-5"/>
+                                    <path d="M12 22V12"/>
+                                    <path d="m16 15 2 2 4-4"/>
+                                </svg>
+                            </span>
                             <div class="stat-label">Available Components</div>
                             <div class="stat-value" th:text="${stats.availableComponents}">0</div>
                             <div class="stat-note">Blood components ready for controlled use.</div>
+                            <svg class="stat-chart"
+                                 data-stat-sparkline
+                                 th:data-value="${stats.availableComponents}"
+                                 data-points="0.7,0.78,0.64,0.95,0.76,1"
+                                 data-color="#8b6ff4"
+                                 aria-hidden="true"></svg>
                         </article>
 
                         <article class="stat-card metric-card warning">
+                            <span class="stat-logo" aria-hidden="true">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M12 2.69 17.66 8.35a8 8 0 1 1-11.31 0Z"/>
+                                    <path d="M12 10v6"/>
+                                    <path d="M9 13h6"/>
+                                </svg>
+                            </span>
                             <div class="stat-label">Total Donations</div>
                             <div class="stat-value" th:text="${stats.totalDonations}">0</div>
                             <div class="stat-note">Donation events captured in the current inventory system.</div>
+                            <svg class="stat-chart"
+                                 data-stat-sparkline
+                                 th:data-value="${stats.totalDonations}"
+                                 data-points="0.62,0.72,0.6,0.9,0.84,1"
+                                 data-color="#2878ff"
+                                 aria-hidden="true"></svg>
                         </article>
 
                         <article class="stat-card metric-card danger">
+                            <span class="stat-logo" aria-hidden="true">
+                                <svg viewBox="0 0 24 24">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <path d="M12 6v6l4 2"/>
+                                    <path d="M12 18h.01"/>
+                                </svg>
+                            </span>
                             <div class="stat-label">Near Expiry</div>
                             <div class="stat-value" th:text="${stats.nearExpiryComponents}">0</div>
                             <div class="stat-note">Components reaching expiry within the next 3 days.</div>
+                            <svg class="stat-chart"
+                                 data-stat-sparkline
+                                 th:data-value="${stats.nearExpiryComponents}"
+                                 data-points="0.5,0.72,0.64,0.9,0.7,1"
+                                 data-color="#ef4444"
+                                 aria-hidden="true"></svg>
                         </article>
 
                         <article class="stat-card metric-card dark">
+                            <span class="stat-logo" aria-hidden="true">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+                                    <path d="m3.3 7 8.7 5 8.7-5"/>
+                                    <path d="M12 22V12"/>
+                                    <path d="m7.5 4.27 9 5.15"/>
+                                </svg>
+                            </span>
                             <div class="stat-label">Total Components</div>
                             <div class="stat-value" th:text="${stats.totalBloodComponents}">0</div>
                             <div class="stat-note">Total blood components under system supervision.</div>
+                            <svg class="stat-chart"
+                                 data-stat-sparkline
+                                 th:data-value="${stats.totalBloodComponents}"
+                                 data-points="0.58,0.68,0.84,0.74,0.92,1"
+                                 data-color="#386bbc"
+                                 aria-hidden="true"></svg>
                         </article>
                     </section>
 
@@ -436,9 +876,9 @@
                                 <div class="action-item" data-search-item>
                                     <div class="action-icon">SA</div>
                                     <div>
-                                        <h3>Staff Accounts</h3>
-                                        <p>Create new staff users and maintain secure role access.</p>
-                                        <a th:href="@{/admin/staff/register}">Open staff registration</a>
+                                        <h3>Staff Management</h3>
+                                        <p>Review registered staff accounts and maintain secure role access.</p>
+                                        <a th:href="@{/admin/staff/management}">Open staff management</a>
                                     </div>
                                 </div>
 
@@ -519,5 +959,103 @@
     </div>
 </div>
 <script th:src="@{/js/dashboard-layout.js}"></script>
+<script>
+    (() => {
+        const charts = Array.from(document.querySelectorAll("[data-stat-sparkline]"));
+
+        if (!charts.length) {
+            return;
+        }
+
+        const createSvgElement = (tag, attributes) => {
+            const element = document.createElementNS("http://www.w3.org/2000/svg", tag);
+
+            Object.entries(attributes || {}).forEach(([name, value]) => {
+                element.setAttribute(name, value);
+            });
+
+            return element;
+        };
+
+        const drawStatSparklines = () => {
+            const isDark = document.body.classList.contains("theme-dark");
+            const baseline = isDark ? "#273244" : "#e7eef7";
+
+            charts.forEach((svg) => {
+                const baseValue = Math.max(0, Number(svg.getAttribute("data-value") || "0"));
+                const ratios = (svg.getAttribute("data-points") || "0.72,0.8,0.68,0.92,0.84,1")
+                    .split(",")
+                    .map((point) => Math.max(0, Number(point.trim()) || 0));
+                const values = ratios.map((ratio) => Math.round(baseValue * ratio));
+                const maxValue = Math.max(1, ...values);
+                const color = svg.getAttribute("data-color") || "#2878ff";
+                const width = 260;
+                const height = 74;
+                const padding = { top: 6, right: 4, bottom: 12, left: 4 };
+                const innerWidth = width - padding.left - padding.right;
+                const innerHeight = height - padding.top - padding.bottom;
+                const xForIndex = (index) => padding.left + (
+                    values.length <= 1 ? innerWidth / 2 : (index / (values.length - 1)) * innerWidth
+                );
+                const yForValue = (value) => padding.top + innerHeight - (value / maxValue) * innerHeight;
+                const linePath = values
+                    .map((value, index) => `${index === 0 ? "M" : "L"} ${xForIndex(index).toFixed(2)} ${yForValue(value).toFixed(2)}`)
+                    .join(" ");
+                const areaPath = `${linePath} L ${xForIndex(values.length - 1).toFixed(2)} ${height - padding.bottom} L ${xForIndex(0).toFixed(2)} ${height - padding.bottom} Z`;
+
+                svg.replaceChildren();
+                svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+                svg.setAttribute("preserveAspectRatio", "none");
+
+                svg.appendChild(createSvgElement("line", {
+                    x1: padding.left,
+                    y1: height - padding.bottom,
+                    x2: width - padding.right,
+                    y2: height - padding.bottom,
+                    stroke: baseline,
+                    "stroke-width": "1.2"
+                }));
+
+                svg.appendChild(createSvgElement("path", {
+                    d: areaPath,
+                    fill: color,
+                    opacity: isDark ? "0.18" : "0.16"
+                }));
+
+                svg.appendChild(createSvgElement("path", {
+                    d: linePath,
+                    fill: "none",
+                    stroke: color,
+                    "stroke-width": "4",
+                    "stroke-linecap": "round",
+                    "stroke-linejoin": "round"
+                }));
+
+                values.forEach((value, index) => {
+                    const point = createSvgElement("circle", {
+                        cx: xForIndex(index),
+                        cy: yForValue(value),
+                        r: index === values.length - 1 ? "4" : "3",
+                        fill: color,
+                        stroke: isDark ? "#181d28" : "#ffffff",
+                        "stroke-width": "2"
+                    });
+                    const title = createSvgElement("title");
+                    title.textContent = value.toLocaleString();
+                    point.appendChild(title);
+                    svg.appendChild(point);
+                });
+            });
+        };
+
+        drawStatSparklines();
+
+        new MutationObserver(drawStatSparklines).observe(document.body, {
+            attributes: true,
+            attributeFilter: ["class"]
+        });
+    })();
+
+</script>
 </body>
 </html>

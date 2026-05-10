@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Reports and Alerts</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" th:href="@{/css/dashboard-layout.css}">
+    <style>
+        .main-stack { display:grid; gap:14px; }
+        .page-intro { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:18px 20px; }
+        .page-kicker { font-size:11px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:#7f94ae; margin-bottom:6px; }
+        .page-intro h1 { font-size:34px; color:#1f3f67; margin-bottom:6px; }
+        .page-intro p { color:#5f7796; font-size:14px; line-height:1.5; max-width:760px; }
+
+        .summary-grid {
+            display:grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap:14px;
+        }
+
+        .summary-card {
+            background:white;
+            border-radius:20px;
+            padding:18px;
+            box-shadow:0 10px 24px rgba(52,114,184,.08);
+            border:1px solid #e5eef8;
+        }
+
+        .summary-card .label {
+            font-size:13px;
+            color:#6b85a3;
+            margin-bottom:8px;
+        }
+
+        .summary-card .value {
+            font-size:30px;
+            font-weight:800;
+            color:#1f4c82;
+        }
+
+        .reports-grid {
+            display:grid;
+            grid-template-columns: 1fr 1fr;
+            gap:14px;
+        }
+
+        .module-card {
+            background:white;
+            border-radius:22px;
+            padding:20px;
+            box-shadow:0 10px 24px rgba(52,114,184,.08);
+            border:1px solid #e5eef8;
+        }
+
+        .module-card h2 {
+            font-size:22px;
+            color:#204a7a;
+            margin-bottom:8px;
+        }
+
+        .report-card-header {
+            display:flex;
+            justify-content:space-between;
+            align-items:flex-start;
+            gap:12px;
+            margin-bottom:10px;
+        }
+
+        .report-card-header h2 {
+            margin-bottom:6px;
+        }
+
+        .report-actions {
+            position:relative;
+            display:flex;
+            justify-content:flex-end;
+        }
+
+        .report-actions-button,
+        .report-download-btn {
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            min-height:36px;
+            padding:8px 12px;
+            border-radius:999px;
+            border:1px solid #cfe0f3;
+            background:#f3f8ff;
+            color:#1f5f9f;
+            text-decoration:none;
+            font-size:12px;
+            font-weight:800;
+            white-space:nowrap;
+        }
+
+        .report-actions-button {
+            cursor:pointer;
+            min-width:104px;
+        }
+
+        .report-actions-button svg {
+            width:16px;
+            height:16px;
+            margin-left:8px;
+            stroke:currentColor;
+            stroke-width:2;
+            fill:none;
+            stroke-linecap:round;
+            stroke-linejoin:round;
+        }
+
+        .report-download-btn:hover {
+            background:#e8f2ff;
+            border-color:#aac7ea;
+        }
+
+        .report-actions-menu {
+            position:absolute;
+            top:calc(100% + 8px);
+            right:0;
+            width:220px;
+            display:none;
+            padding:8px;
+            border-radius:14px;
+            border:1px solid #d9e6f2;
+            background:#fff;
+            box-shadow:0 18px 36px rgba(15,23,42,.14);
+            z-index:10;
+        }
+
+        .report-actions.open .report-actions-menu {
+            display:grid;
+        }
+
+        .report-action-item {
+            width:100%;
+            border:0;
+            background:transparent;
+            color:#294565;
+            display:flex;
+            align-items:center;
+            gap:10px;
+            padding:10px;
+            border-radius:10px;
+            font-size:13px;
+            font-weight:700;
+            cursor:pointer;
+            text-align:left;
+        }
+
+        .report-action-item:hover {
+            background:#eef5fd;
+            color:#1f5f9f;
+        }
+
+        .report-action-item svg {
+            width:18px;
+            height:18px;
+            stroke:currentColor;
+            stroke-width:2;
+            fill:none;
+            stroke-linecap:round;
+            stroke-linejoin:round;
+        }
+
+        .report-download-backdrop {
+            position:fixed;
+            inset:0;
+            z-index:80;
+            display:none;
+            align-items:center;
+            justify-content:center;
+            padding:24px;
+            background:rgba(8,15,27,.52);
+        }
+
+        .report-download-backdrop.open {
+            display:flex;
+        }
+
+        .report-download-dialog {
+            width:min(760px, 94vw);
+            min-height:420px;
+            border-radius:6px;
+            background:#fff;
+            box-shadow:0 28px 70px rgba(0,0,0,.24);
+            overflow:hidden;
+        }
+
+        .download-dialog-header,
+        .download-dialog-footer {
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:12px;
+            padding:16px 20px;
+            border-bottom:1px solid #e3e8ef;
+        }
+
+        .download-dialog-header h2 {
+            font-size:20px;
+            color:#172033;
+            margin:0;
+        }
+
+        .download-close {
+            width:32px;
+            height:32px;
+            border:1px solid #d9e1ea;
+            border-radius:4px;
+            background:#fff;
+            color:#172033;
+            cursor:pointer;
+            font-size:22px;
+            line-height:1;
+        }
+
+        .download-dialog-body {
+            padding:20px;
+            display:grid;
+            gap:18px;
+        }
+
+        .download-field {
+            display:grid;
+            gap:8px;
+        }
+
+        .download-field label,
+        .download-format-title {
+            color:#344760;
+            font-size:13px;
+            font-weight:700;
+        }
+
+        .download-field select {
+            width:100%;
+            min-height:42px;
+            border:1px solid #ccd8e6;
+            border-radius:6px;
+            padding:8px 10px;
+            background:#fff;
+            color:#172033;
+        }
+
+        .download-format-grid {
+            display:grid;
+            grid-template-columns:repeat(4, minmax(96px, 1fr));
+            gap:14px;
+            max-width:560px;
+        }
+
+        .download-format-option input {
+            position:absolute;
+            opacity:0;
+            pointer-events:none;
+        }
+
+        .download-format-card {
+            min-height:106px;
+            border:2px solid transparent;
+            border-radius:5px;
+            display:grid;
+            place-items:center;
+            gap:8px;
+            padding:12px;
+            color:#36475b;
+            cursor:pointer;
+        }
+
+        .download-format-card svg {
+            width:34px;
+            height:34px;
+            stroke:currentColor;
+            stroke-width:1.8;
+            fill:none;
+            stroke-linecap:round;
+            stroke-linejoin:round;
+        }
+
+        .download-format-option input:checked + .download-format-card {
+            border-color:#1476d4;
+            background:#e8f3ff;
+            color:#173d67;
+        }
+
+        .download-checks {
+            display:grid;
+            gap:12px;
+            color:#334155;
+            font-size:13px;
+        }
+
+        .download-checks label {
+            display:flex;
+            align-items:center;
+            gap:8px;
+        }
+
+        .download-dialog-footer {
+            justify-content:flex-end;
+            border-top:1px solid #e3e8ef;
+            border-bottom:0;
+            background:#f8fafc;
+        }
+
+        .download-footer-btn {
+            min-height:38px;
+            border:1px solid #d9e1ea;
+            border-radius:5px;
+            background:#fff;
+            color:#334155;
+            padding:8px 14px;
+            cursor:pointer;
+            font-weight:700;
+        }
+
+        .download-footer-btn.primary {
+            border-color:#1476d4;
+            background:#1476d4;
+            color:#fff;
+        }
+
+        .module-card p {
+            color:#6b85a3;
+            font-size:14px;
+            line-height:1.6;
+            margin-bottom:16px;
+        }
+
+        .report-table {
+            width:100%;
+            border-collapse:collapse;
+        }
+
+        .report-table th,
+        .report-table td {
+            padding:12px 10px;
+            border-bottom:1px solid #e9f1fb;
+            text-align:left;
+            font-size:13px;
+            vertical-align:top;
+        }
+
+        .report-table th {
+            color:#67809f;
+            font-weight:700;
+        }
+
+        .action-pill {
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            padding:4px 8px;
+            border-radius:999px;
+            background:#edf5ff;
+            color:#1f5f9f;
+            font-size:11px;
+            font-weight:800;
+        }
+
+        .action-pill.insert { background:#e9f9ef; color:#16803a; }
+        .action-pill.update { background:#edf5ff; color:#1f5f9f; }
+        .action-pill.delete { background:#fff0f0; color:#c52f3f; }
+        .action-pill.login { background:#f1ecff; color:#6846b8; }
+        .action-pill.logout { background:#fff6e8; color:#b66b04; }
+
+        body.theme-dark .report-actions-button,
+        body.theme-dark .report-download-btn {
+            background:#132334;
+            border-color:#2b465f;
+            color:#8ec6ff;
+        }
+
+        body.theme-dark .report-download-btn:hover {
+            background:#18314a;
+            border-color:#3e5f7c;
+        }
+
+        body.theme-dark .report-actions-menu,
+        body.theme-dark .report-download-dialog {
+            background:#0f1d2c;
+            border-color:#22384d;
+        }
+
+        body.theme-dark .report-action-item,
+        body.theme-dark .download-dialog-header h2,
+        body.theme-dark .download-field label,
+        body.theme-dark .download-format-title,
+        body.theme-dark .download-checks,
+        body.theme-dark .download-field select {
+            color:#e8f1fb;
+        }
+
+        body.theme-dark .report-action-item:hover,
+        body.theme-dark .download-format-option input:checked + .download-format-card {
+            background:#132334;
+        }
+
+        body.theme-dark .download-field select,
+        body.theme-dark .download-close,
+        body.theme-dark .download-footer-btn {
+            background:#132334;
+            border-color:#2b465f;
+            color:#e8f1fb;
+        }
+
+        body.theme-dark .download-dialog-header,
+        body.theme-dark .download-dialog-footer {
+            border-color:#22384d;
+        }
+
+        body.theme-dark .download-dialog-footer {
+            background:#0b1622;
+        }
+
+        body.theme-dark .action-pill {
+            background:#132334;
+            color:#8ec6ff;
+        }
+
+        body.theme-dark .action-pill.insert { background:rgba(34,197,94,.16); color:#7be39e; }
+        body.theme-dark .action-pill.update { background:rgba(47,128,237,.16); color:#8ec6ff; }
+        body.theme-dark .action-pill.delete { background:rgba(239,68,68,.16); color:#ff9aa2; }
+        body.theme-dark .action-pill.login { background:rgba(139,92,246,.18); color:#c4b5fd; }
+        body.theme-dark .action-pill.logout { background:rgba(245,158,11,.18); color:#facc6b; }
+
+        @media (max-width: 1100px) {
+            .summary-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .reports-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 680px) {
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .page-intro,
+            .report-card-header {
+                align-items:stretch;
+                flex-direction:column;
+            }
+
+            .download-format-grid {
+                grid-template-columns:repeat(2, minmax(0, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="dashboard-scene">
+    <div class="dashboard-app">
+        <header class="app-header">
+            <div class="app-brand">
+                <button type="button" class="icon-button sidebar-toggle"
+                        data-sidebar-toggle aria-controls="dashboard-sidebar" aria-expanded="true" aria-label="Collapse menu">
+                    <span class="hamburger-icon" aria-hidden="true">
+                        <span></span><span></span><span></span>
+                    </span>
+                    <span class="sr-only" data-sidebar-toggle-label>Collapse menu</span>
+                </button>
+
+                <div class="app-brand-copy">
+                    <div class="app-kicker">Blood Bank Digital Platform</div>
+                    <div class="app-title">Blood Inventory Management System</div>
+                    <div class="app-subtitle">Administrative workspace for staffing, storage, monitoring, and reporting.</div>
+                </div>
+            </div>
+
+            <form class="app-search" role="search">
+                <div class="app-search-shell">
+                    <input class="app-search-input" type="search" placeholder="Search reports or alerts">
+                    <button type="submit" class="app-search-button" aria-label="Search dashboard">
+                        <span class="search-icon" aria-hidden="true"></span>
+                    </button>
+                </div>
+            </form>
+
+            <div class="app-actions" th:replace="fragments/header-actions :: adminProfileMenu"></div>
+        </header>
+
+        <div class="layout">
+            <div th:replace="fragments/sidebar :: sidebar(
+                'Blood Administrator Panel',
+                'Centralized navigation for staff, storage, inventory monitoring, alerts, and reports.',
+                'reports-alerts'
+            )"></div>
+
+            <button type="button" class="sidebar-overlay" data-sidebar-close aria-label="Close sidebar"></button>
+
+            <main class="main">
+                <div class="main-stack">
+                    <section class="page-intro page-card">
+                        <div>
+                            <div class="page-kicker">Reports and Alerts</div>
+                            <h1>Reports & Alerts</h1>
+                            <p>
+                                Review live administrative summaries, stock distribution, near-expiry alerts, and staff totals using PostgreSQL functions.
+                            </p>
+                        </div>
+                        <div class="report-actions" data-report-actions>
+                            <button type="button" class="report-actions-button" data-report-actions-toggle aria-expanded="false">
+                                Actions
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="m6 9 6 6 6-6"></path>
+                                </svg>
+                            </button>
+                            <div class="report-actions-menu" data-report-actions-menu>
+                                <button type="button" class="report-action-item" data-report-download-open>
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <path d="M7 10l5 5 5-5"></path>
+                                        <path d="M12 15V3"></path>
+                                    </svg>
+                                    Download
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="summary-grid">
+                        <div class="summary-card">
+                            <div class="label">Total Staff</div>
+                            <div class="value" th:text="${reportsSummary.totalStaff}">0</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="label">Total Donors</div>
+                            <div class="value" th:text="${reportsSummary.totalDonors}">0</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="label">Total Donations</div>
+                            <div class="value" th:text="${reportsSummary.totalDonations}">0</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="label">Total Components</div>
+                            <div class="value" th:text="${reportsSummary.totalComponents}">0</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="label">Available Components</div>
+                            <div class="value" th:text="${reportsSummary.availableComponents}">0</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="label">Near Expiry Components</div>
+                            <div class="value" th:text="${reportsSummary.nearExpiryComponents}">0</div>
+                        </div>
+                    </section>
+
+                    <section class="reports-grid">
+                        <article class="module-card">
+                            <div class="report-card-header">
+                                <div>
+                                    <h2>Available Stock by Type</h2>
+                                    <p>Live results from <code>fn_available_stock_by_type()</code>.</p>
+                                </div>
+                            </div>
+
+                            <table class="report-table">
+                                <thead>
+                                <tr>
+                                    <th>Component Type</th>
+                                    <th>Total Available</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="item : ${availableStockList}">
+                                    <td th:text="${item.componentType}">RBC</td>
+                                    <td th:text="${item.totalAvailable}">0</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </article>
+
+                        <article class="module-card">
+                            <div class="report-card-header">
+                                <div>
+                                    <h2>Staff Totals by Role</h2>
+                                    <p>Live grouped results from <code>fn_staff_totals_by_role()</code>.</p>
+                                </div>
+                            </div>
+
+                            <table class="report-table">
+                                <thead>
+                                <tr>
+                                    <th>Staff Type</th>
+                                    <th>Total Staff</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="item : ${staffRoleTotals}">
+                                    <td th:text="${item.staffType}">MEDICAL_STAFF</td>
+                                    <td th:text="${item.totalStaff}">0</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </article>
+
+                        <article class="module-card" style="grid-column: 1 / -1;">
+                            <div class="report-card-header">
+                                <div>
+                                    <h2>Near Expiry Alerts</h2>
+                                    <p>Live results from <code>fn_report_near_expiry_alerts()</code>.</p>
+                                </div>
+                            </div>
+
+                            <table class="report-table">
+                                <thead>
+                                <tr>
+                                    <th>Component ID</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Expiry Time</th>
+                                    <th>Location ID</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="item : ${nearExpiryAlerts}">
+                                    <td th:text="${item.componentId}">1</td>
+                                    <td th:text="${item.componentType}">PLATELET</td>
+                                    <td th:text="${item.status}">AVAILABLE</td>
+                                    <td th:text="${#dates.format(item.expiryTimestamp, 'yyyy-MM-dd HH:mm')}">2026-04-19</td>
+                                    <td th:text="${item.locationId}">1</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </article>
+
+                        <article class="module-card" style="grid-column: 1 / -1;">
+                            <div class="report-card-header">
+                                <div>
+                                    <h2>System Activity Notifications</h2>
+                                    <p>Insert, update, delete, login, and logout records from <code>system_activity_notification</code>.</p>
+                                </div>
+                            </div>
+
+                            <table class="report-table">
+                                <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Module</th>
+                                    <th>Action</th>
+                                    <th>Staff</th>
+                                    <th>Source IP</th>
+                                    <th>Message</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:if="${activityNotifications == null or #lists.isEmpty(activityNotifications)}">
+                                    <td colspan="6">No system activity notifications recorded yet.</td>
+                                </tr>
+                                <tr th:each="item : ${activityNotifications}">
+                                    <td th:text="${#dates.format(item.createdAt, 'yyyy-MM-dd HH:mm')}">2026-04-26 15:40</td>
+                                    <td th:text="${item.moduleName}">Authentication</td>
+                                    <td>
+                                        <span class="action-pill"
+                                              th:classappend="${#strings.toLowerCase(item.actionType)}"
+                                              th:text="${item.actionType}">LOGIN</span>
+                                    </td>
+                                    <td>
+                                        <span th:text="${item.actorFullName != null ? item.actorFullName : 'Unknown staff'}">Staff Name</span>
+                                        <br>
+                                        <small th:if="${item.actorUsername != null}" th:text="${item.actorUsername}">username</small>
+                                    </td>
+                                    <td th:text="${item.sourceIp != null ? item.sourceIp : '-'}">127.0.0.1</td>
+                                    <td th:text="${item.message}">Logged in to the system.</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </article>
+                    </section>
+                </div>
+            </main>
+        </div>
+
+        <div class="report-download-backdrop" data-report-download-modal>
+            <form class="report-download-dialog" th:action="@{/admin/reports/download}" method="get">
+                <div class="download-dialog-header">
+                    <h2>Download</h2>
+                    <button type="button" class="download-close" data-report-download-close aria-label="Close download dialog">&times;</button>
+                </div>
+
+                <div class="download-dialog-body">
+                    <div class="download-field">
+                        <label for="download-report-type">Choose Report</label>
+                        <select id="download-report-type" name="type">
+                            <option value="summary">Reports Summary</option>
+                            <option value="available-stock">Available Stock by Type</option>
+                            <option value="staff-roles">Staff Totals by Role</option>
+                            <option value="near-expiry">Near Expiry Alerts</option>
+                            <option value="activity">System Activity Notifications</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <div class="download-format-title">Choose Format</div>
+                        <div class="download-format-grid">
+                            <label class="download-format-option">
+                                <input type="radio" name="format" value="csv" checked>
+                                <span class="download-format-card">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                        <path d="M14 2v6h6"></path>
+                                        <path d="m9 15 6-6"></path>
+                                        <path d="m9 9 6 6"></path>
+                                    </svg>
+                                    CSV
+                                </span>
+                            </label>
+                            <label class="download-format-option">
+                                <input type="radio" name="format" value="html">
+                                <span class="download-format-card">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                        <path d="M14 2v6h6"></path>
+                                        <path d="m10 13-2 2 2 2"></path>
+                                        <path d="m14 13 2 2-2 2"></path>
+                                    </svg>
+                                    HTML
+                                </span>
+                            </label>
+                            <label class="download-format-option">
+                                <input type="radio" name="format" value="pdf">
+                                <span class="download-format-card">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                        <path d="M14 2v6h6"></path>
+                                        <path d="M7 17h10"></path>
+                                        <path d="M8 13h2a2 2 0 0 0 0-4H8v8"></path>
+                                    </svg>
+                                    PDF
+                                </span>
+                            </label>
+                            <label class="download-format-option">
+                                <input type="radio" name="format" value="excel">
+                                <span class="download-format-card">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                        <path d="M14 2v6h6"></path>
+                                        <path d="m9 10 6 8"></path>
+                                        <path d="m15 10-6 8"></path>
+                                    </svg>
+                                    Excel
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="download-checks">
+                        <label><input type="checkbox" disabled> Strip Rich Text</label>
+                        <label><input type="checkbox" disabled> Send as Email</label>
+                    </div>
+                </div>
+
+                <div class="download-dialog-footer">
+                    <button type="button" class="download-footer-btn" data-report-download-close>Cancel</button>
+                    <button type="submit" class="download-footer-btn primary">Download</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script th:src="@{/js/dashboard-layout.js}"></script>
+<script>
+    (() => {
+        const actions = document.querySelector("[data-report-actions]");
+        const toggle = document.querySelector("[data-report-actions-toggle]");
+        const downloadOpen = document.querySelector("[data-report-download-open]");
+        const modal = document.querySelector("[data-report-download-modal]");
+        const closeButtons = document.querySelectorAll("[data-report-download-close]");
+
+        const closeActions = () => {
+            actions?.classList.remove("open");
+            toggle?.setAttribute("aria-expanded", "false");
+        };
+
+        const openModal = () => {
+            closeActions();
+            modal?.classList.add("open");
+        };
+
+        const closeModal = () => {
+            modal?.classList.remove("open");
+        };
+
+        toggle?.addEventListener("click", (event) => {
+            event.stopPropagation();
+            const isOpen = actions?.classList.toggle("open");
+            toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+        });
+
+        downloadOpen?.addEventListener("click", openModal);
+        closeButtons.forEach((button) => button.addEventListener("click", closeModal));
+
+        modal?.addEventListener("click", (event) => {
+            if (event.target === modal) {
+                closeModal();
+            }
+        });
+
+        document.addEventListener("click", closeActions);
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") {
+                closeActions();
+                closeModal();
+            }
+        });
+    })();
+</script>
+</body>
+</html>

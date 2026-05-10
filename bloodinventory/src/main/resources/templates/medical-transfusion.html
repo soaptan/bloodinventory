@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Transfusion Request</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" th:href="@{/css/dashboard-layout.css}">
+    <link rel="stylesheet" th:href="@{/css/medical-workflow.css}">
+</head>
+<body>
+<div class="dashboard-scene">
+    <div class="dashboard-app">
+        <header class="app-header">
+            <div class="app-brand">
+                <button type="button" class="icon-button sidebar-toggle"
+                        data-sidebar-toggle aria-controls="dashboard-sidebar" aria-expanded="true" aria-label="Collapse menu">
+                    <span class="hamburger-icon" aria-hidden="true"><span></span><span></span><span></span></span>
+                    <span class="sr-only" data-sidebar-toggle-label>Collapse menu</span>
+                </button>
+
+                <div class="app-brand-copy">
+                    <div class="app-kicker">Blood Bank Digital Platform</div>
+                    <div class="app-title">Blood Inventory Management System</div>
+                    <div class="app-subtitle">Clinical workspace for eligibility review, collection, and transfusion support.</div>
+                </div>
+            </div>
+
+            <form class="app-search" data-dashboard-search role="search">
+                <div class="app-search-shell">
+                    <label class="sr-only" for="transfusion-search">Search transfusion records</label>
+                    <input id="transfusion-search" class="app-search-input" type="search"
+                           placeholder="Search transfusion records or menu" data-dashboard-search-input>
+                    <button type="submit" class="app-search-button" aria-label="Search">
+                        <span class="search-icon" aria-hidden="true"></span>
+                    </button>
+                </div>
+            </form>
+
+            <div class="app-actions" th:replace="fragments/header-actions :: adminProfileMenu"></div>
+        </header>
+
+        <div class="layout">
+            <div th:replace="fragments/sidebar :: sidebar(
+                'Medical Staff Panel',
+                'Clinical workflows for donor eligibility, blood collection, and transfusion requests.',
+                'transfusion'
+            )"></div>
+            <button type="button" class="sidebar-overlay" data-sidebar-close aria-label="Close sidebar"></button>
+
+            <main class="main">
+                <div class="main-stack">
+                    <section class="page-intro page-card">
+                        <div>
+                            <div class="page-kicker">Transfusion Request</div>
+                            <h1>Clinical Transfusion Events</h1>
+                            <p>Process patient requests, select released components, and save final transfusion records.</p>
+                        </div>
+                    </section>
+
+                    <div th:if="${successMessage}" class="alert-success" th:text="${successMessage}"></div>
+                    <div th:if="${errorMessage}" class="alert-error" th:text="${errorMessage}"></div>
+
+                    <section class="workflow-grid">
+                        <article class="workflow-card page-card">
+                            <div class="section-title">
+                                <div>
+                                    <h2>Transfusion Records</h2>
+                                    <p th:text="${#lists.size(transfusionRecords)} + ' recorded events'">0 recorded events</p>
+                                </div>
+                            </div>
+
+                            <div class="table-wrap">
+                                <table class="workflow-table">
+                                    <thead>
+                                    <tr>
+                                        <th>Component</th>
+                                        <th>Patient</th>
+                                        <th>Condition</th>
+                                        <th>Type</th>
+                                        <th>Donor Group</th>
+                                        <th>Timestamp</th>
+                                        <th>Staff</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr th:each="record : ${transfusionRecords}" data-search-item>
+                                        <td th:text="${record.componentId}">1</td>
+                                        <td th:text="${record.patientName}">Patient</td>
+                                        <td th:text="${record.condition}">Condition</td>
+                                        <td><span class="status-pill neutral" th:text="${record.componentType}">RBC</span></td>
+                                        <td th:text="${record.donorBloodGroup}">A+</td>
+                                        <td th:text="${#dates.format(record.transfusionTimestamp, 'yyyy-MM-dd HH:mm')}">2026-04-18 10:31</td>
+                                        <td th:text="${record.staffName}">Staff</td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </article>
+
+                        <aside class="form-card page-card">
+                            <div class="section-title">
+                                <div>
+                                    <h2>Record Event</h2>
+                                    <p>Patient and component selection</p>
+                                </div>
+                            </div>
+
+                            <form th:action="@{/medical/transfusion}" th:object="${transfusionRequest}" method="post">
+                                <div class="form-grid">
+                                    <div class="form-group full">
+                                        <label for="patientId">Existing Patient</label>
+                                        <select id="patientId" th:field="*{patientId}">
+                                            <option value="">New patient</option>
+                                            <option th:each="patient : ${patients}"
+                                                    th:value="${patient.patientId}"
+                                                    th:text="${patient.condition == null || patient.condition == '' ? patient.name : patient.name + ' - ' + patient.condition}">Patient</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group full">
+                                        <label for="patientName">Patient Name</label>
+                                        <input id="patientName" type="text" th:field="*{patientName}">
+                                    </div>
+                                    <div class="form-group full">
+                                        <label for="condition">Condition</label>
+                                        <input id="condition" type="text" th:field="*{condition}">
+                                    </div>
+                                    <div class="form-group full">
+                                        <label for="componentId">Component</label>
+                                        <select id="componentId" th:field="*{componentId}" required>
+                                            <option value="">Select component</option>
+                                            <option th:each="component : ${components}"
+                                                    th:value="${component.componentId}"
+                                                    th:text="${component.componentId} + ' - ' + ${component.componentType} + ' - ' + ${component.donorBloodGroup} + ' - ' + ${component.status}">Component</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group full">
+                                        <button type="submit" class="submit-btn">Save Transfusion</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </aside>
+                    </section>
+                </div>
+            </main>
+        </div>
+    </div>
+</div>
+<script th:src="@{/js/dashboard-layout.js}"></script>
+</body>
+</html>

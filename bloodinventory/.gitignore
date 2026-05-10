@@ -31,3 +31,15 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Local app files ###
+application-local.properties
+.env
+*.env
+*.log
+logs/
+uploads/
+backups/
+
+### Codex/local test artifacts ###
+.codex-*

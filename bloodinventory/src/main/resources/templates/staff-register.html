@@ -9,17 +9,20 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
         body {
             min-height: 100vh;
             background: linear-gradient(135deg, #eaf4ff 0%, #d8ebff 35%, #f9fcff 100%);
-            padding: 32px;
-            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px 20px;
             overflow-x: hidden;
         }
 
+        /* Background Shapes (Consistent with Login) */
         .background-shape-left {
             position: fixed;
             width: 460px;
@@ -47,492 +50,399 @@
         .page-wrapper {
             position: relative;
             z-index: 1;
-            max-width: 1280px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: 1fr 1.25fr;
+            width: 100%;
+            max-width: 1200px;
             background: #ffffff;
             border-radius: 28px;
             overflow: hidden;
-            box-shadow: 0 20px 60px rgba(33, 89, 150, 0.18);
+            box-shadow: 0 25px 50px -12px rgba(33, 89, 150, 0.2);
+            display: grid;
+            grid-template-columns: 380px 1fr;
         }
 
+        /* Left Panel */
         .left-panel {
             background: linear-gradient(135deg, #2f80ed 0%, #59a9ff 100%);
             color: white;
-            padding: 48px 40px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .left-panel::before {
-            content: "";
-            position: absolute;
-            width: 360px;
-            height: 360px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.10);
-            top: -120px;
-            right: -100px;
-        }
-
-        .left-panel::after {
-            content: "";
-            position: absolute;
-            width: 300px;
-            height: 300px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.08);
-            bottom: -110px;
-            left: -80px;
-        }
-
-        .left-content {
-            position: relative;
-            z-index: 2;
+            padding: 50px 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
         }
 
         .badge {
             display: inline-block;
-            padding: 8px 14px;
-            border-radius: 999px;
-            background: rgba(255,255,255,0.18);
-            font-size: 13px;
-            font-weight: 600;
-            margin-bottom: 18px;
+            padding: 6px 14px;
+            border-radius: 50px;
+            background: rgba(255,255,255,0.2);
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
-        .left-content h1 {
-            font-size: 32px;
-            line-height: 1.25;
-            margin-bottom: 14px;
-        }
-
-        .left-content p {
-            font-size: 15px;
-            line-height: 1.8;
-            color: rgba(255,255,255,0.94);
-            margin-bottom: 28px;
-        }
+        .left-panel h1 { font-size: 32px; font-weight: 800; line-height: 1.2; }
+        .left-panel p { font-size: 15px; color: rgba(255,255,255,0.9); line-height: 1.6; }
 
         .info-card {
-            background: rgba(255,255,255,0.14);
-            border: 1px solid rgba(255,255,255,0.20);
-            border-radius: 22px;
-            padding: 22px;
-            backdrop-filter: blur(4px);
-            margin-bottom: 20px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 18px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
         }
 
-        .info-card h3 {
-            font-size: 17px;
-            margin-bottom: 12px;
-        }
+        .info-card h3 { font-size: 16px; margin-bottom: 12px; }
+        .info-card ul { list-style: none; font-size: 13px; }
+        .info-card li { margin-bottom: 8px; display: flex; gap: 8px; }
+        .info-card li::before { content: "•"; color: #ffd6d6; font-weight: bold; }
 
-        .info-card ul {
-            list-style: none;
-        }
-
-        .info-card li {
-            font-size: 14px;
-            margin-bottom: 10px;
-            line-height: 1.6;
-            padding-left: 20px;
-            position: relative;
-        }
-
-        .info-card li::before {
-            content: "●";
-            position: absolute;
-            left: 0;
-            top: 0;
-            font-size: 11px;
-            color: #ffd6d6;
-        }
-
-        .role-preview {
-            display: grid;
-            gap: 12px;
-        }
-
+        .role-preview { display: flex; flex-direction: column; gap: 12px; }
         .role-box {
-            background: rgba(255,255,255,0.12);
-            border: 1px solid rgba(255,255,255,0.18);
-            border-radius: 16px;
-            padding: 14px 16px;
+            background: rgba(255,255,255,0.08);
+            padding: 15px;
+            border-radius: 12px;
+            border-left: 4px solid #ffd6d6;
         }
+        .role-box strong { display: block; font-size: 14px; margin-bottom: 4px; }
+        .role-box span { font-size: 12px; opacity: 0.85; }
 
-        .role-box strong {
-            display: block;
-            margin-bottom: 5px;
-            font-size: 14px;
-        }
+        /* Right Panel / Form */
+        .right-panel { padding: 50px; background: #fff; }
 
-        .role-box span {
-            font-size: 13px;
-            color: rgba(255,255,255,0.92);
-            line-height: 1.5;
-        }
-
-        .right-panel {
-            background: #fdfefe;
-            padding: 38px 34px;
-        }
-
-        .top-bar {
+        .header-flex {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            margin-bottom: 22px;
-            gap: 14px;
-            flex-wrap: wrap;
+            align-items: flex-start;
+            margin-bottom: 30px;
         }
 
-        .top-bar h2 {
-            font-size: 28px;
-            color: #1f3f67;
-        }
-
-        .top-bar p {
-            color: #6b85a3;
-            font-size: 14px;
-            margin-top: 6px;
-        }
+        .header-flex h2 { color: #1a3353; font-size: 26px; }
+        .header-flex p { color: #64748b; font-size: 14px; }
 
         .back-link {
             text-decoration: none;
             color: #2f80ed;
+            font-size: 14px;
             font-weight: 600;
-            font-size: 14px;
-            white-space: nowrap;
+            transition: 0.2s;
         }
 
-        .register-card {
-            background: #f8fbff;
-            border: 1px solid #e4eef9;
-            border-radius: 24px;
-            padding: 28px;
-            box-shadow: 0 12px 30px rgba(52, 114, 184, 0.08);
-        }
-
-        .alert {
-            border-radius: 12px;
-            padding: 12px 14px;
-            margin-bottom: 18px;
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .alert-error {
-            background: #ffe7ea;
-            color: #b42334;
-            border: 1px solid #ffc6ce;
-        }
-
-        .alert-success {
-            background: #e9f8ef;
-            color: #1f7a46;
-            border: 1px solid #c8ecd7;
-        }
-
-        .form-section-title {
-            font-size: 15px;
-            font-weight: 700;
-            color: #35506f;
-            margin-bottom: 14px;
-            margin-top: 6px;
-        }
+        .back-link:hover { text-decoration: underline; }
 
         .form-grid {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 18px 18px;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
         }
 
-        .form-group {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .form-group.full-width {
-            grid-column: 1 / -1;
-        }
+        .form-group { margin-bottom: 5px; }
+        .form-group.full-width { grid-column: 1 / -1; }
 
         .form-group label {
-            font-size: 14px;
-            font-weight: 600;
-            color: #35506f;
+            display: block;
+            font-size: 13px;
+            font-weight: 700;
+            color: #475569;
             margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        .form-group input,
-        .form-group select {
+        .input-wrapper { position: relative; display: flex; align-items: center; }
+
+        .form-group input, .form-group select {
             width: 100%;
-            padding: 13px 14px;
-            border: 1px solid #ccdcef;
-            border-radius: 12px;
-            outline: none;
+            padding: 12px 14px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
             font-size: 14px;
-            background: white;
-            transition: 0.25s ease;
+            transition: all 0.2s;
+            outline: none;
+            background: #f8fafc;
         }
 
-        .form-group input:focus,
-        .form-group select:focus {
-            border-color: #4b9cff;
-            box-shadow: 0 0 0 4px rgba(75, 156, 255, 0.12);
+        .form-group input:focus, .form-group select:focus {
+            border-color: #3b82f6;
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.08);
         }
 
-        .role-dynamic-box {
-            margin-top: 22px;
-            background: #ffffff;
-            border: 1px solid #dce9f7;
-            border-radius: 18px;
+        /* Password Toggle */
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #94a3b8;
+        }
+
+        /* File Upload Styling */
+        input[type="file"] {
+            padding: 8px;
+            background: #fff;
+            font-size: 12px;
+        }
+
+        .section-divider {
+            grid-column: 1 / -1;
+            margin: 15px 0 5px 0;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #f1f5f9;
+            color: #1e293b;
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        /* Dynamic Role Box */
+        .role-dynamic-section {
+            grid-column: 1 / -1;
+            background: #f1f5f9;
             padding: 20px;
+            border-radius: 15px;
+            margin-top: 10px;
+            display: none; /* Controlled by JS */
         }
 
-        .role-dynamic-box h3 {
-            font-size: 16px;
-            color: #264b75;
-            margin-bottom: 14px;
-        }
+        .hint-text { font-size: 12px; color: #64748b; margin-top: 6px; }
 
-        .hint-text {
-            font-size: 13px;
-            color: #7b93ad;
-            margin-top: 6px;
-            line-height: 1.5;
+        /* Alert Styling */
+        .alert {
+            padding: 12px 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            font-weight: 500;
         }
+        .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+        .alert-error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
 
+        /* Action Row */
         .action-row {
+            margin-top: 35px;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            gap: 16px;
-            margin-top: 26px;
-            flex-wrap: wrap;
-        }
-
-        .action-note {
-            font-size: 13px;
-            color: #8ba0b8;
-            line-height: 1.6;
-            max-width: 520px;
+            justify-content: space-between;
+            gap: 20px;
         }
 
         .submit-btn {
+            padding: 14px 30px;
+            background: linear-gradient(90deg, #d62839 0%, #ff5d6c 100%);
+            color: white;
             border: none;
-            border-radius: 14px;
-            padding: 14px 24px;
+            border-radius: 12px;
             font-size: 15px;
             font-weight: 700;
-            color: white;
             cursor: pointer;
-            background: linear-gradient(90deg, #d62839 0%, #ff5d6c 100%);
-            box-shadow: 0 10px 22px rgba(214, 40, 57, 0.25);
-            transition: 0.25s ease;
+            transition: 0.3s;
+            box-shadow: 0 4px 6px rgba(214, 40, 57, 0.2);
+            white-space: nowrap;
         }
 
         .submit-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 14px 28px rgba(214, 40, 57, 0.30);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px rgba(214, 40, 57, 0.3);
         }
 
-        @media (max-width: 1080px) {
-            .page-wrapper {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        @media (max-width: 700px) {
-            body {
-                padding: 16px;
-            }
-
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .right-panel,
-            .left-panel {
-                padding: 24px 20px;
-            }
-
-            .register-card {
-                padding: 20px;
-            }
+        @media (max-width: 1000px) {
+            .page-wrapper { grid-template-columns: 1fr; }
+            .left-panel { display: none; }
         }
     </style>
-
-    <script>
-        function toggleRoleFields() {
-            const role = document.getElementById("staffType").value;
-
-            document.getElementById("medicalFields").style.display =
-                role === "MEDICAL_STAFF" ? "block" : "none";
-
-            document.getElementById("labFields").style.display =
-                role === "LAB_TECHNICIAN" ? "block" : "none";
-
-            document.getElementById("adminFields").style.display =
-                role === "BLOOD_ADMINISTRATOR" ? "block" : "none";
-        }
-    </script>
 </head>
-<body onload="toggleRoleFields()">
+<body>
+
     <div class="background-shape-left"></div>
     <div class="background-shape-right"></div>
 
     <div class="page-wrapper">
         <div class="left-panel">
-            <div class="left-content">
-                <div class="badge">Administrative Control Panel</div>
+            <div>
+                <div class="badge">Admin Panel</div>
                 <h1>Create Staff Account</h1>
-                <p>
-                    Register new authorized personnel for the Blood Inventory Management System.
-                    Each account is assigned a role to ensure secure access to the right operational functions.
-                </p>
+            </div>
+            
+            <p>Register internal personnel and assign roles to define system access levels.</p>
 
-                <div class="info-card">
-                    <h3>Registration Guidance</h3>
-                    <ul>
-                        <li>Create accounts only for verified internal staff members.</li>
-                        <li>Role assignment controls which modules and dashboards each user can access.</li>
-                        <li>Medical Staff, Lab Technicians, and Blood Administrators require different profile details.</li>
-                        <li>All accounts support secure authentication under role-based access control.</li>
-                    </ul>
+            <div class="info-card">
+                <h3>Quick Guide</h3>
+                <ul>
+                    <li>Verified internal staff only</li>
+                    <li>Roles define dashboard access</li>
+                    <li>Role-specific data is mandatory</li>
+                </ul>
+            </div>
+
+            <div class="role-preview">
+                <div class="role-box">
+                    <strong>Administrator</strong>
+                    <span>System settings & reporting.</span>
                 </div>
-
-                <div class="role-preview">
-                    <div class="role-box">
-                        <strong>Blood Administrator</strong>
-                        <span>Manages staff accounts, storage configuration, reporting, and system oversight.</span>
-                    </div>
-                    <div class="role-box">
-                        <strong>Medical Staff</strong>
-                        <span>Handles donor eligibility, blood collection, and transfusion-related workflows.</span>
-                    </div>
-                    <div class="role-box">
-                        <strong>Lab Technician</strong>
-                        <span>Performs screening, validates safe blood components, and updates test-related records.</span>
-                    </div>
+                <div class="role-box">
+                    <strong>Medical Staff</strong>
+                    <span>Donor & transfusion workflows.</span>
+                </div>
+                <div class="role-box">
+                    <strong>Lab Technician</strong>
+                    <span>Screening & safety validation.</span>
                 </div>
             </div>
         </div>
 
         <div class="right-panel">
-            <div class="top-bar">
+            <div class="header-flex">
                 <div>
-                    <h2>Staff Registration Form</h2>
-                    <p>Enter staff profile details and assign the appropriate system role.</p>
+                    <h2>Registration Form</h2>
+                    <p>Enter staff profile details below</p>
                 </div>
                 <a th:href="@{/admin/dashboard}" class="back-link">← Back to Dashboard</a>
             </div>
 
-            <div class="register-card">
-                <p th:if="${successMessage}" th:text="${successMessage}" class="alert alert-success"></p>
-                <p th:if="${errorMessage}" th:text="${errorMessage}" class="alert alert-error"></p>
+            <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+            <div th:if="${errorMessage}" class="alert alert-error" th:text="${errorMessage}"></div>
 
-                <form th:action="@{/admin/staff/register}" th:object="${staffRequest}" method="post">
-                    <div class="form-section-title">Basic Staff Information</div>
+            <form th:action="@{/admin/staff/register}" th:object="${staffRequest}" method="post" enctype="multipart/form-data">
+                
+                <div class="form-grid">
+                    <div class="section-divider">Basic Information</div>
 
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label>Full Name</label>
-                            <input type="text" th:field="*{fullName}" placeholder="Enter full name" required>
-                        </div>
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" th:field="*{fullName}" placeholder="Full legal name" required>
+                    </div>
 
-                        <div class="form-group">
-                            <label>Username</label>
-                            <input type="text" th:field="*{username}" placeholder="Enter username" required>
-                        </div>
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" th:field="*{username}" placeholder="Unique ID" required>
+                    </div>
 
-                        <div class="form-group">
-                            <label>Password</label>
-                            <input type="password" th:field="*{password}" placeholder="Enter password" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Phone No</label>
-                            <input type="text" th:field="*{phoneNo}" placeholder="Enter phone number">
-                        </div>
-
-                        <div class="form-group">
-                            <label>IC Number</label>
-                            <input type="text" th:field="*{icNumber}" placeholder="Enter IC number" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Gender</label>
-                            <select th:field="*{gender}">
-                                <option value="">-- Select Gender --</option>
-                                <option value="MALE">Male</option>
-                                <option value="FEMALE">Female</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Email</label>
-                            <input type="email" th:field="*{email}" placeholder="Enter email address">
-                        </div>
-
-                        <div class="form-group">
-                            <label>Staff Type</label>
-                            <select th:field="*{staffType}" id="staffType" onchange="toggleRoleFields()" required>
-                                <option value="">-- Select Role --</option>
-                                <option th:each="role : ${roles}" th:value="${role}" th:text="${role}"></option>
-                            </select>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <div class="input-wrapper">
+                            <input type="password" id="password" th:field="*{password}" placeholder="Min 8 characters" required>
+                            <button type="button" class="password-toggle" id="togglePassword">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="eyeIcon">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                            </button>
                         </div>
                     </div>
 
-                    <div class="role-dynamic-box">
-                        <h3>Role-Specific Information</h3>
+                    <div class="form-group">
+                        <label>IC Number</label>
+                        <input type="text" th:field="*{icNumber}" placeholder="000000-00-0000" required>
+                    </div>
 
-                        <div id="medicalFields" style="display:none;">
-                            <div class="form-grid">
-                                <div class="form-group">
-                                    <label>License No</label>
-                                    <input type="text" th:field="*{licenseNo}" placeholder="Enter medical license number">
-                                </div>
+                    <div class="form-group">
+                        <label>Email Address</label>
+                        <input type="email" th:field="*{email}" placeholder="staff@hospital.com">
+                    </div>
 
-                                <div class="form-group">
-                                    <label>Position</label>
-                                    <input type="text" th:field="*{position}" placeholder="Enter staff position">
-                                </div>
+                    <div class="form-group">
+                        <label>Phone Number</label>
+                        <input type="text" th:field="*{phoneNo}" placeholder="+60 1x-xxx xxxx">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Gender</label>
+                        <select th:field="*{gender}">
+                            <option value="">-- Select --</option>
+                            <option value="MALE">Male</option>
+                            <option value="FEMALE">Female</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Assigned Role</label>
+                        <select th:field="*{staffType}" id="staffType" onchange="toggleRoleFields()" required>
+                            <option value="">-- Choose Role --</option>
+                            <option th:each="role : ${roles}" th:value="${role}" th:text="${role}"></option>
+                        </select>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>Profile Photo</label>
+                        <input type="file" name="photoFile" accept="image/*">
+                        <p class="hint-text">Supported: JPG, PNG. (Max 2MB)</p>
+                    </div>
+
+                    <div id="medicalFields" class="role-dynamic-section full-width">
+                        <div class="form-grid" style="margin-top: 0;">
+                            <div class="form-group">
+                                <label>Medical License No</label>
+                                <input type="text" th:field="*{licenseNo}" placeholder="e.g. APC-12345">
                             </div>
-                            <p class="hint-text">Required for staff involved in donor handling, eligibility, and transfusion activities.</p>
-                        </div>
-
-                        <div id="labFields" style="display:none;">
-                            <div class="form-grid">
-                                <div class="form-group full-width">
-                                    <label>Certification No</label>
-                                    <input type="text" th:field="*{certificationNo}" placeholder="Enter laboratory certification number">
-                                </div>
+                            <div class="form-group">
+                                <label>Clinical Position</label>
+                                <input type="text" th:field="*{position}" placeholder="e.g. Senior Nurse">
                             </div>
-                            <p class="hint-text">Required for users responsible for laboratory screening and blood safety validation.</p>
-                        </div>
-
-                        <div id="adminFields" style="display:none;">
-                            <div class="form-grid">
-                                <div class="form-group full-width">
-                                    <label>Department</label>
-                                    <input type="text" th:field="*{department}" placeholder="Enter administrator department">
-                                </div>
-                            </div>
-                            <p class="hint-text">Required for administrative personnel managing staff, reporting, and system controls.</p>
                         </div>
                     </div>
 
-                    <div class="action-row">
-                        <div class="action-note">
-                            Please ensure all details are accurate before submission. Created accounts will be granted access according to the selected role.
+                    <div id="labFields" class="role-dynamic-section full-width">
+                        <div class="form-group">
+                            <label>Laboratory Certification No</label>
+                            <input type="text" th:field="*{certificationNo}" placeholder="e.g. LAB-CERT-99">
                         </div>
-                        <button type="submit" class="submit-btn">Create Account</button>
                     </div>
-                </form>
-            </div>
+
+                    <div id="adminFields" class="role-dynamic-section full-width">
+                        <div class="form-group">
+                            <label>Administrative Department</label>
+                            <input type="text" th:field="*{department}" placeholder="e.g. Human Resources">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="action-row">
+                    <p class="hint-text" style="max-width: 400px;">Ensure all data is correct. Access permissions are granted immediately upon creation.</p>
+                    <button type="submit" class="submit-btn">Create Staff Account</button>
+                </div>
+            </form>
         </div>
     </div>
+
+    <script>
+        // Password Visibility Logic
+        const togglePassword = document.querySelector('#togglePassword');
+        const password = document.querySelector('#password');
+        const eyeIcon = document.querySelector('#eyeIcon');
+
+        togglePassword.addEventListener('click', function () {
+            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+            password.setAttribute('type', type);
+            if (type === 'text') {
+                eyeIcon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+            } else {
+                eyeIcon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+            }
+        });
+
+        // Role Toggling Logic
+        function toggleRoleFields() {
+            const role = document.getElementById("staffType").value;
+            
+            // Reset all
+            document.getElementById("medicalFields").style.display = "none";
+            document.getElementById("labFields").style.display = "none";
+            document.getElementById("adminFields").style.display = "none";
+
+            // Show relevant
+            if (role === "MEDICAL_STAFF") {
+                document.getElementById("medicalFields").style.display = "block";
+            } else if (role === "LAB_TECHNICIAN") {
+                document.getElementById("labFields").style.display = "block";
+            } else if (role === "BLOOD_ADMINISTRATOR") {
+                document.getElementById("adminFields").style.display = "block";
+            }
+        }
+
+        // Initialize on load
+        window.onload = toggleRoleFields;
+    </script>
 </body>
 </html>

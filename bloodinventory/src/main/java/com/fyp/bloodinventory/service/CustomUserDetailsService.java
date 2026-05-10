@@ -1,9 +1,9 @@
 package com.fyp.bloodinventory.service;
 
+import com.fyp.bloodinventory.config.PasswordHashSupport;
 import com.fyp.bloodinventory.entity.Staff;
 import com.fyp.bloodinventory.repository.StaffRepository;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -25,10 +25,15 @@ public class CustomUserDetailsService implements UserDetailsService {
         Staff staff = staffRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
 
-        return new User(
-                staff.getUsername(),
-                staff.getPassword(),
-                List.of(new SimpleGrantedAuthority("ROLE_" + staff.getStaffType().name()))
-        );
+        boolean isActive = !Boolean.FALSE.equals(staff.getActive());
+        boolean isLocked = Boolean.TRUE.equals(staff.getLocked());
+        String storedPassword = PasswordHashSupport.normalizeStoredPassword(staff.getPassword());
+
+        return org.springframework.security.core.userdetails.User.withUsername(staff.getUsername())
+                .password(storedPassword)
+                .authorities(List.of(new SimpleGrantedAuthority("ROLE_" + staff.getStaffType().name())))
+                .disabled(!isActive)
+                .accountLocked(isLocked)
+                .build();
     }
 }

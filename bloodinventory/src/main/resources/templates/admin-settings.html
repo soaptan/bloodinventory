@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>System Settings</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" th:href="@{/css/dashboard-layout.css}">
+    <style>
+        .main-stack {
+            display: grid;
+            gap: 16px;
+        }
+
+        .page-intro {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 18px;
+            padding: 20px 22px;
+        }
+
+        .page-kicker {
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #7f94ae;
+            margin-bottom: 6px;
+        }
+
+        .page-intro h1 {
+            font-size: 34px;
+            color: #1f3f67;
+            margin-bottom: 6px;
+        }
+
+        .page-intro p {
+            color: #5f7796;
+            font-size: 14px;
+            line-height: 1.5;
+            max-width: 860px;
+        }
+
+        .settings-shell {
+            display: grid;
+            grid-template-columns: 260px minmax(0, 1fr);
+            gap: 16px;
+            align-items: start;
+        }
+
+        .settings-index,
+        .settings-section {
+            padding: 18px;
+        }
+
+        .settings-index {
+            position: sticky;
+            top: 18px;
+            display: grid;
+            gap: 8px;
+        }
+
+        .settings-index a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-height: 42px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            color: #365676;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .settings-index a:hover,
+        .settings-index a:focus {
+            background: #eef5ff;
+            color: #235c9e;
+        }
+
+        .settings-content {
+            display: grid;
+            gap: 16px;
+        }
+
+        .section-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .section-head h2 {
+            color: #24476f;
+            font-size: 22px;
+            margin-bottom: 4px;
+        }
+
+        .section-head p {
+            color: #6b85a3;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .settings-form {
+            display: grid;
+            gap: 14px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .form-group {
+            display: grid;
+            gap: 7px;
+        }
+
+        .form-group.full {
+            grid-column: 1 / -1;
+        }
+
+        .form-group label,
+        .toggle-row strong {
+            color: #35506f;
+            font-size: 13px;
+            font-weight: 850;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            min-height: 42px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid #ccdcef;
+            background: #fff;
+            color: #263f5d;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .form-group input[type="color"] {
+            min-height: 46px;
+            padding: 5px;
+        }
+
+        .form-group input[type="range"] {
+            padding: 0;
+        }
+
+        .toggle-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            min-height: 56px;
+            padding: 12px 0;
+            border-bottom: 1px solid #e9f1fb;
+        }
+
+        .toggle-row span {
+            color: #6b85a3;
+            font-size: 12px;
+        }
+
+        .toggle-row input[type="checkbox"] {
+            width: 48px;
+            height: 26px;
+            flex: 0 0 auto;
+            accent-color: #2f80ed;
+        }
+
+        .button-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .submit-btn,
+        .secondary-btn,
+        .text-btn {
+            min-height: 40px;
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 13px;
+            font-weight: 850;
+            cursor: pointer;
+        }
+
+        .submit-btn {
+            border: none;
+            color: white;
+            background: linear-gradient(90deg, #d62839 0%, #ff5d6c 100%);
+        }
+
+        .secondary-btn {
+            border: 1px solid #cfe2ff;
+            color: #245c9c;
+            background: #f0f7ff;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .text-btn {
+            border: none;
+            color: #2f80ed;
+            background: transparent;
+        }
+
+        .alert-success,
+        .alert-error {
+            border-radius: 12px;
+            padding: 12px 14px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .alert-success {
+            background: #eefbf4;
+            color: #17683a;
+            border: 1px solid #bcebd0;
+        }
+
+        .alert-error {
+            background: #ffe7ea;
+            color: #b42334;
+            border: 1px solid #ffc6ce;
+        }
+
+        .backup-table-wrap {
+            overflow-x: auto;
+        }
+
+        .backup-table {
+            width: 100%;
+            min-width: 760px;
+            border-collapse: collapse;
+        }
+
+        .backup-table th,
+        .backup-table td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #e9f1fb;
+            text-align: left;
+            font-size: 13px;
+            vertical-align: top;
+        }
+
+        .backup-table th {
+            color: #67809f;
+            font-weight: 850;
+            white-space: nowrap;
+        }
+
+        .backup-table td {
+            color: #263f5d;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 26px;
+            padding: 5px 9px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 850;
+            white-space: nowrap;
+            background: #edf5ff;
+            color: #315c8d;
+            border: 1px solid #cfe2ff;
+        }
+
+        .status-pill.success {
+            color: #17683a;
+            background: #e9f9f0;
+            border-color: #bdebd1;
+        }
+
+        .status-pill.failed {
+            color: #b42334;
+            background: #ffe7ea;
+            border-color: #ffc6ce;
+        }
+
+        .empty-state {
+            padding: 18px;
+            color: #6b85a3;
+            border: 1px dashed #c8d9ed;
+            border-radius: 14px;
+            background: #f8fbff;
+            font-size: 14px;
+        }
+
+        .swatch-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .color-chip {
+            display: inline-flex;
+            width: 30px;
+            height: 30px;
+            border-radius: 999px;
+            border: 2px solid #fff;
+            box-shadow: 0 0 0 1px #cfe2ff;
+            cursor: pointer;
+        }
+
+        body.theme-dark .page-intro h1,
+        body.theme-dark .section-head h2 {
+            color: #e8f1fb;
+        }
+
+        body.theme-dark .page-intro p,
+        body.theme-dark .section-head p,
+        body.theme-dark .toggle-row span {
+            color: #93a7c1;
+        }
+
+        body.theme-dark .settings-index a {
+            color: #dce8f6;
+        }
+
+        body.theme-dark .settings-index a:hover,
+        body.theme-dark .settings-index a:focus {
+            background: #132334;
+            color: #9ed0ff;
+        }
+
+        body.theme-dark .form-group label,
+        body.theme-dark .toggle-row strong,
+        body.theme-dark .backup-table th {
+            color: #93a7c1;
+        }
+
+        body.theme-dark .form-group input,
+        body.theme-dark .form-group select {
+            background: #0a1622;
+            border-color: #294158;
+            color: #e6f0fb;
+        }
+
+        body.theme-dark .toggle-row,
+        body.theme-dark .backup-table th,
+        body.theme-dark .backup-table td {
+            border-bottom-color: #203447;
+        }
+
+        body.theme-dark .backup-table td {
+            color: #dce8f6;
+        }
+
+        body.theme-dark .secondary-btn {
+            background: #132334;
+            border-color: #294158;
+            color: #9ed0ff;
+        }
+
+        body.theme-dark .empty-state {
+            background: #122132;
+            border-color: #294158;
+            color: #dce8f6;
+        }
+
+        @media (max-width: 1080px) {
+            .settings-shell {
+                grid-template-columns: 1fr;
+            }
+
+            .settings-index {
+                position: static;
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 720px) {
+            .page-intro,
+            .section-head {
+                flex-direction: column;
+            }
+
+            .settings-index,
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="dashboard-scene">
+    <div class="dashboard-app">
+        <header class="app-header">
+            <div class="app-brand">
+                <button type="button" class="icon-button sidebar-toggle"
+                        data-sidebar-toggle aria-controls="dashboard-sidebar" aria-expanded="true" aria-label="Collapse menu">
+                    <span class="hamburger-icon" aria-hidden="true">
+                        <span></span><span></span><span></span>
+                    </span>
+                    <span class="sr-only" data-sidebar-toggle-label>Collapse menu</span>
+                </button>
+
+                <div class="app-brand-copy">
+                    <div class="app-kicker">Blood Bank Digital Platform</div>
+                    <div class="app-title">Blood Inventory Management System</div>
+                    <div class="app-subtitle">Administrative workspace for interface, backup, language, and security settings.</div>
+                </div>
+            </div>
+
+            <form class="app-search" data-dashboard-search role="search">
+                <div class="app-search-shell">
+                    <label class="sr-only" for="settings-search">Search settings</label>
+                    <input id="settings-search" class="app-search-input" type="search"
+                           placeholder="Search settings or menu" data-dashboard-search-input>
+                    <button type="submit" class="app-search-button" aria-label="Search settings">
+                        <span class="search-icon" aria-hidden="true"></span>
+                    </button>
+                </div>
+            </form>
+
+            <div class="app-actions" th:replace="fragments/header-actions :: adminProfileMenu"></div>
+        </header>
+
+        <div class="layout">
+            <div th:replace="fragments/sidebar :: sidebar(
+                'Blood Administrator Panel',
+                'Centralized navigation for staff, storage, inventory monitoring, alerts, and reports.',
+                'system-settings'
+            )"></div>
+            <button type="button" class="sidebar-overlay" data-sidebar-close aria-label="Close sidebar"></button>
+
+            <main class="main">
+                <div class="main-stack">
+                    <section class="page-intro page-card">
+                        <div>
+                            <div class="page-kicker">System Settings</div>
+                            <h1>Settings</h1>
+                            <p>Customize the application interface, backup policy, default language, and security controls.</p>
+                        </div>
+                    </section>
+
+                    <div th:if="${successMessage}" class="alert-success" th:text="${successMessage}"></div>
+                    <div th:if="${errorMessage}" class="alert-error" th:text="${errorMessage}"></div>
+
+                    <section class="settings-shell">
+                        <nav class="settings-index page-card" aria-label="Settings sections">
+                            <a href="#interface" data-search-item>Interface</a>
+                            <a href="#language" data-search-item>Language</a>
+                            <a href="#backup" data-search-item>Database Backup</a>
+                            <a href="#security" data-search-item>Security</a>
+                        </nav>
+
+                        <div class="settings-content">
+                            <article id="interface" class="settings-section page-card" data-search-item>
+                                <div class="section-head">
+                                    <div>
+                                        <h2>Interface</h2>
+                                        <p>Font scale and primary accent color.</p>
+                                    </div>
+                                </div>
+
+                                <form class="settings-form" th:action="@{/admin/settings/ui}" th:object="${uiSettings}" method="post">
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label for="fontScale">Font Size</label>
+                                            <input id="fontScale" type="range" min="0.9" max="1.25" step="0.05"
+                                                   th:field="*{fontScale}" data-font-scale>
+                                            <span class="empty-state" data-font-scale-label
+                                                  th:text="${#numbers.formatDecimal(uiSettings.fontScale * 100, 1, 0)} + '%'">100%</span>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label for="accentColor">Accent Color</label>
+                                            <input id="accentColor" type="color" th:field="*{accentColor}" data-accent-color>
+                                            <div class="swatch-row" aria-label="Color presets">
+                                                <button class="color-chip" type="button" data-color-preset="#2f80ed" style="background:#2f80ed" aria-label="Blue"></button>
+                                                <button class="color-chip" type="button" data-color-preset="#d62839" style="background:#d62839" aria-label="Red"></button>
+                                                <button class="color-chip" type="button" data-color-preset="#16805f" style="background:#16805f" aria-label="Green"></button>
+                                                <button class="color-chip" type="button" data-color-preset="#7c3aed" style="background:#7c3aed" aria-label="Violet"></button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="button-row">
+                                        <button type="submit" class="submit-btn">Save Interface</button>
+                                    </div>
+                                </form>
+                            </article>
+
+                            <article id="language" class="settings-section page-card" data-search-item>
+                                <div class="section-head">
+                                    <div>
+                                        <h2>Language</h2>
+                                        <p>Default system language preference.</p>
+                                    </div>
+                                </div>
+
+                                <form class="settings-form" th:action="@{/admin/settings/language}" th:object="${languageSettings}" method="post">
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label for="languageCode">Language</label>
+                                            <select id="languageCode" th:field="*{languageCode}">
+                                                <option th:each="language : ${languageOptions}"
+                                                        th:value="${language.key}"
+                                                        th:text="${language.value}">English</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="button-row">
+                                        <button type="submit" class="submit-btn">Save Language</button>
+                                    </div>
+                                </form>
+                            </article>
+
+                            <article id="backup" class="settings-section page-card" data-search-item>
+                                <div class="section-head">
+                                    <div>
+                                        <h2>Database Backup</h2>
+                                        <p>Manual backup and automated schedule.</p>
+                                    </div>
+                                    <form th:action="@{/admin/settings/backup/run}" method="post">
+                                        <button type="submit" class="secondary-btn">Run Manual Backup</button>
+                                    </form>
+                                </div>
+
+                                <form class="settings-form" th:action="@{/admin/settings/backup}" th:object="${backupSettings}" method="post">
+                                    <div class="toggle-row">
+                                        <div>
+                                            <strong>Automatic Backup</strong>
+                                            <span>Scheduled database backup</span>
+                                        </div>
+                                        <input id="autoBackupEnabled" type="checkbox" th:field="*{autoBackupEnabled}">
+                                    </div>
+
+                                    <div class="form-grid">
+                                        <div class="form-group full">
+                                            <label for="backupDirectory">Backup Directory</label>
+                                            <input id="backupDirectory" type="text" th:field="*{backupDirectory}">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="scheduleFrequency">Frequency</label>
+                                            <select id="scheduleFrequency" th:field="*{scheduleFrequency}">
+                                                <option value="DAILY">Daily</option>
+                                                <option value="WEEKLY">Weekly</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="scheduleTime">Schedule Time</label>
+                                            <input id="scheduleTime" type="time" th:field="*{scheduleTime}">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="retentionDays">Retention Days</label>
+                                            <input id="retentionDays" type="number" min="1" max="3650" th:field="*{retentionDays}">
+                                        </div>
+                                    </div>
+                                    <div class="button-row">
+                                        <button type="submit" class="submit-btn">Save Backup Policy</button>
+                                    </div>
+                                </form>
+
+                                <div class="section-head" style="margin-top:22px;">
+                                    <div>
+                                        <h2>Backup History</h2>
+                                        <p th:text="${#lists.size(backupHistory)} + ' recent records'">0 recent records</p>
+                                    </div>
+                                </div>
+
+                                <div class="empty-state" th:if="${#lists.isEmpty(backupHistory)}">No backup records yet.</div>
+                                <div class="backup-table-wrap" th:if="${!#lists.isEmpty(backupHistory)}">
+                                    <table class="backup-table">
+                                        <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Type</th>
+                                            <th>Status</th>
+                                            <th>Started</th>
+                                            <th>File</th>
+                                            <th>Message</th>
+                                            <th>Action</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        <tr th:each="backup : ${backupHistory}" data-search-item>
+                                            <td th:text="${backup.backupId}">1</td>
+                                            <td th:text="${backup.triggerType}">MANUAL</td>
+                                            <td>
+                                                <span class="status-pill"
+                                                      th:classappend="${#strings.equalsIgnoreCase(backup.status, 'SUCCESS')} ? ' success' : (${#strings.equalsIgnoreCase(backup.status, 'FAILED')} ? ' failed' : '')"
+                                                      th:text="${backup.status}">SUCCESS</span>
+                                            </td>
+                                            <td th:text="${#dates.format(backup.startedAt, 'yyyy-MM-dd HH:mm')}">2026-05-09 10:00</td>
+                                            <td th:text="${backup.fileName != null ? backup.fileName : '-'}">backup.sql</td>
+                                            <td th:text="${backup.message}">Backup completed successfully.</td>
+                                            <td>
+                                                <a class="text-btn"
+                                                   th:if="${#strings.equalsIgnoreCase(backup.status, 'SUCCESS')}"
+                                                   th:href="@{/admin/settings/backup/{backupId}/download(backupId=${backup.backupId})}">Download</a>
+                                            </td>
+                                        </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </article>
+
+                            <article id="security" class="settings-section page-card" data-search-item>
+                                <div class="section-head">
+                                    <div>
+                                        <h2>Security</h2>
+                                        <p>Session control and role access policy.</p>
+                                    </div>
+                                </div>
+
+                                <form class="settings-form" th:action="@{/admin/settings/security}" th:object="${securitySettings}" method="post">
+                                    <div class="toggle-row">
+                                        <div>
+                                            <strong>Session Control</strong>
+                                            <span>Track active staff login sessions</span>
+                                        </div>
+                                        <input id="sessionControlEnabled" type="checkbox" th:field="*{sessionControlEnabled}">
+                                    </div>
+                                    <div class="toggle-row">
+                                        <div>
+                                            <strong>Block New Login When Limit Reached</strong>
+                                            <span>Keep the existing active session</span>
+                                        </div>
+                                        <input id="preventNewLogin" type="checkbox" th:field="*{preventNewLogin}">
+                                    </div>
+                                    <div class="toggle-row">
+                                        <div>
+                                            <strong>Role Based Module Access</strong>
+                                            <span>Restrict modules by staff type</span>
+                                        </div>
+                                        <input id="rowLevelSecurityEnabled" type="checkbox" th:field="*{rowLevelSecurityEnabled}">
+                                    </div>
+
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label for="maxConcurrentSessions">Max Active Sessions</label>
+                                            <input id="maxConcurrentSessions" type="number" min="0" max="10" th:field="*{maxConcurrentSessions}">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="sessionTimeoutMinutes">Session Timeout Minutes</label>
+                                            <input id="sessionTimeoutMinutes" type="number" min="1" max="240" th:field="*{sessionTimeoutMinutes}">
+                                        </div>
+                                    </div>
+
+                                    <div class="button-row">
+                                        <button type="submit" class="submit-btn">Save Security</button>
+                                    </div>
+                                </form>
+                            </article>
+                        </div>
+                    </section>
+                </div>
+            </main>
+        </div>
+    </div>
+</div>
+<script th:src="@{/js/dashboard-layout.js}"></script>
+<script>
+    (() => {
+        const fontScale = document.querySelector("[data-font-scale]");
+        const fontScaleLabel = document.querySelector("[data-font-scale-label]");
+        const accentColor = document.querySelector("[data-accent-color]");
+
+        function updateFontScaleLabel() {
+            if (!fontScale || !fontScaleLabel) {
+                return;
+            }
+            fontScaleLabel.textContent = `${Math.round(Number(fontScale.value) * 100)}%`;
+        }
+
+        if (fontScale) {
+            fontScale.addEventListener("input", updateFontScaleLabel);
+            updateFontScaleLabel();
+        }
+
+        document.querySelectorAll("[data-color-preset]").forEach((button) => {
+            button.addEventListener("click", () => {
+                if (accentColor) {
+                    accentColor.value = button.dataset.colorPreset;
+                }
+            });
+        });
+    })();
+</script>
+</body>
+</html>

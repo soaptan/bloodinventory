@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Inventory Monitor</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" th:href="@{/css/dashboard-layout.css}">
+    <style>
+        .main-stack { display:grid; gap:14px; }
+        .page-intro { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:18px 20px; }
+        .page-kicker { font-size:11px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:#7f94ae; margin-bottom:6px; }
+        .page-intro h1 { font-size:34px; color:#1f3f67; margin-bottom:6px; }
+        .page-intro p { color:#5f7796; font-size:14px; line-height:1.5; max-width:760px; }
+
+        .summary-grid {
+            display:grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap:14px;
+        }
+
+        .summary-card {
+            background:white;
+            border-radius:20px;
+            padding:18px;
+            box-shadow:0 10px 24px rgba(52,114,184,.08);
+            border:1px solid #e5eef8;
+        }
+
+        .summary-card .label {
+            font-size:13px;
+            color:#6b85a3;
+            margin-bottom:8px;
+        }
+
+        .summary-card .value {
+            font-size:30px;
+            font-weight:800;
+            color:#1f4c82;
+        }
+
+        .inventory-grid {
+            display:grid;
+            grid-template-columns: 1fr 1fr;
+            gap:14px;
+        }
+
+        .module-card {
+            background:white;
+            border-radius:22px;
+            padding:20px;
+            box-shadow:0 10px 24px rgba(52,114,184,.08);
+            border:1px solid #e5eef8;
+        }
+
+        .module-card h2 {
+            font-size:22px;
+            color:#204a7a;
+            margin-bottom:8px;
+        }
+
+        .module-card p {
+            color:#6b85a3;
+            font-size:14px;
+            line-height:1.6;
+            margin-bottom:16px;
+        }
+
+        .monitor-table {
+            width:100%;
+            border-collapse:collapse;
+        }
+
+        .monitor-table th,
+        .monitor-table td {
+            padding:12px 10px;
+            border-bottom:1px solid #e9f1fb;
+            text-align:left;
+            font-size:13px;
+            vertical-align:top;
+        }
+
+        .monitor-table th {
+            color:#67809f;
+            font-weight:700;
+        }
+
+        .pill {
+            display:inline-block;
+            padding:6px 10px;
+            border-radius:999px;
+            font-size:12px;
+            font-weight:700;
+            color:white;
+        }
+
+        .pill.available { background:#67b85a; }
+        .pill.used { background:#3d69b8; }
+        .pill.reserved { background:#f6ad2f; }
+        .pill.other { background:#ef5d75; }
+
+        .overview-panel {
+            display:grid;
+            gap:16px;
+            padding:18px;
+        }
+
+        .overview-header {
+            display:flex;
+            justify-content:space-between;
+            gap:16px;
+            align-items:flex-start;
+        }
+
+        .overview-header h2 {
+            font-size:24px;
+            color:#204a7a;
+            margin-bottom:6px;
+        }
+
+        .overview-subtitle {
+            color:#6b85a3;
+            font-size:13px;
+            line-height:1.5;
+        }
+
+        .overview-subtitle code,
+        .module-card code {
+            background:#eaf4ff;
+            color:#1f5f9f;
+            border-radius:7px;
+            padding:2px 6px;
+        }
+
+        .overview-controls {
+            display:grid;
+            grid-template-columns:repeat(4, minmax(110px, 1fr));
+            align-items:end;
+            gap:10px;
+            min-width:min(720px, 100%);
+        }
+
+        .overview-control {
+            display:grid;
+            gap:6px;
+        }
+
+        .overview-control-label {
+            font-size:10px;
+            font-weight:800;
+            letter-spacing:.1em;
+            text-transform:uppercase;
+            color:#67809f;
+        }
+
+        .overview-select,
+        .overview-apply-button {
+            min-height:38px;
+            border:1px solid #cfe0f3;
+            border-radius:12px;
+            background:#f5f9ff;
+            color:#24476f;
+            padding:8px 12px;
+            font-size:12px;
+            font-weight:800;
+        }
+
+        .overview-select {
+            width:100%;
+        }
+
+        .overview-apply-button {
+            cursor:pointer;
+            background:#2f80ed;
+            border-color:#2f80ed;
+            color:#fff;
+            box-shadow:0 8px 18px rgba(47,128,237,.22);
+        }
+
+        .overview-apply-button:hover {
+            background:#216fd4;
+            border-color:#216fd4;
+        }
+
+        .overview-visual-grid {
+            display:grid;
+            grid-template-columns:minmax(0, 1.35fr) minmax(360px, .65fr);
+            gap:12px;
+            align-items:stretch;
+        }
+
+        .chart-shell,
+        .timeline-table-shell,
+        .inventory-data-card {
+            border:1px solid #e4eef9;
+            border-radius:18px;
+            background:white;
+        }
+
+        .chart-shell {
+            min-height:320px;
+            padding:12px;
+            display:grid;
+            grid-template-rows:auto minmax(230px, 1fr) auto;
+            gap:12px;
+            overflow:hidden;
+        }
+
+        .chart-meta,
+        .inventory-chart-metrics {
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:10px;
+            flex-wrap:wrap;
+        }
+
+        .chart-meta-item {
+            display:grid;
+            gap:2px;
+        }
+
+        .chart-meta-item span {
+            font-size:10px;
+            font-weight:800;
+            letter-spacing:.1em;
+            text-transform:uppercase;
+            color:#7f94ae;
+        }
+
+        .chart-meta-item strong {
+            font-size:22px;
+            color:#24476f;
+            line-height:1;
+        }
+
+        .overview-chart {
+            width:100%;
+            height:100%;
+            min-height:230px;
+            display:block;
+        }
+
+        .chart-legend {
+            min-height:24px;
+            display:flex;
+            align-items:center;
+            gap:8px 14px;
+            flex-wrap:wrap;
+        }
+
+        .chart-legend-item {
+            display:inline-flex;
+            align-items:center;
+            gap:6px;
+            font-size:11px;
+            font-weight:700;
+            color:#5f7796;
+        }
+
+        .legend-icon {
+            width:22px;
+            height:22px;
+            border-radius:8px;
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            color:#fff;
+            flex-shrink:0;
+        }
+
+        .legend-icon svg {
+            width:14px;
+            height:14px;
+            stroke:currentColor;
+            stroke-width:2.2;
+            fill:none;
+            stroke-linecap:round;
+            stroke-linejoin:round;
+        }
+
+        .timeline-table-shell {
+            max-height:356px;
+            overflow:auto;
+        }
+
+        .timeline-table {
+            width:100%;
+            min-width:560px;
+            border-collapse:collapse;
+        }
+
+        .timeline-table th,
+        .timeline-table td {
+            padding:10px 12px;
+            border-bottom:1px solid #e9f1fb;
+            text-align:left;
+            font-size:12px;
+            color:#28496f;
+            white-space:nowrap;
+        }
+
+        .timeline-table th {
+            position:sticky;
+            top:0;
+            z-index:1;
+            background:#f6faff;
+            color:#67809f;
+            font-size:10px;
+            font-weight:800;
+            letter-spacing:.08em;
+            text-transform:uppercase;
+        }
+
+        .metric-token {
+            display:inline-flex;
+            min-width:42px;
+            justify-content:center;
+            padding:5px 8px;
+            border-radius:999px;
+            color:white;
+            background:linear-gradient(135deg, #2f80ed 0%, #59a9ff 100%);
+            font-size:11px;
+            font-weight:800;
+        }
+
+        .inventory-data-grid {
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            gap:12px;
+        }
+
+        .inventory-data-card {
+            padding:16px;
+            display:grid;
+            gap:12px;
+            min-height:240px;
+            overflow:hidden;
+        }
+
+        .inventory-data-card h3 {
+            color:#204a7a;
+            font-size:18px;
+            margin:0;
+        }
+
+        .inventory-data-card p {
+            margin:0;
+            color:#6b85a3;
+            font-size:12px;
+            line-height:1.4;
+        }
+
+        .inventory-data-scroll {
+            max-height:320px;
+            overflow:auto;
+        }
+
+        .inventory-two-chart-grid {
+            display:grid;
+            grid-template-columns:repeat(2, minmax(0, 1fr));
+            gap:14px;
+        }
+
+        .inventory-chart-card {
+            min-height:520px;
+            display:grid;
+            grid-template-rows:auto auto minmax(320px, 1fr) auto;
+            gap:14px;
+            padding:16px;
+            border:1px solid #e4eef9;
+            border-radius:18px;
+            background:white;
+            overflow:hidden;
+        }
+
+        .inventory-chart-card-header {
+            display:flex;
+            justify-content:space-between;
+            align-items:flex-start;
+            gap:12px;
+        }
+
+        .inventory-chart-card-header > div {
+            min-width:0;
+        }
+
+        .inventory-chart-card h3 {
+            color:#204a7a;
+            font-size:20px;
+            line-height:1.2;
+            margin:0 0 4px;
+        }
+
+        .inventory-chart-card p {
+            margin:0;
+            color:#6b85a3;
+            font-size:12px;
+            line-height:1.4;
+        }
+
+        .chart-filter-row {
+            display:grid;
+            grid-template-columns:minmax(150px, 1fr) minmax(150px, 1fr) minmax(120px, .85fr);
+            gap:10px;
+            align-items:end;
+        }
+
+        .chart-filter-control {
+            display:grid;
+            gap:6px;
+        }
+
+        .chart-filter-control label {
+            font-size:10px;
+            font-weight:800;
+            letter-spacing:.1em;
+            text-transform:uppercase;
+            color:#67809f;
+        }
+
+        .chart-filter-select,
+        .chart-filter-button {
+            min-height:38px;
+            border:1px solid #cfe0f3;
+            border-radius:12px;
+            padding:8px 10px;
+            font-size:12px;
+            font-weight:800;
+        }
+
+        .chart-filter-select {
+            width:100%;
+            background:#f5f9ff;
+            color:#24476f;
+        }
+
+        .chart-filter-button {
+            cursor:pointer;
+            background:#2f80ed;
+            border-color:#2f80ed;
+            color:#fff;
+            box-shadow:0 8px 18px rgba(47,128,237,.2);
+        }
+
+        .chart-filter-button:hover {
+            background:#216fd4;
+            border-color:#216fd4;
+        }
+
+        .chart-count-pill {
+            flex-shrink:0;
+            display:inline-flex;
+            min-height:30px;
+            align-items:center;
+            justify-content:center;
+            padding:6px 10px;
+            border-radius:999px;
+            background:#eaf4ff;
+            color:#1f5f9f;
+            font-size:11px;
+            font-weight:800;
+            white-space:nowrap;
+        }
+
+        .blood-component-chart {
+            width:100%;
+            height:100%;
+            min-height:320px;
+            display:block;
+        }
+
+        body.theme-dark .overview-header h2,
+        body.theme-dark .inventory-chart-card h3,
+        body.theme-dark .inventory-data-card h3,
+        body.theme-dark .chart-meta-item strong,
+        body.theme-dark .timeline-table td {
+            color:#e8f1fb;
+        }
+
+        body.theme-dark .overview-subtitle,
+        body.theme-dark .overview-control-label,
+        body.theme-dark .chart-meta-item span,
+        body.theme-dark .chart-legend-item,
+        body.theme-dark .inventory-chart-card p,
+        body.theme-dark .timeline-table th,
+        body.theme-dark .inventory-data-card p {
+            color:#93a7c1;
+        }
+
+        body.theme-dark .overview-subtitle code,
+        body.theme-dark .module-card code {
+            background:#132334;
+            color:#a6d4ff;
+        }
+
+        body.theme-dark .chart-shell,
+        body.theme-dark .timeline-table-shell,
+        body.theme-dark .inventory-chart-card,
+        body.theme-dark .inventory-data-card {
+            background:#0b1622;
+            border-color:#22384d;
+        }
+
+        body.theme-dark .chart-count-pill {
+            background:#132334;
+            color:#a6d4ff;
+        }
+
+        body.theme-dark .overview-select {
+            background:#0b1622;
+            border-color:#22384d;
+            color:#c7d7ea;
+        }
+
+        body.theme-dark .chart-filter-select {
+            background:#0b1622;
+            border-color:#22384d;
+            color:#c7d7ea;
+        }
+
+        body.theme-dark .overview-apply-button,
+        body.theme-dark .chart-filter-button {
+            background:#2f80ed;
+            border-color:#2f80ed;
+            color:#fff;
+        }
+
+        body.theme-dark .timeline-table th {
+            background:#132334;
+        }
+
+        body.theme-dark .timeline-table th,
+        body.theme-dark .timeline-table td {
+            border-bottom-color:#203447;
+        }
+
+        @media (max-width: 1100px) {
+            .summary-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .inventory-grid,
+            .overview-visual-grid,
+            .inventory-two-chart-grid,
+            .inventory-data-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .overview-header {
+                flex-direction:column;
+            }
+
+            .overview-controls {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                min-width:100%;
+            }
+
+        }
+
+        @media (max-width: 680px) {
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .overview-controls {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-filter-row {
+                grid-template-columns:1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="dashboard-scene">
+    <div class="dashboard-app">
+        <header class="app-header">
+            <div class="app-brand">
+                <button type="button" class="icon-button sidebar-toggle"
+                        data-sidebar-toggle aria-controls="dashboard-sidebar" aria-expanded="true" aria-label="Collapse menu">
+                    <span class="hamburger-icon" aria-hidden="true">
+                        <span></span><span></span><span></span>
+                    </span>
+                    <span class="sr-only" data-sidebar-toggle-label>Collapse menu</span>
+                </button>
+
+                <div class="app-brand-copy">
+                    <div class="app-kicker">Blood Bank Digital Platform</div>
+                    <div class="app-title">Blood Inventory Management System</div>
+                    <div class="app-subtitle">Administrative workspace for staffing, storage, monitoring, and reporting.</div>
+                </div>
+            </div>
+
+            <form class="app-search" role="search">
+                <div class="app-search-shell">
+                    <input class="app-search-input" type="search" placeholder="Search inventory or menu">
+                    <button type="submit" class="app-search-button" aria-label="Search dashboard">
+                        <span class="search-icon" aria-hidden="true"></span>
+                    </button>
+                </div>
+            </form>
+
+            <div class="app-actions" th:replace="fragments/header-actions :: adminProfileMenu"></div>
+        </header>
+
+        <div class="layout">
+            <div th:replace="fragments/sidebar :: sidebar(
+                'Blood Administrator Panel',
+                'Centralized navigation for staff, storage, inventory monitoring, alerts, and reports.',
+                'inventory-monitoring'
+            )"></div>
+
+            <button type="button" class="sidebar-overlay" data-sidebar-close aria-label="Close sidebar"></button>
+
+            <main class="main">
+                <div class="main-stack">
+                    <section class="page-intro page-card">
+                        <div>
+                            <div class="page-kicker">Inventory Monitor</div>
+                            <h1>Inventory Monitoring</h1>
+                            <p>
+                                Review live blood component status, availability, and near-expiry items using PostgreSQL functions.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="overview-panel page-card" data-search-item>
+                        <div class="overview-header">
+                            <div>
+                                <div class="page-kicker">Inventory Overview</div>
+                                <h2>Blood Component Charts</h2>
+                                <p class="overview-subtitle">
+                                    Live chart data generated from <code>blood_component</code> status and expiry timestamp records.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="inventory-two-chart-grid">
+                            <article class="inventory-chart-card">
+                                <div class="inventory-chart-card-header">
+                                    <div>
+                                        <h3>Status Data</h3>
+                                        <p>Blood component units grouped by current status.</p>
+                                    </div>
+                                    <span class="chart-count-pill" th:text="|${inventorySummary.totalComponents} units|">0 units</span>
+                                </div>
+
+                                <div class="chart-filter-row">
+                                    <div class="chart-filter-control">
+                                        <label for="status-component-filter">Filter</label>
+                                        <select id="status-component-filter" class="chart-filter-select" data-status-component-filter>
+                                            <option value="all">All component types</option>
+                                            <option value="RBC">RBC</option>
+                                            <option value="PLASMA">Plasma</option>
+                                            <option value="PLATELET">Platelet</option>
+                                        </select>
+                                    </div>
+                                    <div class="chart-filter-control">
+                                        <label for="status-sort">Sort</label>
+                                        <select id="status-sort" class="chart-filter-select" data-status-sort>
+                                            <option value="value_desc">Highest units</option>
+                                            <option value="value_asc">Lowest units</option>
+                                            <option value="name_asc">Status A-Z</option>
+                                            <option value="name_desc">Status Z-A</option>
+                                        </select>
+                                    </div>
+                                    <button type="button" class="chart-filter-button" data-status-apply>Apply</button>
+                                </div>
+
+                                <svg class="blood-component-chart" data-status-chart role="img" aria-label="Blood component status chart"></svg>
+                                <div class="chart-legend" data-status-legend></div>
+                            </article>
+
+                            <article class="inventory-chart-card">
+                                <div class="inventory-chart-card-header">
+                                    <div>
+                                        <h3>Expiry Data</h3>
+                                        <p>Blood component units grouped by expiry date and status.</p>
+                                    </div>
+                                    <span class="chart-count-pill" th:text="|${inventorySummary.nearExpiryComponents} near|">0 near</span>
+                                </div>
+
+                                <div class="chart-filter-row">
+                                    <div class="chart-filter-control">
+                                        <label for="expiry-status-filter">Filter</label>
+                                        <select id="expiry-status-filter" class="chart-filter-select" data-expiry-status-filter>
+                                            <option value="all">All statuses</option>
+                                            <option value="AVAILABLE">Available</option>
+                                            <option value="USED">Used</option>
+                                            <option value="RESERVED">Reserved</option>
+                                            <option value="EXPIRED">Expired</option>
+                                            <option value="QUARANTINED">Quarantined</option>
+                                            <option value="DISCARDED">Discarded</option>
+                                        </select>
+                                    </div>
+                                    <div class="chart-filter-control">
+                                        <label for="expiry-sort">Sort</label>
+                                        <select id="expiry-sort" class="chart-filter-select" data-expiry-sort>
+                                            <option value="date_asc">Earliest expiry</option>
+                                            <option value="date_desc">Latest expiry</option>
+                                            <option value="value_desc">Highest units</option>
+                                            <option value="value_asc">Lowest units</option>
+                                        </select>
+                                    </div>
+                                    <button type="button" class="chart-filter-button" data-expiry-apply>Apply</button>
+                                </div>
+
+                                <svg class="blood-component-chart" data-expiry-chart role="img" aria-label="Blood component expiry chart"></svg>
+                                <div class="chart-legend" data-expiry-legend></div>
+                            </article>
+                        </div>
+
+                        <div class="chart-source-data" hidden>
+                            <span th:each="item : ${componentStatusList}"
+                                  data-status-row
+                                  th:data-component-type="${item.componentType}"
+                                  th:data-status="${item.status}"
+                                  th:data-total-units="${item.totalUnits}"></span>
+                            <span th:each="item : ${expiryChartData}"
+                                  data-expiry-row
+                                  th:data-expiry-date="${item.expiryDate}"
+                                  th:data-status="${item.status}"
+                                  th:data-total-units="${item.totalUnits}"></span>
+                        </div>
+                    </section>
+                </div>
+            </main>
+        </div>
+    </div>
+</div>
+<script th:src="@{/js/dashboard-layout.js}"></script>
+<script>
+    (() => {
+        const form = document.querySelector("[data-timeline-form]");
+        const metricSelect = document.querySelector("[data-timeline-metric]");
+        const svg = document.querySelector("[data-overview-chart]");
+        const legend = document.querySelector("[data-chart-legend]");
+        const totalNode = document.querySelector("[data-chart-total]");
+        const peakNode = document.querySelector("[data-chart-peak]");
+        const availabilityNode = document.querySelector("[data-chart-availability]");
+
+        const createSvgElement = (tag, attributes) => {
+            const element = document.createElementNS("http://www.w3.org/2000/svg", tag);
+
+            Object.entries(attributes || {}).forEach(([name, value]) => {
+                element.setAttribute(name, value);
+            });
+
+            return element;
+        };
+
+        const formatDate = (rawDate) => {
+            if (!rawDate) {
+                return "";
+            }
+
+            return new Intl.DateTimeFormat(undefined, {
+                month: "short",
+                day: "numeric"
+            }).format(new Date(`${rawDate}T00:00:00`));
+        };
+
+        const metricConfig = {
+            donations: { label: "Donations", color: "#3e8cff", icon: "droplet", value: (row) => row.donations },
+            components: { label: "Components", color: "#14b8d5", icon: "package", value: (row) => row.components },
+            available: { label: "Available", color: "#5bc784", icon: "check", value: (row) => row.available },
+            near_expiry: { label: "Near expiry", color: "#ff667d", icon: "clock", value: (row) => row.nearExpiry }
+        };
+
+        const metricIconPaths = {
+            droplet: [ ["path", { d: "M12 2.69 17.66 8.35a8 8 0 1 1-11.31 0Z" }] ],
+            package: [
+                ["path", { d: "M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" }],
+                ["path", { d: "m3.3 7 8.7 5 8.7-5" }],
+                ["path", { d: "M12 22V12" }]
+            ],
+            check: [ ["path", { d: "M20 6 9 17l-5-5" }] ],
+            clock: [ ["circle", { cx: "12", cy: "12", r: "10" }], ["path", { d: "M12 6v6l4 2" }] ]
+        };
+
+        const createLegendIcon = (key) => {
+            const config = metricConfig[key];
+            const icon = document.createElement("span");
+            icon.className = "legend-icon";
+            icon.style.background = config.color;
+
+            const iconSvg = createSvgElement("svg", {
+                viewBox: "0 0 24 24",
+                "aria-hidden": "true"
+            });
+
+            (metricIconPaths[config.icon] || []).forEach(([tag, attributes]) => {
+                iconSvg.appendChild(createSvgElement(tag, attributes));
+            });
+
+            icon.appendChild(iconSvg);
+            return icon;
+        };
+
+        const rows = Array.from(document.querySelectorAll("[data-overview-row]")).map((row) => ({
+            rawDate: row.getAttribute("data-date") || "",
+            donations: Number(row.getAttribute("data-donations") || "0"),
+            components: Number(row.getAttribute("data-components") || "0"),
+            available: Number(row.getAttribute("data-available") || "0"),
+            nearExpiry: Number(row.getAttribute("data-near-expiry") || "0"),
+            selectedTotal: Number(row.getAttribute("data-selected-total") || "0")
+        }));
+
+        const buildLinePath = (chartRows, metricKey, xForIndex, yForValue) => chartRows
+            .map((row, index) => {
+                const prefix = index === 0 ? "M" : "L";
+                const x = xForIndex(index).toFixed(2);
+                const y = yForValue(metricConfig[metricKey].value(row)).toFixed(2);
+                return `${prefix} ${x} ${y}`;
+            })
+            .join(" ");
+
+        const drawTimelineChart = () => {
+            if (!svg) {
+                return;
+            }
+
+            const chartRows = rows.slice().sort((left, right) => left.rawDate.localeCompare(right.rawDate));
+            const selectedMetric = metricSelect?.value || "all";
+            const normalizedMetric = metricConfig[selectedMetric] ? selectedMetric : "all";
+            const metricKeys = normalizedMetric === "all"
+                ? ["donations", "components", "available", "near_expiry"]
+                : [normalizedMetric];
+            const visibleMetricKeys = metricKeys.filter((key) => metricConfig[key]);
+            const selectedValues = chartRows.map((row) => normalizedMetric === "all"
+                ? row.selectedTotal
+                : metricConfig[normalizedMetric].value(row));
+            const maxValue = Math.max(1, ...chartRows.flatMap((row) =>
+                visibleMetricKeys.map((key) => metricConfig[key].value(row))
+            ));
+            const selectedTotal = selectedValues.reduce((sum, value) => sum + value, 0);
+            const peakValue = Math.max(0, ...selectedValues);
+            const componentTotal = chartRows.reduce((sum, row) => sum + row.components, 0);
+            const availableTotal = chartRows.reduce((sum, row) => sum + row.available, 0);
+            const availabilityRate = componentTotal > 0 ? Math.round((availableTotal / componentTotal) * 100) : 0;
+            const isDark = document.body.classList.contains("theme-dark");
+            const gridColor = isDark ? "#203447" : "#dce9f7";
+            const textColor = isDark ? "#93a7c1" : "#67809f";
+            const axisColor = isDark ? "#2b465f" : "#ccdcef";
+            const width = 920;
+            const height = 300;
+            const padding = { top: 24, right: 28, bottom: 44, left: 50 };
+            const innerWidth = width - padding.left - padding.right;
+            const innerHeight = height - padding.top - padding.bottom;
+            const xForIndex = (index) => padding.left + (
+                chartRows.length <= 1 ? innerWidth / 2 : (index / (chartRows.length - 1)) * innerWidth
+            );
+            const yForValue = (value) => padding.top + innerHeight - (value / maxValue) * innerHeight;
+
+            svg.replaceChildren();
+            svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+            svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+
+            if (totalNode) totalNode.textContent = selectedTotal.toLocaleString();
+            if (peakNode) peakNode.textContent = peakValue.toLocaleString();
+            if (availabilityNode) availabilityNode.textContent = `${availabilityRate}%`;
+
+            for (let index = 0; index <= 4; index += 1) {
+                const value = Math.round((maxValue / 4) * index);
+                const y = yForValue(value);
+                svg.appendChild(createSvgElement("line", {
+                    x1: padding.left,
+                    y1: y,
+                    x2: width - padding.right,
+                    y2: y,
+                    stroke: gridColor,
+                    "stroke-width": index === 0 ? "1.4" : "1",
+                    "stroke-dasharray": index === 0 ? "0" : "5 7"
+                }));
+
+                const label = createSvgElement("text", {
+                    x: padding.left - 12,
+                    y: y + 4,
+                    fill: textColor,
+                    "font-size": "11",
+                    "font-weight": "700",
+                    "text-anchor": "end"
+                });
+                label.textContent = value.toLocaleString();
+                svg.appendChild(label);
+            }
+
+            svg.appendChild(createSvgElement("line", {
+                x1: padding.left,
+                y1: padding.top,
+                x2: padding.left,
+                y2: height - padding.bottom,
+                stroke: axisColor,
+                "stroke-width": "1.2"
+            }));
+
+            const labelStep = Math.max(1, Math.ceil(chartRows.length / 6));
+            const labelIndexes = new Set([0, chartRows.length - 1]);
+            chartRows.forEach((row, index) => {
+                if (index % labelStep === 0) {
+                    labelIndexes.add(index);
+                }
+            });
+
+            labelIndexes.forEach((index) => {
+                const row = chartRows[index];
+                if (!row) return;
+                const label = createSvgElement("text", {
+                    x: xForIndex(index),
+                    y: height - 14,
+                    fill: textColor,
+                    "font-size": "11",
+                    "font-weight": "700",
+                    "text-anchor": "middle"
+                });
+                label.textContent = formatDate(row.rawDate);
+                svg.appendChild(label);
+            });
+
+            if (visibleMetricKeys.length === 1 && chartRows.length) {
+                const key = visibleMetricKeys[0];
+                const linePath = buildLinePath(chartRows, key, xForIndex, yForValue);
+                const areaPath = `${linePath} L ${xForIndex(chartRows.length - 1).toFixed(2)} ${height - padding.bottom} L ${xForIndex(0).toFixed(2)} ${height - padding.bottom} Z`;
+                svg.appendChild(createSvgElement("path", {
+                    d: areaPath,
+                    fill: metricConfig[key].color,
+                    opacity: "0.12"
+                }));
+            }
+
+            visibleMetricKeys.forEach((key) => {
+                svg.appendChild(createSvgElement("path", {
+                    d: buildLinePath(chartRows, key, xForIndex, yForValue),
+                    fill: "none",
+                    stroke: metricConfig[key].color,
+                    "stroke-width": visibleMetricKeys.length === 1 ? "4" : "3",
+                    "stroke-linecap": "round",
+                    "stroke-linejoin": "round"
+                }));
+
+                if (chartRows.length <= 30) {
+                    chartRows.forEach((row, index) => {
+                        const point = createSvgElement("circle", {
+                            cx: xForIndex(index),
+                            cy: yForValue(metricConfig[key].value(row)),
+                            r: visibleMetricKeys.length === 1 ? "4" : "3",
+                            fill: metricConfig[key].color,
+                            stroke: isDark ? "#0b1622" : "#ffffff",
+                            "stroke-width": "2"
+                        });
+                        const title = createSvgElement("title");
+                        title.textContent = `${metricConfig[key].label} - ${row.rawDate}: ${metricConfig[key].value(row)}`;
+                        point.appendChild(title);
+                        svg.appendChild(point);
+                    });
+                }
+            });
+
+            if (legend) {
+                legend.replaceChildren(...visibleMetricKeys.map((key) => {
+                    const item = document.createElement("span");
+                    item.className = "chart-legend-item";
+                    const label = document.createElement("span");
+                    label.textContent = metricConfig[key].label;
+                    item.append(createLegendIcon(key), label);
+                    return item;
+                }));
+            }
+        };
+
+        drawTimelineChart();
+
+        new MutationObserver(drawTimelineChart).observe(document.body, {
+            attributes: true,
+            attributeFilter: ["class"]
+        });
+    })();
+</script>
+<script>
+    (() => {
+        const statusChart = document.querySelector("[data-status-chart]");
+        const expiryChart = document.querySelector("[data-expiry-chart]");
+        const statusLegend = document.querySelector("[data-status-legend]");
+        const expiryLegend = document.querySelector("[data-expiry-legend]");
+        const statusComponentFilter = document.querySelector("[data-status-component-filter]");
+        const statusSort = document.querySelector("[data-status-sort]");
+        const expiryStatusFilter = document.querySelector("[data-expiry-status-filter]");
+        const expirySort = document.querySelector("[data-expiry-sort]");
+        const statusApply = document.querySelector("[data-status-apply]");
+        const expiryApply = document.querySelector("[data-expiry-apply]");
+        const statusRows = Array.from(document.querySelectorAll("[data-status-row]")).map((row) => ({
+            componentType: row.getAttribute("data-component-type") || "Unknown",
+            status: (row.getAttribute("data-status") || "Unknown").toUpperCase(),
+            value: Number(row.getAttribute("data-total-units") || "0")
+        }));
+        const expiryRows = Array.from(document.querySelectorAll("[data-expiry-row]")).map((row) => ({
+            expiryDate: row.getAttribute("data-expiry-date") || "",
+            status: (row.getAttribute("data-status") || "Unknown").toUpperCase(),
+            value: Number(row.getAttribute("data-total-units") || "0")
+        }));
+        const statusColors = {
+            AVAILABLE: "#5bc784",
+            USED: "#386bbc",
+            RESERVED: "#f4ae3f",
+            EXPIRED: "#ff667d",
+            DISCARDED: "#94a3b8",
+            QUARANTINED: "#8b6ff4"
+        };
+        const statusOrder = [ "AVAILABLE", "USED", "QUARANTINED", "RESERVED", "DISCARDED", "EXPIRED" ];
+        const fallbackColors = [ "#3e8cff", "#14b8d5", "#5bc784", "#f4ae3f", "#8b6ff4", "#ff667d" ];
+
+        const createSvgElement = (tag, attributes) => {
+            const element = document.createElementNS("http://www.w3.org/2000/svg", tag);
+            Object.entries(attributes || {}).forEach(([name, value]) => element.setAttribute(name, value));
+            return element;
+        };
+
+        const colorForStatus = (status, index = 0) => statusColors[status] || fallbackColors[index % fallbackColors.length];
+
+        const compareByStatusOrder = (left, right) => {
+            const leftIndex = statusOrder.indexOf(left);
+            const rightIndex = statusOrder.indexOf(right);
+
+            if (leftIndex === -1 && rightIndex === -1) {
+                return left.localeCompare(right);
+            }
+
+            if (leftIndex === -1) {
+                return 1;
+            }
+
+            if (rightIndex === -1) {
+                return -1;
+            }
+
+            return leftIndex - rightIndex;
+        };
+
+        const formatDate = (rawDate) => {
+            if (!rawDate) return "";
+            return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(new Date(`${rawDate}T00:00:00`));
+        };
+
+        const renderLegend = (target, entries) => {
+            if (!target) return;
+            target.replaceChildren(...entries.map((entry) => {
+                const item = document.createElement("span");
+                item.className = "chart-legend-item";
+                const marker = document.createElement("span");
+                marker.className = "legend-icon";
+                marker.style.width = "14px";
+                marker.style.height = "14px";
+                marker.style.borderRadius = "999px";
+                marker.style.background = entry.color;
+                const label = document.createElement("span");
+                label.textContent = entry.label;
+                item.append(marker, label);
+                return item;
+            }));
+        };
+
+        const chartTheme = () => {
+            const isDark = document.body.classList.contains("theme-dark");
+            return {
+                grid: isDark ? "#203447" : "#dce9f7",
+                text: isDark ? "#93a7c1" : "#67809f",
+                axis: isDark ? "#2b465f" : "#ccdcef",
+                label: isDark ? "#e8f1fb" : "#24476f"
+            };
+        };
+
+        const drawAxisLabels = (svg, labels, padding, width, height, theme) => {
+            const innerWidth = width - padding.left - padding.right;
+            const innerHeight = height - padding.top - padding.bottom;
+            const xAxisLabel = createSvgElement("text", {
+                x: padding.left + innerWidth / 2,
+                y: height - 10,
+                fill: theme.text,
+                "font-size": "11",
+                "font-weight": "900",
+                "letter-spacing": ".08em",
+                "text-anchor": "middle"
+            });
+            xAxisLabel.textContent = labels.x;
+            svg.appendChild(xAxisLabel);
+
+            const yCenter = padding.top + innerHeight / 2;
+            const yAxisLabel = createSvgElement("text", {
+                x: 16,
+                y: yCenter,
+                fill: theme.text,
+                "font-size": "11",
+                "font-weight": "900",
+                "letter-spacing": ".08em",
+                "text-anchor": "middle",
+                "dominant-baseline": "middle",
+                transform: `rotate(-90 16 ${yCenter})`
+            });
+            yAxisLabel.textContent = labels.y;
+            svg.appendChild(yAxisLabel);
+        };
+
+        const sortStatusRows = (rows) => {
+            const selectedSort = statusSort?.value || "value_desc";
+            return rows.slice().sort((left, right) => {
+                if (selectedSort === "value_asc") return left.value - right.value;
+                if (selectedSort === "name_asc") return left.label.localeCompare(right.label);
+                if (selectedSort === "name_desc") return right.label.localeCompare(left.label);
+                return right.value - left.value;
+            });
+        };
+
+        const aggregateByStatus = () => sortStatusRows(Array.from(statusRows
+            .filter((row) => {
+                const componentType = statusComponentFilter?.value || "all";
+                return componentType === "all" || row.componentType.toUpperCase() === componentType;
+            })
+            .reduce((map, row) => {
+            map.set(row.status, (map.get(row.status) || 0) + row.value);
+            return map;
+        }, new Map()))
+            .map(([label, value], index) => ({ label, value, color: colorForStatus(label, index) })));
+
+        const drawStatusChart = () => {
+            if (!statusChart) return;
+            const rows = aggregateByStatus();
+            const theme = chartTheme();
+            const width = 720;
+            const height = 360;
+            const padding = { top: 24, right: 24, bottom: 88, left: 68 };
+            const innerWidth = width - padding.left - padding.right;
+            const innerHeight = height - padding.top - padding.bottom;
+            const maxValue = Math.max(1, ...rows.map((row) => row.value));
+            const barGap = 14;
+            const barWidth = rows.length
+                ? Math.max(34, (innerWidth - (rows.length - 1) * barGap) / rows.length)
+                : innerWidth;
+
+            statusChart.replaceChildren();
+            statusChart.setAttribute("viewBox", `0 0 ${width} ${height}`);
+            statusChart.setAttribute("preserveAspectRatio", "xMidYMid meet");
+
+            for (let index = 0; index <= 4; index += 1) {
+                const value = Math.round((maxValue / 4) * index);
+                const y = padding.top + innerHeight - (value / maxValue) * innerHeight;
+                statusChart.appendChild(createSvgElement("line", {
+                    x1: padding.left,
+                    y1: y,
+                    x2: width - padding.right,
+                    y2: y,
+                    stroke: theme.grid,
+                    "stroke-dasharray": index === 0 ? "0" : "4 6"
+                }));
+                const label = createSvgElement("text", {
+                    x: padding.left - 10,
+                    y: y + 4,
+                    fill: theme.text,
+                    "font-size": "10",
+                    "font-weight": "800",
+                    "text-anchor": "end"
+                });
+                label.textContent = value.toLocaleString();
+                statusChart.appendChild(label);
+            }
+
+            rows.forEach((row, index) => {
+                const x = padding.left + index * (barWidth + barGap);
+                const barHeight = (row.value / maxValue) * innerHeight;
+                const y = padding.top + innerHeight - barHeight;
+                statusChart.appendChild(createSvgElement("rect", {
+                    x,
+                    y,
+                    width: barWidth,
+                    height: Math.max(3, barHeight),
+                    rx: "10",
+                    fill: row.color
+                }));
+                const valueLabel = createSvgElement("text", {
+                    x: x + barWidth / 2,
+                    y: y - 8,
+                    fill: theme.label,
+                    "font-size": "12",
+                    "font-weight": "900",
+                    "text-anchor": "middle"
+                });
+                valueLabel.textContent = row.value.toLocaleString();
+                statusChart.appendChild(valueLabel);
+                const nameLabel = createSvgElement("text", {
+                    x: x + barWidth / 2,
+                    y: height - 42,
+                    fill: theme.text,
+                    "font-size": "10",
+                    "font-weight": "900",
+                    "text-anchor": "middle"
+                });
+                nameLabel.textContent = row.label.length > 12 ? `${row.label.slice(0, 12)}...` : row.label;
+                statusChart.appendChild(nameLabel);
+            });
+
+            drawAxisLabels(statusChart, { x: "STATUS", y: "UNITS" }, padding, width, height, theme);
+            renderLegend(statusLegend, rows.map((row) => ({ label: row.label, color: row.color })));
+        };
+
+        const drawExpiryChart = () => {
+            if (!expiryChart) return;
+            const selectedStatus = expiryStatusFilter?.value || "all";
+            const filteredRows = expiryRows.filter((row) => selectedStatus === "all" || row.status === selectedStatus);
+            const statuses = Array.from(new Set(filteredRows.map((row) => row.status))).sort(compareByStatusOrder);
+            const grouped = Array.from(filteredRows.reduce((map, row) => {
+                if (!map.has(row.expiryDate)) {
+                    map.set(row.expiryDate, { expiryDate: row.expiryDate, total: 0, statuses: new Map() });
+                }
+                const item = map.get(row.expiryDate);
+                item.total += row.value;
+                item.statuses.set(row.status, (item.statuses.get(row.status) || 0) + row.value);
+                return map;
+            }, new Map()).values()).sort((left, right) => {
+                const selectedSort = expirySort?.value || "date_asc";
+                if (selectedSort === "date_desc") return right.expiryDate.localeCompare(left.expiryDate);
+                if (selectedSort === "value_desc") return right.total - left.total;
+                if (selectedSort === "value_asc") return left.total - right.total;
+                return left.expiryDate.localeCompare(right.expiryDate);
+            });
+            const theme = chartTheme();
+            const width = 720;
+            const height = 360;
+            const padding = { top: 24, right: 24, bottom: 88, left: 68 };
+            const innerWidth = width - padding.left - padding.right;
+            const innerHeight = height - padding.top - padding.bottom;
+            const maxValue = Math.max(1, ...grouped.map((row) => row.total));
+            const groupCount = Math.max(1, grouped.length);
+            const groupWidth = innerWidth / groupCount;
+            const barWidth = grouped.length ? Math.max(4, Math.min(52, groupWidth * 0.62)) : innerWidth;
+
+            expiryChart.replaceChildren();
+            expiryChart.setAttribute("viewBox", `0 0 ${width} ${height}`);
+            expiryChart.setAttribute("preserveAspectRatio", "xMidYMid meet");
+
+            for (let index = 0; index <= 4; index += 1) {
+                const value = Math.round((maxValue / 4) * index);
+                const y = padding.top + innerHeight - (value / maxValue) * innerHeight;
+                expiryChart.appendChild(createSvgElement("line", {
+                    x1: padding.left,
+                    y1: y,
+                    x2: width - padding.right,
+                    y2: y,
+                    stroke: theme.grid,
+                    "stroke-dasharray": index === 0 ? "0" : "4 6"
+                }));
+                const label = createSvgElement("text", {
+                    x: padding.left - 10,
+                    y: y + 4,
+                    fill: theme.text,
+                    "font-size": "10",
+                    "font-weight": "800",
+                    "text-anchor": "end"
+                });
+                label.textContent = value.toLocaleString();
+                expiryChart.appendChild(label);
+            }
+
+            const labelStep = Math.max(1, Math.ceil(grouped.length / 6));
+            grouped.forEach((row, index) => {
+                const x = padding.left + index * groupWidth + (groupWidth - barWidth) / 2;
+                let yCursor = padding.top + innerHeight;
+                statuses.forEach((status, statusIndex) => {
+                    const value = row.statuses.get(status) || 0;
+                    if (!value) return;
+                    const segmentHeight = (value / maxValue) * innerHeight;
+                    yCursor -= segmentHeight;
+                    const segment = createSvgElement("rect", {
+                        x,
+                        y: yCursor,
+                        width: barWidth,
+                        height: Math.max(2, segmentHeight),
+                        rx: "6",
+                        fill: colorForStatus(status, statusIndex)
+                    });
+                    const title = createSvgElement("title");
+                    title.textContent = `${formatDate(row.expiryDate)} - ${status}: ${value}`;
+                    segment.appendChild(title);
+                    expiryChart.appendChild(segment);
+                });
+
+                if (index % labelStep === 0 || index === grouped.length - 1) {
+                    const label = createSvgElement("text", {
+                        x: x + barWidth / 2,
+                        y: height - 42,
+                        fill: theme.text,
+                        "font-size": "10",
+                        "font-weight": "900",
+                        "text-anchor": "middle"
+                    });
+                    label.textContent = formatDate(row.expiryDate);
+                    expiryChart.appendChild(label);
+                }
+            });
+
+            drawAxisLabels(expiryChart, { x: "EXPIRY DATE", y: "UNITS" }, padding, width, height, theme);
+            renderLegend(expiryLegend, statuses.map((status, index) => ({
+                label: status,
+                color: colorForStatus(status, index)
+            })));
+        };
+
+        const drawCharts = () => {
+            drawStatusChart();
+            drawExpiryChart();
+        };
+
+        statusApply?.addEventListener("click", drawStatusChart);
+        expiryApply?.addEventListener("click", drawExpiryChart);
+        drawCharts();
+        new MutationObserver(drawCharts).observe(document.body, {
+            attributes: true,
+            attributeFilter: [ "class" ]
+        });
+    })();
+</script>
+</body>
+</html>
