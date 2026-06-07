@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layout/master-layout}">
@@ -32,7 +32,7 @@
                         </div>
                     </section>
 
-                    <section class="workflow-card page-card">
+                    <section id="components" class="workflow-card page-card">
                         <div class="section-title">
                             <div>
                                 <h2>Blood Components</h2>
@@ -43,7 +43,7 @@
                         <div class="empty-state" th:if="${#lists.isEmpty(components)}">No blood components were found.</div>
 
                         <div class="table-wrap" th:if="${!#lists.isEmpty(components)}">
-                            <table class="workflow-table">
+                            <table class="data-table">
                                 <thead>
                                 <tr>
                                     <th>Component</th>
@@ -55,7 +55,7 @@
                                     <th>Location</th>
                                     <th>Lab Result</th>
                                     <th>Current Status</th>
-                                    <th>Update</th>
+                                    <th id="update">Update</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -69,8 +69,8 @@
                                     <td th:text="${component.locationDescription}">Storage</td>
                                     <td>
                                         <span class="status-pill"
-                                              th:classappend="${#strings.equalsIgnoreCase(component.finalStatus, 'SAFE')} ? ' good' : (${#strings.equalsIgnoreCase(component.finalStatus, 'DISCARDED')} ? ' bad' : ' warn')"
-                                              th:text="${component.finalStatus != null ? component.finalStatus : 'PENDING'}">PENDING</span>
+                                              th:classappend="${#strings.equalsIgnoreCase(component.finalStatus, 'PASSED') or #strings.equalsIgnoreCase(component.finalStatus, 'SAFE')} ? ' good' : (${#strings.equalsIgnoreCase(component.finalStatus, 'FAILED') or #strings.equalsIgnoreCase(component.finalStatus, 'DISCARDED')} ? ' bad' : ' warn')"
+                                              th:text="${component.finalStatus != null ? component.finalStatus : 'QUARANTINED'}">QUARANTINED</span>
                                     </td>
                                     <td>
                                         <span class="status-pill"

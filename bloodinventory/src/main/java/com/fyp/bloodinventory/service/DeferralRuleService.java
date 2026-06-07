@@ -31,6 +31,7 @@ public class DeferralRuleService {
                 dto.setDescription(rs.getString("description"));
                 dto.setDefaultCoolingPeriodDays(rs.getInt("default_cooling_period_days"));
                 dto.setStaffId(rs.getLong("staff_id"));
+                dto.setActive(rs.getBoolean("is_active"));
                 return dto;
             }
         });
@@ -51,5 +52,75 @@ public class DeferralRuleService {
                 request.getDefaultCoolingPeriodDays(),
                 request.getStaffId()
         );
+    }
+
+    public void updateRule(Long reasonId, DeferralRuleRequest request) {
+        Long requiredReasonId = requireId(reasonId, "Please select a deferral rule.");
+        String description = requireText(request.getDescription(), "Please enter the deferral reason.");
+        Integer coolingDays = requireCoolingDays(request.getDefaultCoolingPeriodDays());
+        Long staffId = requireId(request.getStaffId(), "Signed-in administrator account was not found.");
+
+        int updatedRows = jdbcTemplate.update("""
+                UPDATE deferral_reason
+                SET description = ?,
+                    default_cooling_period_days = ?,
+                    staff_id = ?
+                WHERE reason_id = ?
+                """, description, coolingDays, staffId, requiredReasonId);
+
+        if (updatedRows == 0) {
+            throw new RuntimeException("Deferral rule was not found.");
+        }
+    }
+
+    public void archiveRule(Long reasonId) {
+        Long requiredReasonId = requireId(reasonId, "Please select a deferral rule.");
+
+        int updatedRows = jdbcTemplate.update("""
+                UPDATE deferral_reason
+                SET is_active = FALSE
+                WHERE reason_id = ?
+                """, requiredReasonId);
+        if (updatedRows == 0) {
+            throw new RuntimeException("Deferral rule was not found.");
+        }
+    }
+
+    public void restoreRule(Long reasonId) {
+        Long requiredReasonId = requireId(reasonId, "Please select a deferral rule.");
+
+        int updatedRows = jdbcTemplate.update("""
+                UPDATE deferral_reason
+                SET is_active = TRUE
+                WHERE reason_id = ?
+                """, requiredReasonId);
+        if (updatedRows == 0) {
+            throw new RuntimeException("Deferral rule was not found.");
+        }
+    }
+
+    private Long requireId(Long value, String message) {
+        if (value == null || value <= 0) {
+            throw new RuntimeException(message);
+        }
+
+        return value;
+    }
+
+    private Integer requireCoolingDays(Integer value) {
+        if (value == null || value < 0) {
+            throw new RuntimeException("Please enter a valid cooling-off period.");
+        }
+
+        return value;
+    }
+
+    private String requireText(String value, String message) {
+        String normalized = value == null ? null : value.trim();
+        if (normalized == null || normalized.isEmpty()) {
+            throw new RuntimeException(message);
+        }
+
+        return normalized;
     }
 }

@@ -33,7 +33,7 @@
                         <a class="secondary-btn" th:href="@{/lab/tti-screening}">Open TTI Screening</a>
                     </section>
 
-                    <section class="workflow-card page-card">
+                    <section id="queue" class="workflow-card page-card">
                         <div class="section-title">
                             <div>
                                 <h2>Pending Donations</h2>
@@ -50,7 +50,7 @@
                         <div class="table-wrap"
                              data-pending-table
                              th:hidden="${#lists.isEmpty(pendingTests)}">
-                            <table class="workflow-table">
+                            <table class="data-table">
                                 <thead>
                                 <tr>
                                     <th>Donation</th>
@@ -60,7 +60,7 @@
                                     <th>Component Types</th>
                                     <th>Components</th>
                                     <th>Latest Result</th>
-                                    <th>Action</th>
+                                    <th id="approve">Action</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -174,7 +174,7 @@
                             throw new Error(data.message || "Unable to approve the lab test.");
                         }
 
-                        showToast("success", data.message || `Donation #${donationId} marked as SAFE.`);
+                        showToast("success", data.message || `Donation #${donationId} marked as PASSED.`);
 
                         if (row) {
                             row.classList.add("is-removing");

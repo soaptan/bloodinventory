@@ -82,7 +82,7 @@ public class SystemSettingsService {
     }
 
     public BackupSettingsRequest getBackupSettings() {
-        return jdbcTemplate.queryForObject("""
+        return Objects.requireNonNull(jdbcTemplate.queryForObject("""
                 SELECT backup_directory,
                        auto_backup_enabled,
                        schedule_frequency,
@@ -98,7 +98,7 @@ public class SystemSettingsService {
             request.setScheduleTime(normalizeScheduleTime(rs.getString("schedule_time")));
             request.setRetentionDays(Math.max(rs.getInt("retention_days"), 1));
             return request;
-        });
+        }), "Backup settings must not be null.");
     }
 
     public void updateBackupSettings(BackupSettingsRequest request) {
@@ -120,7 +120,7 @@ public class SystemSettingsService {
     }
 
     public SecuritySettingsRequest getSecuritySettings() {
-        return jdbcTemplate.queryForObject("""
+        return Objects.requireNonNull(jdbcTemplate.queryForObject("""
                 SELECT session_control_enabled,
                        max_concurrent_sessions,
                        session_timeout_minutes,
@@ -136,7 +136,7 @@ public class SystemSettingsService {
             request.setPreventNewLogin(rs.getBoolean("prevent_new_login"));
             request.setRowLevelSecurityEnabled(rs.getBoolean("row_level_security_enabled"));
             return request;
-        });
+        }), "Security settings must not be null.");
     }
 
     public void updateSecuritySettings(SecuritySettingsRequest request) {
@@ -362,7 +362,7 @@ public class SystemSettingsService {
     }
 
     private Long createBackupHistoryRow(String triggerType, String actor) {
-        return jdbcTemplate.queryForObject("""
+        return Objects.requireNonNull(jdbcTemplate.queryForObject("""
                 INSERT INTO system_backup_history (
                     trigger_type,
                     status,
@@ -372,11 +372,11 @@ public class SystemSettingsService {
                 )
                 VALUES (?, 'RUNNING', ?, CURRENT_TIMESTAMP, 'Backup started.')
                 RETURNING backup_id
-                """, Long.class, triggerType, actor);
+                """, Long.class, triggerType, actor), "Backup ID must not be null.");
     }
 
     private BackupHistoryDto getBackupById(Long backupId) {
-        return jdbcTemplate.queryForObject("""
+        return Objects.requireNonNull(jdbcTemplate.queryForObject("""
                 SELECT backup_id,
                        trigger_type,
                        status,
@@ -402,7 +402,7 @@ public class SystemSettingsService {
             dto.setCompletedAt(rs.getTimestamp("completed_at"));
             dto.setMessage(rs.getString("message"));
             return dto;
-        }, backupId);
+        }, backupId), "Backup history row must not be null.");
     }
 
     private void writeSqlBackup(Path backupPath) throws IOException {

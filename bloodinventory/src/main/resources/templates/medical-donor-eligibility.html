@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layout/master-layout}">
@@ -33,7 +33,7 @@
                     </section>
 
                     <section class="workflow-grid">
-                        <article class="workflow-card page-card">
+                        <article id="update" class="workflow-card page-card">
                             <div class="section-title">
                                 <div>
                                     <h2>Donor Records</h2>
@@ -42,7 +42,7 @@
                             </div>
 
                             <div class="table-wrap">
-                                <table class="workflow-table">
+                                <table class="data-table">
                                     <thead>
                                     <tr>
                                         <th>ID</th>
@@ -55,7 +55,12 @@
                                     </tr>
                                     </thead>
                                     <tbody>
-                                    <tr th:each="donor : ${donors}" data-search-item>
+                                    <tr th:each="donor : ${donors}"
+                                        data-search-item
+                                        th:data-donor-id="${donor.donorId}"
+                                        th:data-donor-name="${donor.fullName}"
+                                        th:data-donor-ic="${donor.icNumber}"
+                                        th:data-donor-group="${donor.bloodGroup}">
                                         <td th:text="${donor.donorId}">1</td>
                                         <td th:text="${donor.fullName}">Donor Name</td>
                                         <td th:text="${donor.icNumber}">900101-10-4001</td>
@@ -71,10 +76,16 @@
                                             <span th:unless="${donor.deferralExpiryDate != null}">None</span>
                                         </td>
                                         <td>
+                                            <button type="button" class="secondary-btn" data-donor-edit>Edit</button>
                                             <form th:if="${!donor.eligible}" class="compact-form"
                                                   th:action="@{/medical/donor-eligibility/clear}" method="post">
                                                 <input type="hidden" name="donorId" th:value="${donor.donorId}">
                                                 <button type="submit" class="text-btn">Clear</button>
+                                            </form>
+                                            <form class="compact-form"
+                                                  th:action="@{/medical/donor-eligibility/donors/delete}" method="post">
+                                                <input type="hidden" name="donorId" th:value="${donor.donorId}">
+                                                <button type="submit" class="danger-btn btn-sm">Delete</button>
                                             </form>
                                         </td>
                                     </tr>
@@ -83,7 +94,7 @@
                             </div>
                         </article>
 
-                        <aside class="form-card page-card">
+                        <aside id="add" class="form-card page-card">
                             <div class="section-title">
                                 <div>
                                     <h2>Assessment Controls</h2>
@@ -94,6 +105,7 @@
                             <form th:action="@{/medical/donor-eligibility/donors}"
                                   th:object="${donorRequest}" method="post">
                                 <div class="form-grid">
+                                    <input id="donorRecordId" type="hidden" th:field="*{donorId}">
                                     <div class="form-group full">
                                         <label for="fullName">Full Name</label>
                                         <input id="fullName" type="text" th:field="*{fullName}" required>
@@ -110,7 +122,10 @@
                                         </select>
                                     </div>
                                     <div class="form-group full">
-                                        <button type="submit" class="submit-btn">Save Donor</button>
+                                        <div class="button-row">
+                                            <button type="submit" class="submit-btn">Save Donor</button>
+                                            <button type="button" class="text-btn" data-donor-reset>New Donor</button>
+                                        </div>
                                     </div>
                                 </div>
                             </form>
@@ -146,6 +161,40 @@
                         </aside>
                     </section>
                 </div>
+    </th:block>
+
+    <th:block layout:fragment="custom-js">
+        <script>
+            (() => {
+                const donorId = document.getElementById("donorRecordId");
+                const fullName = document.getElementById("fullName");
+                const icNumber = document.getElementById("icNumber");
+                const bloodGroup = document.getElementById("bloodGroup");
+
+                document.querySelectorAll("[data-donor-edit]").forEach((button) => {
+                    button.addEventListener("click", () => {
+                        const row = button.closest("tr");
+                        if (!row) {
+                            return;
+                        }
+
+                        donorId.value = row.dataset.donorId || "";
+                        fullName.value = row.dataset.donorName || "";
+                        icNumber.value = row.dataset.donorIc || "";
+                        bloodGroup.value = row.dataset.donorGroup || "";
+                        document.getElementById("add")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    });
+                });
+
+                document.querySelector("[data-donor-reset]")?.addEventListener("click", () => {
+                    donorId.value = "";
+                    fullName.value = "";
+                    icNumber.value = "";
+                    bloodGroup.value = "";
+                    fullName.focus();
+                });
+            })();
+        </script>
     </th:block>
 
 </body>

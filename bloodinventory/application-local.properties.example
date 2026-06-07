@@ -1,1 +1,3 @@
 spring.datasource.password=your_local_database_password
+nvidia.nim.api-key=your_nvidia_nim_api_key
+nvidia.nim.vision-model=meta/llama-3.2-90b-vision-instruct

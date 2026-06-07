@@ -10,6 +10,8 @@ public class MedicalDonationDto {
     private String bloodGroup;
     private Long staffId;
     private String staffName;
+    private Long locationId;
+    private String locationDescription;
     private long componentCount;
     private String componentStatuses;
 
@@ -67,6 +69,22 @@ public class MedicalDonationDto {
 
     public void setStaffName(String staffName) {
         this.staffName = staffName;
+    }
+
+    public Long getLocationId() {
+        return locationId;
+    }
+
+    public void setLocationId(Long locationId) {
+        this.locationId = locationId;
+    }
+
+    public String getLocationDescription() {
+        return locationDescription;
+    }
+
+    public void setLocationDescription(String locationDescription) {
+        this.locationDescription = locationDescription;
     }
 
     public long getComponentCount() {

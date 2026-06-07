@@ -21,10 +21,12 @@ import java.util.Set;
 public class LabWorkflowService {
 
     public static final List<String> TTI_RESULTS = List.of("NEGATIVE", "POSITIVE", "PENDING");
-    public static final List<String> BLOOD_TYPE_RESULTS = List.of("MATCHED", "MISMATCHED", "PENDING");
-    public static final List<String> FINAL_STATUSES = List.of("SAFE", "DISCARDED", "PENDING");
+    public static final List<String> BLOOD_TYPE_RESULTS = List.of("MATCHED", "NOT_MATCHED", "PENDING");
+    public static final List<String> FINAL_STATUSES = List.of("PASSED", "FAILED", "QUARANTINED");
     public static final List<String> COMPONENT_STATUSES = List.of("QUARANTINED", "AVAILABLE", "RESERVED", "DISCARDED", "USED");
     public static final List<String> LAB_COMPONENT_STATUS_OPTIONS = List.of("QUARANTINED", "AVAILABLE", "DISCARDED");
+    private static final Set<String> SAFE_FINAL_STATUSES = Set.of("PASSED", "SAFE");
+    private static final Set<String> FAILED_FINAL_STATUSES = Set.of("FAILED", "DISCARDED");
 
     private final JdbcTemplate jdbcTemplate;
 
@@ -51,9 +53,9 @@ public class LabWorkflowService {
                             WHERE bc.donation_id = dn.donation_id
                               AND UPPER(bc.status) = 'QUARANTINED'
                         )
-                        AND COALESCE(UPPER(latest.final_status), 'PENDING') = 'PENDING'
+                        AND COALESCE(UPPER(latest.final_status), 'QUARANTINED') IN ('QUARANTINED', 'PENDING')
                     )::BIGINT AS pending_tests,
-                    (SELECT COUNT(*) FROM lab_test WHERE UPPER(final_status) IN ('SAFE', 'DISCARDED'))::BIGINT AS completed_tests,
+                    (SELECT COUNT(*) FROM lab_test WHERE UPPER(final_status) IN ('PASSED', 'SAFE', 'FAILED', 'DISCARDED'))::BIGINT AS completed_tests,
                     (SELECT COUNT(*) FROM blood_component WHERE UPPER(status) IN ('AVAILABLE', 'RESERVED'))::BIGINT AS safe_components,
                     (SELECT COUNT(*) FROM blood_component WHERE UPPER(status) = 'DISCARDED')::BIGINT AS discarded_components
                 """, (rs, rowNum) -> {
@@ -81,7 +83,7 @@ public class LabWorkflowService {
                         latest.test_id,
                         latest.tti_screening,
                         latest.blood_type_match,
-                        COALESCE(latest.final_status, 'PENDING') AS final_status,
+                        COALESCE(latest.final_status, 'QUARANTINED') AS final_status,
                         latest.test_date,
                         s.full_name AS staff_name
                     FROM donation dn
@@ -100,7 +102,7 @@ public class LabWorkflowService {
                              latest.final_status, latest.test_date, s.full_name
                 ) queue
                 WHERE UPPER(queue.component_statuses) LIKE '%QUARANTINED%'
-                  AND UPPER(queue.final_status) = 'PENDING'
+                  AND UPPER(queue.final_status) IN ('QUARANTINED', 'PENDING')
                 ORDER BY queue.collection_timestamp ASC, queue.donation_id ASC
                 """, this::mapQueue);
     }
@@ -253,7 +255,7 @@ public class LabWorkflowService {
         request.setDonationId(requiredDonationId);
         request.setTtiScreening("NEGATIVE");
         request.setBloodTypeMatch("MATCHED");
-        request.setFinalStatus("SAFE");
+        request.setFinalStatus("PASSED");
 
         recordScreening(request, username);
     }
@@ -271,7 +273,6 @@ public class LabWorkflowService {
         if (existingTestId == null) {
             jdbcTemplate.update("""
                     INSERT INTO lab_test (
-                        test_id,
                         tti_screening,
                         blood_type_match,
                         final_status,
@@ -279,8 +280,8 @@ public class LabWorkflowService {
                         staff_id,
                         donation_id
                     )
-                    VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, ?, ?)
-                    """, nextId("lab_test", "test_id"), ttiScreening, bloodTypeMatch, finalStatus, staffId, donationId);
+                    VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?, ?)
+                    """, ttiScreening, bloodTypeMatch, finalStatus, staffId, donationId);
         } else {
             jdbcTemplate.update("""
                     UPDATE lab_test
@@ -313,7 +314,7 @@ public class LabWorkflowService {
                         LIMIT 1
                     ) latest ON TRUE
                     WHERE bc.component_id = ?
-                      AND UPPER(latest.final_status) = 'SAFE'
+                      AND UPPER(latest.final_status) IN ('PASSED', 'SAFE')
                     """, Long.class, requiredComponentId);
             if (safeTestCount == null || safeTestCount == 0) {
                 throw new RuntimeException("Component can be released only after a safe lab screening result.");
@@ -328,6 +329,51 @@ public class LabWorkflowService {
         if (updatedRows == 0) {
             throw new RuntimeException("Component record was not found.");
         }
+
+        if ("DISCARDED".equals(normalizedStatus)) {
+            updateLatestLabResultForComponent(requiredComponentId, "FAILED");
+        }
+    }
+
+    @Transactional
+    public void deleteScreening(Long testId) {
+        Long requiredTestId = requireId(testId, "Please select a screening result.");
+        Long donationId;
+        try {
+            donationId = jdbcTemplate.queryForObject("""
+                    SELECT donation_id
+                    FROM lab_test
+                    WHERE test_id = ?
+                    """, Long.class, requiredTestId);
+        } catch (EmptyResultDataAccessException ex) {
+            throw new RuntimeException("Screening result was not found.");
+        }
+
+        Long protectedCount = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM blood_component bc
+                WHERE bc.donation_id = ?
+                  AND (
+                      UPPER(bc.status) IN ('RESERVED', 'USED')
+                      OR EXISTS (
+                          SELECT 1
+                          FROM transfusion_record tr
+                          WHERE tr.component_id = bc.component_id
+                      )
+                  )
+                """, Long.class, donationId);
+
+        if (protectedCount != null && protectedCount > 0) {
+            throw new RuntimeException("Screening result cannot be deleted after a component is reserved or transfused.");
+        }
+
+        jdbcTemplate.update("DELETE FROM lab_test WHERE test_id = ?", requiredTestId);
+        jdbcTemplate.update("""
+                UPDATE blood_component
+                SET status = 'QUARANTINED'
+                WHERE donation_id = ?
+                  AND UPPER(status) IN ('AVAILABLE', 'DISCARDED')
+                """, donationId);
     }
 
     private LabTestQueueDto mapQueue(@NonNull ResultSet rs, int rowNum) throws SQLException {
@@ -365,7 +411,7 @@ public class LabWorkflowService {
                       WHERE lt.donation_id = dn.donation_id
                       ORDER BY lt.test_date DESC, lt.test_id DESC
                       LIMIT 1
-                  ), 'PENDING') = 'PENDING'
+                  ), 'QUARANTINED') IN ('QUARANTINED', 'PENDING')
                 """, Long.class, donationId);
 
         if (pendingCount == null || pendingCount == 0) {
@@ -374,11 +420,15 @@ public class LabWorkflowService {
     }
 
     private void updateDonationComponentsFromFinalStatus(Long donationId, String finalStatus) {
-        String componentStatus = switch (finalStatus) {
-            case "SAFE" -> "AVAILABLE";
-            case "DISCARDED" -> "DISCARDED";
-            default -> "QUARANTINED";
-        };
+        String normalizedFinalStatus = normalizeNullable(finalStatus);
+        String componentStatus;
+        if (SAFE_FINAL_STATUSES.contains(normalizedFinalStatus)) {
+            componentStatus = "AVAILABLE";
+        } else if (FAILED_FINAL_STATUSES.contains(normalizedFinalStatus)) {
+            componentStatus = "DISCARDED";
+        } else {
+            componentStatus = "QUARANTINED";
+        }
 
         jdbcTemplate.update("""
                 UPDATE blood_component
@@ -388,13 +438,31 @@ public class LabWorkflowService {
                 """, componentStatus, donationId);
     }
 
+    private void updateLatestLabResultForComponent(Long componentId, String finalStatus) {
+        jdbcTemplate.update("""
+                UPDATE lab_test lt
+                SET final_status = ?,
+                    test_date = CURRENT_TIMESTAMP
+                FROM blood_component bc
+                WHERE bc.component_id = ?
+                  AND bc.donation_id = lt.donation_id
+                  AND lt.test_id = (
+                      SELECT latest.test_id
+                      FROM lab_test latest
+                      WHERE latest.donation_id = bc.donation_id
+                      ORDER BY latest.test_date DESC, latest.test_id DESC
+                      LIMIT 1
+                  )
+                """, finalStatus, componentId);
+    }
+
     private String resolveFinalStatus(String requestedFinalStatus, String ttiScreening, String bloodTypeMatch) {
         String normalized = normalizeAllowed(requestedFinalStatus, FINAL_STATUSES, "Please select a valid final status.");
-        if ("POSITIVE".equals(ttiScreening) || "MISMATCHED".equals(bloodTypeMatch)) {
-            return "DISCARDED";
+        if ("POSITIVE".equals(ttiScreening) || "NOT_MATCHED".equals(bloodTypeMatch) || "MISMATCHED".equals(bloodTypeMatch)) {
+            return "FAILED";
         }
         if ("PENDING".equals(ttiScreening) || "PENDING".equals(bloodTypeMatch)) {
-            return "PENDING";
+            return "QUARANTINED";
         }
         return normalized;
     }
@@ -450,14 +518,6 @@ public class LabWorkflowService {
     private Long nullableLong(ResultSet rs, String columnName) throws SQLException {
         long value = rs.getLong(columnName);
         return rs.wasNull() ? null : value;
-    }
-
-    private Long nextId(String tableName, String columnName) {
-        Long nextId = jdbcTemplate.queryForObject(
-                "SELECT COALESCE(MAX(" + columnName + "), 0) + 1 FROM " + tableName,
-                Long.class
-        );
-        return nextId == null ? 1L : nextId;
     }
 
     private Long requireId(Long value, String message) {

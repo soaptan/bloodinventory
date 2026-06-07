@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.security.Principal;
+import java.util.Objects;
 
 @Controller
 public class MedicalWorkflowController {
@@ -98,6 +99,26 @@ public class MedicalWorkflowController {
         return "redirect:/medical/donor-eligibility";
     }
 
+    @PostMapping("/medical/donor-eligibility/donors/delete")
+    public String deleteDonor(@RequestParam("donorId") Long donorId,
+                              Principal principal,
+                              RedirectAttributes redirectAttributes) {
+        try {
+            medicalWorkflowService.deleteDonor(donorId);
+            notificationService.record(
+                    "Donor Eligibility",
+                    "DELETE",
+                    "Deleted donor record ID " + donorId,
+                    actorName(principal)
+            );
+            redirectAttributes.addFlashAttribute("successMessage", "Donor record deleted.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
+
+        return "redirect:/medical/donor-eligibility";
+    }
+
     @GetMapping("/medical/donations")
     public String donations(Model model) {
         populateDonations(model);
@@ -135,6 +156,48 @@ public class MedicalWorkflowController {
         return "redirect:/medical/donations";
     }
 
+    @PostMapping("/medical/donations/update")
+    public String updateDonation(@RequestParam("donationId") Long donationId,
+                                 @RequestParam("collectionTimestamp") String collectionTimestamp,
+                                 @RequestParam("locationId") Long locationId,
+                                 Principal principal,
+                                 RedirectAttributes redirectAttributes) {
+        try {
+            medicalWorkflowService.updateDonation(donationId, collectionTimestamp, locationId);
+            notificationService.record(
+                    "Blood Collection",
+                    "UPDATE",
+                    "Updated donation session ID " + donationId,
+                    actorName(principal)
+            );
+            redirectAttributes.addFlashAttribute("successMessage", "Donation session updated.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
+
+        return "redirect:/medical/donations";
+    }
+
+    @PostMapping("/medical/donations/delete")
+    public String deleteDonation(@RequestParam("donationId") Long donationId,
+                                 Principal principal,
+                                 RedirectAttributes redirectAttributes) {
+        try {
+            medicalWorkflowService.deleteDonation(donationId);
+            notificationService.record(
+                    "Blood Collection",
+                    "DELETE",
+                    "Deleted donation session ID " + donationId,
+                    actorName(principal)
+            );
+            redirectAttributes.addFlashAttribute("successMessage", "Donation session deleted.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
+
+        return "redirect:/medical/donations";
+    }
+
     @GetMapping("/medical/transfusion")
     public String transfusion(Model model) {
         populateTransfusion(model);
@@ -154,6 +217,47 @@ public class MedicalWorkflowController {
                     actorName(principal)
             );
             redirectAttributes.addFlashAttribute("successMessage", "Transfusion event recorded.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
+
+        return "redirect:/medical/transfusion";
+    }
+
+    @PostMapping("/medical/transfusion/update")
+    public String updateTransfusion(@RequestParam("componentId") Long componentId,
+                                    @ModelAttribute("transfusionRequest") MedicalTransfusionRequest request,
+                                    Principal principal,
+                                    RedirectAttributes redirectAttributes) {
+        try {
+            medicalWorkflowService.updateTransfusion(componentId, request);
+            notificationService.record(
+                    "Transfusion Request",
+                    "UPDATE",
+                    "Updated transfusion for component ID " + componentId,
+                    actorName(principal)
+            );
+            redirectAttributes.addFlashAttribute("successMessage", "Transfusion event updated.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
+
+        return "redirect:/medical/transfusion";
+    }
+
+    @PostMapping("/medical/transfusion/delete")
+    public String deleteTransfusion(@RequestParam("componentId") Long componentId,
+                                    Principal principal,
+                                    RedirectAttributes redirectAttributes) {
+        try {
+            medicalWorkflowService.deleteTransfusion(componentId);
+            notificationService.record(
+                    "Transfusion Request",
+                    "DELETE",
+                    "Deleted transfusion for component ID " + componentId,
+                    actorName(principal)
+            );
+            redirectAttributes.addFlashAttribute("successMessage", "Transfusion event deleted.");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
         }
@@ -245,8 +349,8 @@ public class MedicalWorkflowController {
         model.addAttribute("safeMatchRequest", request);
     }
 
-    private String actorName(Principal principal) {
-        return principal == null ? null : principal.getName();
+    private @NonNull String actorName(Principal principal) {
+        return principal == null ? "system" : Objects.requireNonNull(principal.getName(), "Principal name must not be null.");
     }
 
     private String safeLabel(String preferred, String fallback) {

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layout/master-layout}">
@@ -33,7 +33,7 @@
                     </section>
 
                     <section class="workflow-grid">
-                        <article class="workflow-card page-card">
+                        <article id="update" class="workflow-card page-card">
                             <div class="section-title">
                                 <div>
                                     <h2>Transfusion Records</h2>
@@ -42,7 +42,7 @@
                             </div>
 
                             <div class="table-wrap">
-                                <table class="workflow-table">
+                                <table class="data-table">
                                     <thead>
                                     <tr>
                                         <th>Component</th>
@@ -52,6 +52,7 @@
                                         <th>Donor Group</th>
                                         <th>Timestamp</th>
                                         <th>Staff</th>
+                                        <th id="delete">Operations</th>
                                     </tr>
                                     </thead>
                                     <tbody>
@@ -63,13 +64,25 @@
                                         <td th:text="${record.donorBloodGroup}">A+</td>
                                         <td th:text="${#dates.format(record.transfusionTimestamp, 'yyyy-MM-dd HH:mm')}">2026-04-18 10:31</td>
                                         <td th:text="${record.staffName}">Staff</td>
+                                        <td>
+                                            <form class="button-row" th:action="@{/medical/transfusion/update}" method="post">
+                                                <input type="hidden" name="componentId" th:value="${record.componentId}">
+                                                <input type="hidden" name="patientId" th:value="${record.patientId}">
+                                                <input type="text" name="condition" th:value="${record.condition}" placeholder="Condition">
+                                                <button type="submit" class="secondary-btn">Update</button>
+                                            </form>
+                                            <form class="compact-form" th:action="@{/medical/transfusion/delete}" method="post">
+                                                <input type="hidden" name="componentId" th:value="${record.componentId}">
+                                                <button type="submit" class="danger-btn btn-sm">Delete</button>
+                                            </form>
+                                        </td>
                                     </tr>
                                     </tbody>
                                 </table>
                             </div>
                         </article>
 
-                        <aside class="form-card page-card">
+                        <aside id="add" class="form-card page-card">
                             <div class="section-title">
                                 <div>
                                     <h2>Record Event</h2>

@@ -16,18 +16,18 @@
     font-weight: 800;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: #7f94ae;
+    color: var(--text-muted);
     margin-bottom: 6px;
 }
 
 .page-intro h1 {
     font-size: 32px;
-    color: #1f3f67;
+    color: var(--text-strong);
     margin-bottom: 6px;
 }
 
 .page-intro p {
-    color: #5f7796;
+    color: var(--text-body);
     font-size: 14px;
     line-height: 1.5;
     max-width: 820px;
@@ -55,7 +55,7 @@
 
 .medical-stat-label {
     font-size: 12px;
-    color: #647d9c;
+    color: var(--text-muted);
     margin-bottom: 8px;
     font-weight: 700;
 }
@@ -66,7 +66,7 @@
     z-index: 1;
     background: transparent;
     box-shadow: none;
-    color: #1f4c82;
+    color: var(--text-strong);
     font-size: 34px;
     font-weight: 850;
     line-height: 1;
@@ -93,13 +93,13 @@
 }
 
 .section-title h2 {
-    color: #24476f;
+    color: var(--text-strong);
     font-size: 22px;
     margin-bottom: 4px;
 }
 
 .section-title p {
-    color: #6b85a3;
+    color: var(--text-muted);
     font-size: 13px;
     line-height: 1.5;
 }
@@ -128,29 +128,32 @@
     overflow-x: auto;
 }
 
-.workflow-table {
+.workflow-table,
+.data-table {
     width: 100%;
     border-collapse: collapse;
     min-width: 760px;
 }
 
 .workflow-table th,
-.workflow-table td {
+.workflow-table td,
+.data-table th,
+.data-table td {
     padding: 12px 10px;
-    border-bottom: 1px solid #e9f1fb;
+    border-bottom: 1px solid var(--border);
     text-align: left;
     font-size: 13px;
     vertical-align: top;
 }
 
 .workflow-table th {
-    color: #67809f;
+    color: var(--text-muted);
     font-weight: 800;
     white-space: nowrap;
 }
 
 .workflow-table td {
-    color: #263f5d;
+    color: var(--text-strong);
 }
 
 .status-pill {
@@ -216,7 +219,7 @@
 }
 
 .form-group label {
-    color: #35506f;
+    color: var(--text-strong);
     font-size: 13px;
     font-weight: 800;
 }
@@ -227,9 +230,9 @@
     min-height: 42px;
     padding: 10px 12px;
     border-radius: 12px;
-    border: 1px solid #ccdcef;
-    background: #fff;
-    color: #263f5d;
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--text-strong);
     font-size: 14px;
     outline: none;
 }
@@ -325,16 +328,20 @@
 }
 
 .workflow-table .secondary-btn,
-.workflow-table .text-btn {
+.workflow-table .text-btn,
+.data-table .secondary-btn,
+.data-table .text-btn {
     min-height: 32px;
     padding: 7px 12px;
 }
 
-.workflow-table tr {
+.workflow-table tr,
+.data-table tr {
     transition: opacity 0.35s ease, transform 0.35s ease;
 }
 
-.workflow-table tr.is-removing {
+.workflow-table tr.is-removing,
+.data-table tr.is-removing {
     opacity: 0;
     transform: translateX(10px);
 }
@@ -345,12 +352,13 @@
     opacity: 0.72;
 }
 
-.workflow-table select {
+.workflow-table select,
+.data-table select {
     min-height: 34px;
     border-radius: 10px;
-    border: 1px solid #ccdcef;
-    background: #fff;
-    color: #263f5d;
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--text-strong);
     padding: 7px 10px;
     font-size: 13px;
     font-weight: 700;
@@ -379,32 +387,37 @@ body.theme-dark .page-intro p,
 body.theme-dark .section-title p,
 body.theme-dark .medical-stat-label,
 body.theme-dark .workflow-table th,
+body.theme-dark .data-table th,
 body.theme-dark .form-group label {
     color: #93a7c1;
 }
 
 body.theme-dark .workflow-table th,
-body.theme-dark .workflow-table td {
-    border-bottom-color: #203447;
+body.theme-dark .workflow-table td,
+body.theme-dark .data-table th,
+body.theme-dark .data-table td {
+    border-bottom-color: var(--border);
 }
 
-body.theme-dark .workflow-table td {
-    color: #dce8f6;
+body.theme-dark .workflow-table td,
+body.theme-dark .data-table td {
+    color: var(--text-strong);
 }
 
 body.theme-dark .form-group input,
 body.theme-dark .form-group select,
-body.theme-dark .workflow-table select {
+body.theme-dark .workflow-table select,
+body.theme-dark .data-table select {
     background: #0a1622;
-    border-color: #294158;
-    color: #e6f0fb;
+    border-color: var(--border-strong);
+    color: var(--text-strong);
 }
 
 body.theme-dark .check-chip,
 body.theme-dark .empty-state {
     background: #122132;
-    border-color: #294158;
-    color: #dce8f6;
+    border-color: var(--border-strong);
+    color: var(--text-strong);
 }
 
 body.theme-dark .secondary-btn {

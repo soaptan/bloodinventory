@@ -103,6 +103,7 @@ public class MedicalWorkflowService {
         return jdbcTemplate.query("""
                 SELECT reason_id, description, default_cooling_period_days
                 FROM deferral_reason
+                WHERE is_active = TRUE
                 ORDER BY description ASC
                 """, (rs, rowNum) -> {
             MedicalDeferralReasonDto dto = new MedicalDeferralReasonDto();
@@ -115,14 +116,16 @@ public class MedicalWorkflowService {
 
     public List<StorageLocationDto> getStorageLocations() {
         return jdbcTemplate.query("""
-                SELECT location_id, description, staff_id
+                SELECT location_id, description, staff_id, is_active
                 FROM storage_location
+                WHERE is_active = TRUE
                 ORDER BY location_id ASC
                 """, (rs, rowNum) -> {
             StorageLocationDto dto = new StorageLocationDto();
             dto.setLocationId(rs.getLong("location_id"));
             dto.setDescription(rs.getString("description"));
             dto.setStaffId(rs.getLong("staff_id"));
+            dto.setActive(rs.getBoolean("is_active"));
             return dto;
         });
     }
@@ -137,12 +140,15 @@ public class MedicalWorkflowService {
                     d.blood_group,
                     dn.staff_id,
                     s.full_name AS staff_name,
+                    MIN(bc.location_id)::BIGINT AS location_id,
+                    MIN(sl.description) AS location_description,
                     COUNT(bc.component_id)::BIGINT AS component_count,
                     COALESCE(STRING_AGG(DISTINCT bc.status, ', ' ORDER BY bc.status), 'PENDING') AS component_statuses
                 FROM donation dn
                 JOIN donor d ON d.donor_id = dn.donor_id
                 JOIN staff s ON s.staff_id = dn.staff_id
                 LEFT JOIN blood_component bc ON bc.donation_id = dn.donation_id
+                LEFT JOIN storage_location sl ON sl.location_id = bc.location_id
                 GROUP BY dn.donation_id, dn.collection_timestamp, d.donor_id, d.full_name, d.blood_group, dn.staff_id, s.full_name
                 ORDER BY dn.collection_timestamp DESC, dn.donation_id DESC
                 """, (rs, rowNum) -> {
@@ -154,6 +160,8 @@ public class MedicalWorkflowService {
             dto.setBloodGroup(rs.getString("blood_group"));
             dto.setStaffId(rs.getLong("staff_id"));
             dto.setStaffName(rs.getString("staff_name"));
+            dto.setLocationId(nullableLong(rs, "location_id"));
+            dto.setLocationDescription(rs.getString("location_description"));
             dto.setComponentCount(rs.getLong("component_count"));
             dto.setComponentStatuses(rs.getString("component_statuses"));
             return dto;
@@ -269,9 +277,9 @@ public class MedicalWorkflowService {
             }
 
             jdbcTemplate.update("""
-                    INSERT INTO donor (donor_id, ic_number, full_name, blood_group, deferral_expiry_date)
-                    VALUES (?, ?, ?, ?, NULL)
-                    """, nextId("donor", "donor_id"), icNumber, fullName, bloodGroup);
+                    INSERT INTO donor (ic_number, full_name, blood_group, deferral_expiry_date)
+                    VALUES (?, ?, ?, NULL)
+                    """, icNumber, fullName, bloodGroup);
             return;
         }
 
@@ -288,13 +296,19 @@ public class MedicalWorkflowService {
         Long reasonId = requireId(request.getReasonId(), "Please select a deferral reason.");
         Long staffId = requireMedicalStaffId(username);
 
-        Integer coolingDays = jdbcTemplate.queryForObject("""
-                SELECT default_cooling_period_days
-                FROM deferral_reason
-                WHERE reason_id = ?
-                """, Integer.class, reasonId);
+        Integer coolingDays;
+        try {
+            coolingDays = jdbcTemplate.queryForObject("""
+                    SELECT default_cooling_period_days
+                    FROM deferral_reason
+                    WHERE reason_id = ?
+                      AND is_active = TRUE
+                    """, Integer.class, reasonId);
+        } catch (EmptyResultDataAccessException ex) {
+            throw new RuntimeException("Deferral reason was not found or has been archived.");
+        }
         if (coolingDays == null) {
-            throw new RuntimeException("Deferral reason was not found.");
+            throw new RuntimeException("Deferral reason was not found or has been archived.");
         }
 
         LocalDate expiryDate = LocalDate.now().plusDays(coolingDays);
@@ -315,40 +329,100 @@ public class MedicalWorkflowService {
     }
 
     @Transactional
+    public void deleteDonor(Long donorId) {
+        Long requiredDonorId = requireId(donorId, "Please select a donor.");
+        Long donationCount = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM donation
+                WHERE donor_id = ?
+                """, Long.class, requiredDonorId);
+
+        if (donationCount != null && donationCount > 0) {
+            throw new RuntimeException("Donor cannot be deleted after donation records have been created.");
+        }
+
+        int deletedRows = jdbcTemplate.update("DELETE FROM donor WHERE donor_id = ?", requiredDonorId);
+        if (deletedRows == 0) {
+            throw new RuntimeException("Donor record was not found.");
+        }
+    }
+
+    @Transactional
     public void recordDonation(MedicalDonationRequest request, String username) {
         Long donorId = requireId(request.getDonorId(), "Please select a donor.");
         Long locationId = requireId(request.getLocationId(), "Please select a storage location.");
         Long staffId = requireMedicalStaffId(username);
         List<String> componentTypes = normalizedComponentTypes(request.getComponentTypes());
         Timestamp collectionTimestamp = parseTimestamp(request.getCollectionTimestamp());
+        ensureActiveStorageLocation(locationId);
 
         if (!isDonorEligible(donorId)) {
             throw new RuntimeException("This donor is currently deferred and cannot be collected.");
         }
 
-        Long donationId = nextId("donation", "donation_id");
-        jdbcTemplate.update("""
-                INSERT INTO donation (donation_id, collection_timestamp, donor_id, staff_id)
-                VALUES (?, ?, ?, ?)
-                """, donationId, collectionTimestamp, donorId, staffId);
+        Long donationId = jdbcTemplate.queryForObject("""
+                INSERT INTO donation (collection_timestamp, donor_id, staff_id)
+                VALUES (?, ?, ?)
+                RETURNING donation_id
+                """, Long.class, collectionTimestamp, donorId, staffId);
 
         for (String componentType : componentTypes) {
             jdbcTemplate.update("""
                     INSERT INTO blood_component (
-                        component_id,
                         component_type,
                         expiry_timestamp,
                         status,
                         donation_id,
                         location_id
                     )
-                    VALUES (?, ?, ?, 'QUARANTINED', ?, ?)
+                    VALUES (?, ?, 'QUARANTINED', ?, ?)
                     """,
-                    nextId("blood_component", "component_id"),
                     componentType,
                     expiryTimestamp(collectionTimestamp, componentType),
                     donationId,
                     locationId);
+        }
+    }
+
+    @Transactional
+    public void updateDonation(Long donationId, String collectionTimestampValue, Long locationId) {
+        Long requiredDonationId = requireId(donationId, "Please select a donation.");
+        Long requiredLocationId = requireId(locationId, "Please select a storage location.");
+        Timestamp collectionTimestamp = parseTimestamp(collectionTimestampValue);
+        ensureDonationEditable(requiredDonationId);
+        ensureActiveStorageLocation(requiredLocationId);
+
+        int updatedRows = jdbcTemplate.update("""
+                UPDATE donation
+                SET collection_timestamp = ?
+                WHERE donation_id = ?
+                """, collectionTimestamp, requiredDonationId);
+        if (updatedRows == 0) {
+            throw new RuntimeException("Donation record was not found.");
+        }
+
+        jdbcTemplate.update("""
+                UPDATE blood_component
+                SET location_id = ?,
+                    expiry_timestamp = CASE component_type
+                        WHEN 'RBC' THEN CAST(? AS TIMESTAMP) + INTERVAL '42 days'
+                        WHEN 'PLATELET' THEN CAST(? AS TIMESTAMP) + INTERVAL '5 days'
+                        WHEN 'PLASMA' THEN CAST(? AS TIMESTAMP) + INTERVAL '365 days'
+                        ELSE CAST(? AS TIMESTAMP) + INTERVAL '30 days'
+                    END
+                WHERE donation_id = ?
+                """, requiredLocationId, collectionTimestamp, collectionTimestamp, collectionTimestamp,
+                collectionTimestamp, requiredDonationId);
+    }
+
+    @Transactional
+    public void deleteDonation(Long donationId) {
+        Long requiredDonationId = requireId(donationId, "Please select a donation.");
+        ensureDonationEditable(requiredDonationId);
+
+        int deletedRows = jdbcTemplate.update("DELETE FROM donation WHERE donation_id = ?", requiredDonationId);
+        if (deletedRows == 0) {
+            throw new RuntimeException("Donation record was not found.");
         }
     }
 
@@ -386,6 +460,37 @@ public class MedicalWorkflowService {
                 VALUES (?, ?, ?, CURRENT_TIMESTAMP)
                 """, componentId, staffId, patientId);
         jdbcTemplate.update("UPDATE blood_component SET status = 'USED' WHERE component_id = ?", componentId);
+    }
+
+    @Transactional
+    public void updateTransfusion(Long componentId, MedicalTransfusionRequest request) {
+        Long requiredComponentId = requireId(componentId, "Please select a transfusion record.");
+        Long patientId = resolvePatientId(request);
+
+        int updatedRows = jdbcTemplate.update("""
+                UPDATE transfusion_record
+                SET patient_id = ?
+                WHERE component_id = ?
+                """, patientId, requiredComponentId);
+        if (updatedRows == 0) {
+            throw new RuntimeException("Transfusion record was not found.");
+        }
+    }
+
+    @Transactional
+    public void deleteTransfusion(Long componentId) {
+        Long requiredComponentId = requireId(componentId, "Please select a transfusion record.");
+        int deletedRows = jdbcTemplate.update("DELETE FROM transfusion_record WHERE component_id = ?", requiredComponentId);
+        if (deletedRows == 0) {
+            throw new RuntimeException("Transfusion record was not found.");
+        }
+
+        jdbcTemplate.update("""
+                UPDATE blood_component
+                SET status = 'AVAILABLE'
+                WHERE component_id = ?
+                  AND UPPER(status) = 'USED'
+                """, requiredComponentId);
     }
 
     @Transactional
@@ -517,12 +622,11 @@ public class MedicalWorkflowService {
 
         String patientName = requireText(request.getPatientName(), "Please enter the patient name.");
         String condition = trimToNull(request.getCondition());
-        Long patientId = nextId("patient", "patient_id");
-        jdbcTemplate.update("""
-                INSERT INTO patient (patient_id, name, condition)
-                VALUES (?, ?, ?)
-                """, patientId, patientName, condition);
-        return patientId;
+        return jdbcTemplate.queryForObject("""
+                INSERT INTO patient (name, condition)
+                VALUES (?, ?)
+                RETURNING patient_id
+                """, Long.class, patientName, condition);
     }
 
     private Long requireMedicalStaffId(String username) {
@@ -556,12 +660,37 @@ public class MedicalWorkflowService {
         return Boolean.TRUE.equals(result);
     }
 
-    private Long nextId(String tableName, String columnName) {
-        Long nextId = jdbcTemplate.queryForObject(
-                "SELECT COALESCE(MAX(" + columnName + "), 0) + 1 FROM " + tableName,
-                Long.class
-        );
-        return nextId == null ? 1L : nextId;
+    private void ensureDonationEditable(Long donationId) {
+        Long protectedCount = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM blood_component bc
+                WHERE bc.donation_id = ?
+                  AND (
+                      UPPER(bc.status) IN ('RESERVED', 'USED')
+                      OR EXISTS (
+                          SELECT 1
+                          FROM transfusion_record tr
+                          WHERE tr.component_id = bc.component_id
+                      )
+                  )
+                """, Long.class, donationId);
+
+        if (protectedCount != null && protectedCount > 0) {
+            throw new RuntimeException("Donation cannot be changed after a component is reserved or transfused.");
+        }
+    }
+
+    private void ensureActiveStorageLocation(Long locationId) {
+        Long activeCount = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM storage_location
+                WHERE location_id = ?
+                  AND is_active = TRUE
+                """, Long.class, locationId);
+
+        if (activeCount == null || activeCount == 0) {
+            throw new RuntimeException("Storage location was not found or has been archived.");
+        }
     }
 
     private Timestamp parseTimestamp(String value) {
@@ -650,5 +779,10 @@ public class MedicalWorkflowService {
 
     private LocalDate toLocalDate(Date date) {
         return date == null ? null : date.toLocalDate();
+    }
+
+    private Long nullableLong(ResultSet rs, String columnName) throws SQLException {
+        long value = rs.getLong(columnName);
+        return rs.wasNull() ? null : value;
     }
 }

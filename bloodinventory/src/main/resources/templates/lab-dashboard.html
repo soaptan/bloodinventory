@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layout/master-layout}">
@@ -131,15 +131,9 @@
 
                     <section class="workflow-grid">
                         <article class="workflow-card page-card" data-search-item>
-                            <h2>Pending Test Queue</h2>
-                            <p>Review laboratory samples awaiting action and prioritize them based on operational status.</p>
-                            <a th:href="@{/lab/pending-tests}">Open pending test queue</a>
-                        </article>
-
-                        <article class="workflow-card page-card" data-search-item>
-                            <h2>TTI Screening</h2>
-                            <p>Record infectious disease screening outcomes and confirm safe component release readiness.</p>
-                            <a th:href="@{/lab/tti-screening}">Open TTI screening</a>
+                            <h2>TTI Screening Queue</h2>
+                            <p>Review pending laboratory samples, approve clear donations, and record detailed screening outcomes.</p>
+                            <a th:href="@{/lab/tti-screening#queue}">Open screening queue</a>
                         </article>
 
                         <article class="workflow-card page-card" data-search-item>
@@ -165,7 +159,7 @@
                             </div>
                             <div class="empty-state" th:if="${#lists.isEmpty(pendingTests)}">No donations are waiting for lab screening.</div>
                             <div class="table-wrap" th:if="${!#lists.isEmpty(pendingTests)}">
-                                <table class="workflow-table">
+                                <table class="data-table">
                                     <thead>
                                     <tr>
                                         <th>Donation</th>
@@ -197,7 +191,7 @@
                             </div>
                             <div class="empty-state" th:if="${#lists.isEmpty(recentLabTests)}">No lab screening records have been saved yet.</div>
                             <div class="table-wrap" th:if="${!#lists.isEmpty(recentLabTests)}">
-                                <table class="workflow-table">
+                                <table class="data-table">
                                     <thead>
                                     <tr>
                                         <th>Test</th>
@@ -212,8 +206,8 @@
                                         <td th:text="${test.testId}">1</td>
                                         <td th:text="${test.donationId}">1</td>
                                         <td><span class="status-pill" th:classappend="${#strings.equalsIgnoreCase(test.ttiScreening, 'NEGATIVE')} ? ' good' : (${#strings.equalsIgnoreCase(test.ttiScreening, 'POSITIVE')} ? ' bad' : ' warn')" th:text="${test.ttiScreening}">NEGATIVE</span></td>
-                                        <td><span class="status-pill" th:classappend="${#strings.equalsIgnoreCase(test.bloodTypeMatch, 'MATCHED')} ? ' good' : (${#strings.equalsIgnoreCase(test.bloodTypeMatch, 'MISMATCHED')} ? ' bad' : ' warn')" th:text="${test.bloodTypeMatch}">MATCHED</span></td>
-                                        <td><span class="status-pill" th:classappend="${#strings.equalsIgnoreCase(test.finalStatus, 'SAFE')} ? ' good' : (${#strings.equalsIgnoreCase(test.finalStatus, 'DISCARDED')} ? ' bad' : ' warn')" th:text="${test.finalStatus}">SAFE</span></td>
+                                        <td><span class="status-pill" th:classappend="${#strings.equalsIgnoreCase(test.bloodTypeMatch, 'MATCHED')} ? ' good' : (${#strings.equalsIgnoreCase(test.bloodTypeMatch, 'NOT_MATCHED') or #strings.equalsIgnoreCase(test.bloodTypeMatch, 'MISMATCHED')} ? ' bad' : ' warn')" th:text="${test.bloodTypeMatch}">MATCHED</span></td>
+                                        <td><span class="status-pill" th:classappend="${#strings.equalsIgnoreCase(test.finalStatus, 'PASSED') or #strings.equalsIgnoreCase(test.finalStatus, 'SAFE')} ? ' good' : (${#strings.equalsIgnoreCase(test.finalStatus, 'FAILED') or #strings.equalsIgnoreCase(test.finalStatus, 'DISCARDED')} ? ' bad' : ' warn')" th:text="${test.finalStatus}">PASSED</span></td>
                                     </tr>
                                     </tbody>
                                 </table>

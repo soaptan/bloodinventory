@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layout/master-layout}">
@@ -107,6 +107,42 @@
         .settings-form {
             display: grid;
             gap: 14px;
+        }
+
+        .interface-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.05fr) minmax(300px, 0.95fr);
+            gap: 16px;
+            align-items: stretch;
+        }
+
+        .settings-form-card,
+        .preview-card {
+            display: grid;
+            gap: 16px;
+            padding: 18px;
+            border-radius: 18px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            box-shadow: 0 18px 44px rgba(15, 23, 42, 0.07);
+        }
+
+        .section-mini-head {
+            display: grid;
+            gap: 4px;
+        }
+
+        .section-mini-head h3 {
+            color: var(--text-strong);
+            font-size: 17px;
+            margin: 0;
+        }
+
+        .section-mini-head p {
+            color: var(--text-muted);
+            font-size: 13px;
+            line-height: 1.45;
+            margin: 0;
         }
 
         .form-grid {
@@ -235,62 +271,6 @@
             border: 1px solid #ffc6ce;
         }
 
-        .backup-table-wrap {
-            overflow-x: auto;
-        }
-
-        .backup-table {
-            width: 100%;
-            min-width: 760px;
-            border-collapse: collapse;
-        }
-
-        .backup-table th,
-        .backup-table td {
-            padding: 12px 10px;
-            border-bottom: 1px solid #e9f1fb;
-            text-align: left;
-            font-size: 13px;
-            vertical-align: top;
-        }
-
-        .backup-table th {
-            color: #67809f;
-            font-weight: 850;
-            white-space: nowrap;
-        }
-
-        .backup-table td {
-            color: #263f5d;
-        }
-
-        .status-pill {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 26px;
-            padding: 5px 9px;
-            border-radius: 999px;
-            font-size: 11px;
-            font-weight: 850;
-            white-space: nowrap;
-            background: #edf5ff;
-            color: #315c8d;
-            border: 1px solid #cfe2ff;
-        }
-
-        .status-pill.success {
-            color: #17683a;
-            background: #e9f9f0;
-            border-color: #bdebd1;
-        }
-
-        .status-pill.failed {
-            color: #b42334;
-            background: #ffe7ea;
-            border-color: #ffc6ce;
-        }
-
         .empty-state {
             padding: 18px;
             color: #6b85a3;
@@ -300,21 +280,197 @@
             font-size: 14px;
         }
 
-        .swatch-row {
-            display: flex;
-            flex-wrap: wrap;
+        .palette-row {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
             gap: 8px;
-            align-items: center;
         }
 
-        .color-chip {
-            display: inline-flex;
+        .palette-swatch {
+            display: grid;
+            gap: 8px;
+            justify-items: center;
+            min-height: 78px;
+            padding: 10px 8px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: var(--surface-soft);
+            color: var(--text-body);
+            font-size: 11px;
+            font-weight: 850;
+            cursor: pointer;
+        }
+
+        .palette-swatch:hover,
+        .palette-swatch:focus {
+            border-color: var(--primary-start);
+            box-shadow: 0 0 0 3px rgba(47, 128, 237, 0.12);
+        }
+
+        .palette-dot {
             width: 30px;
             height: 30px;
             border-radius: 999px;
-            border: 2px solid #fff;
-            box-shadow: 0 0 0 1px #cfe2ff;
-            cursor: pointer;
+            border: 3px solid #fff;
+            box-shadow: 0 0 0 1px var(--border-strong);
+        }
+
+        .logo-upload-zone {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
+            gap: 14px;
+            align-items: center;
+            padding: 16px;
+            border: 1px dashed var(--border-strong);
+            border-radius: 16px;
+            background: var(--surface-soft);
+            transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+        }
+
+        .logo-upload-zone.is-dragging {
+            border-color: var(--primary-start);
+            background: rgba(47, 128, 237, 0.08);
+            box-shadow: 0 0 0 4px rgba(47, 128, 237, 0.12);
+        }
+
+        .logo-current {
+            width: 76px;
+            height: 56px;
+            display: grid;
+            place-items: center;
+            overflow: hidden;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            background: #fff;
+            color: var(--primary-start);
+            font-weight: 900;
+            letter-spacing: 0.08em;
+        }
+
+        .logo-current img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            padding: 6px;
+        }
+
+        .logo-upload-copy {
+            display: grid;
+            gap: 4px;
+        }
+
+        .logo-upload-copy strong {
+            color: var(--text-strong);
+            font-size: 13px;
+        }
+
+        .logo-upload-copy span {
+            color: var(--text-muted);
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .logo-upload-zone input[type="file"] {
+            margin-top: 8px;
+        }
+
+        .preview-card {
+            align-content: start;
+        }
+
+        .preview-toolbar {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .preview-logo-mark {
+            width: 42px;
+            height: 42px;
+            display: grid;
+            place-items: center;
+            border-radius: 12px;
+            color: #fff;
+            background: var(--primary-start);
+            font-weight: 900;
+            letter-spacing: 0.08em;
+        }
+
+        .preview-toolbar strong {
+            display: block;
+            color: var(--text-strong);
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+
+        .preview-toolbar span {
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .ui-preview-box {
+            display: grid;
+            gap: 12px;
+            padding: 18px;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background: linear-gradient(180deg, var(--surface-soft), var(--surface));
+            transition: border-color 0.2s, box-shadow 0.2s, font-size 0.2s;
+        }
+
+        .ui-preview-box h3 {
+            color: var(--text-strong);
+            font-size: 1.25em;
+            margin: 0;
+        }
+
+        .ui-preview-box p {
+            color: var(--text-body);
+            font-size: 0.92em;
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        .preview-primary {
+            justify-self: start;
+            min-height: 38px;
+            padding: 9px 14px;
+            border: none;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 0.9em;
+            font-weight: 850;
+            background: var(--primary-start);
+            box-shadow: 0 10px 20px rgba(15, 23, 42, 0.12);
+        }
+
+        .preview-accent {
+            padding: 12px;
+            border-left: 4px solid var(--primary-start);
+            border-radius: 12px;
+            background: rgba(47, 128, 237, 0.08);
+            color: var(--text-strong);
+            font-size: 0.86em;
+            font-weight: 800;
+        }
+
+        .settings-save-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 16px;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background: var(--surface-muted);
+        }
+
+        .settings-save-row span {
+            color: var(--text-muted);
+            font-size: 12px;
+            line-height: 1.4;
         }
 
         body.theme-dark .page-intro h1,
@@ -339,8 +495,7 @@
         }
 
         body.theme-dark .form-group label,
-        body.theme-dark .toggle-row strong,
-        body.theme-dark .backup-table th {
+        body.theme-dark .toggle-row strong {
             color: #93a7c1;
         }
 
@@ -351,14 +506,8 @@
             color: #e6f0fb;
         }
 
-        body.theme-dark .toggle-row,
-        body.theme-dark .backup-table th,
-        body.theme-dark .backup-table td {
+        body.theme-dark .toggle-row {
             border-bottom-color: #203447;
-        }
-
-        body.theme-dark .backup-table td {
-            color: #dce8f6;
         }
 
         body.theme-dark .secondary-btn {
@@ -373,6 +522,26 @@
             color: #dce8f6;
         }
 
+        body.theme-dark .settings-form-card,
+        body.theme-dark .preview-card,
+        body.theme-dark .ui-preview-box {
+            background: var(--surface);
+            border-color: var(--border);
+            box-shadow: none;
+        }
+
+        body.theme-dark .palette-swatch,
+        body.theme-dark .logo-upload-zone,
+        body.theme-dark .settings-save-row {
+            background: var(--surface-muted);
+            border-color: var(--border);
+        }
+
+        body.theme-dark .logo-current {
+            background: #0a1622;
+            border-color: #294158;
+        }
+
         @media (max-width: 1080px) {
             .settings-shell {
                 grid-template-columns: 1fr;
@@ -381,6 +550,10 @@
             .settings-index {
                 position: static;
                 grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+
+            .interface-grid {
+                grid-template-columns: 1fr;
             }
         }
 
@@ -393,6 +566,20 @@
             .settings-index,
             .form-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .palette-row {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .logo-upload-zone,
+            .settings-save-row {
+                grid-template-columns: 1fr;
+                align-items: stretch;
+            }
+
+            .settings-save-row {
+                flex-direction: column;
             }
         }
     </style>
@@ -440,28 +627,98 @@
                                 </div>
 
                                 <form class="settings-form" th:action="@{/admin/settings/ui}" th:object="${uiSettings}" method="post">
-                                    <div class="form-grid">
-                                        <div class="form-group">
-                                            <label for="fontScale">Font Size</label>
-                                            <input id="fontScale" type="range" min="0.9" max="1.25" step="0.05"
-                                                   th:field="*{fontScale}" data-font-scale>
-                                            <span class="empty-state" data-font-scale-label
-                                                  th:text="${#numbers.formatDecimal(uiSettings.fontScale * 100, 1, 0)} + '%'">100%</span>
-                                        </div>
+                                    <div class="interface-grid">
+                                        <div class="settings-form-card">
+                                            <div class="section-mini-head">
+                                                <h3>Appearance Controls</h3>
+                                                <p>Adjust the readable scale and choose a clinical accent color.</p>
+                                            </div>
 
-                                        <div class="form-group">
-                                            <label for="accentColor">Accent Color</label>
-                                            <input id="accentColor" type="color" th:field="*{accentColor}" data-accent-color>
-                                            <div class="swatch-row" aria-label="Color presets">
-                                                <button class="color-chip" type="button" data-color-preset="#2f80ed" style="background:#2f80ed" aria-label="Blue"></button>
-                                                <button class="color-chip" type="button" data-color-preset="#d62839" style="background:#d62839" aria-label="Red"></button>
-                                                <button class="color-chip" type="button" data-color-preset="#16805f" style="background:#16805f" aria-label="Green"></button>
-                                                <button class="color-chip" type="button" data-color-preset="#7c3aed" style="background:#7c3aed" aria-label="Violet"></button>
+                                            <div class="form-grid">
+                                                <div class="form-group">
+                                                    <label for="fontScale">Font Size</label>
+                                                    <input id="fontScale" type="range" min="0.9" max="1.25" step="0.05"
+                                                           th:field="*{fontScale}" data-font-scale>
+                                                    <span class="empty-state" data-font-scale-label
+                                                          th:text="${#numbers.formatDecimal(uiSettings.fontScale * 100, 1, 0)} + '%'">100%</span>
+                                                </div>
+
+                                                <div class="form-group">
+                                                    <label for="accentColor">Accent Color</label>
+                                                    <input id="accentColor" type="color" th:field="*{accentColor}" data-accent-color>
+                                                </div>
+
+                                                <div class="form-group full">
+                                                    <label>Hospital Color Palettes</label>
+                                                    <div class="palette-row" aria-label="Color presets">
+                                                        <button class="palette-swatch" type="button" data-color-preset="#d62839" aria-label="Crimson Red">
+                                                            <span class="palette-dot" style="background:#d62839"></span>
+                                                            <span>Crimson</span>
+                                                        </button>
+                                                        <button class="palette-swatch" type="button" data-color-preset="#2878ff" aria-label="Trust Blue">
+                                                            <span class="palette-dot" style="background:#2878ff"></span>
+                                                            <span>Trust Blue</span>
+                                                        </button>
+                                                        <button class="palette-swatch" type="button" data-color-preset="#008080" aria-label="Clinical Teal">
+                                                            <span class="palette-dot" style="background:#008080"></span>
+                                                            <span>Teal</span>
+                                                        </button>
+                                                        <button class="palette-swatch" type="button" data-color-preset="#198754" aria-label="Emerald Green">
+                                                            <span class="palette-dot" style="background:#198754"></span>
+                                                            <span>Emerald</span>
+                                                        </button>
+                                                        <button class="palette-swatch" type="button" data-color-preset="#7c3aed" aria-label="Royal Violet">
+                                                            <span class="palette-dot" style="background:#7c3aed"></span>
+                                                            <span>Violet</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <div class="form-group full">
+                                                    <label for="systemLogo">System Logo</label>
+                                                    <div class="logo-upload-zone" data-logo-dropzone>
+                                                        <div class="logo-current" aria-hidden="true">
+                                                            <span data-logo-placeholder>BI</span>
+                                                            <img data-logo-preview alt="" hidden>
+                                                        </div>
+                                                        <div class="logo-upload-copy">
+                                                            <strong>Upload Logo</strong>
+                                                            <span>Drop a PNG or JPG here, or choose a file. Recommended size is 200 x 50px.</span>
+                                                            <input id="systemLogo" type="file" accept="image/png, image/jpeg" data-logo-input>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
+
+                                        <aside class="preview-card" aria-live="polite">
+                                            <div class="section-mini-head">
+                                                <h3>Live UI Preview</h3>
+                                                <p>See the selected accent and font scale before saving.</p>
+                                            </div>
+                                            <div class="preview-toolbar">
+                                                <span class="preview-logo-mark" data-preview-logo-mark>BI</span>
+                                                <div>
+                                                    <strong>Blood Inventory System</strong>
+                                                    <span>Administrator workspace</span>
+                                                </div>
+                                            </div>
+                                            <div class="ui-preview-box" data-ui-preview-box>
+                                                <h3>Blood Inventory System</h3>
+                                                <p>Clinical teams will see this typography scale and accent treatment across navigation, cards, and actions.</p>
+                                                <button id="previewPrimaryBtn" type="button" class="preview-primary" data-preview-button>
+                                                    Primary Button
+                                                </button>
+                                                <div class="preview-accent" data-preview-accent>
+                                                    Active navigation and focus states use this accent.
+                                                </div>
+                                            </div>
+                                        </aside>
                                     </div>
-                                    <div class="button-row">
-                                        <button type="submit" class="submit-btn">Save Interface</button>
+
+                                    <div class="settings-save-row">
+                                        <span>Preview updates instantly. Saving applies the interface preference across the application.</span>
+                                        <button type="submit" class="btn btn-primary">Save Interface</button>
                                     </div>
                                 </form>
                             </article>
@@ -545,8 +802,8 @@
                                 </div>
 
                                 <div class="empty-state" th:if="${#lists.isEmpty(backupHistory)}">No backup records yet.</div>
-                                <div class="backup-table-wrap" th:if="${!#lists.isEmpty(backupHistory)}">
-                                    <table class="backup-table">
+                                <div class="table-wrap" th:if="${!#lists.isEmpty(backupHistory)}">
+                                    <table class="data-table">
                                         <thead>
                                         <tr>
                                             <th>ID</th>
@@ -563,8 +820,8 @@
                                             <td th:text="${backup.backupId}">1</td>
                                             <td th:text="${backup.triggerType}">MANUAL</td>
                                             <td>
-                                                <span class="status-pill"
-                                                      th:classappend="${#strings.equalsIgnoreCase(backup.status, 'SUCCESS')} ? ' success' : (${#strings.equalsIgnoreCase(backup.status, 'FAILED')} ? ' failed' : '')"
+                                                <span class="pill"
+                                                      th:classappend="${#strings.equalsIgnoreCase(backup.status, 'SUCCESS')} ? ' pill-success' : (${#strings.equalsIgnoreCase(backup.status, 'FAILED')} ? ' pill-danger' : ' pill-default')"
                                                       th:text="${backup.status}">SUCCESS</span>
                                             </td>
                                             <td th:text="${#dates.format(backup.startedAt, 'yyyy-MM-dd HH:mm')}">2026-05-09 10:00</td>
@@ -639,6 +896,14 @@
         const fontScale = document.querySelector("[data-font-scale]");
         const fontScaleLabel = document.querySelector("[data-font-scale-label]");
         const accentColor = document.querySelector("[data-accent-color]");
+        const previewBox = document.querySelector("[data-ui-preview-box]");
+        const previewButton = document.querySelector("[data-preview-button]");
+        const previewAccent = document.querySelector("[data-preview-accent]");
+        const previewLogoMark = document.querySelector("[data-preview-logo-mark]");
+        const logoDropzone = document.querySelector("[data-logo-dropzone]");
+        const logoInput = document.querySelector("[data-logo-input]");
+        const logoPreview = document.querySelector("[data-logo-preview]");
+        const logoPlaceholder = document.querySelector("[data-logo-placeholder]");
 
         function updateFontScaleLabel() {
             if (!fontScale || !fontScaleLabel) {
@@ -647,18 +912,106 @@
             fontScaleLabel.textContent = `${Math.round(Number(fontScale.value) * 100)}%`;
         }
 
+        function updateLivePreview() {
+            const color = accentColor?.value || "#2f80ed";
+            const scale = Number(fontScale?.value || 1);
+
+            if (previewBox) {
+                previewBox.style.fontSize = `${scale}rem`;
+                previewBox.style.borderColor = color;
+                previewBox.style.boxShadow = `0 0 0 4px ${color}22`;
+            }
+
+            if (previewButton) {
+                previewButton.style.backgroundColor = color;
+            }
+
+            if (previewAccent) {
+                previewAccent.style.borderLeftColor = color;
+                previewAccent.style.backgroundColor = `${color}14`;
+            }
+
+            if (previewLogoMark) {
+                previewLogoMark.style.backgroundColor = color;
+            }
+        }
+
         if (fontScale) {
-            fontScale.addEventListener("input", updateFontScaleLabel);
+            fontScale.addEventListener("input", () => {
+                updateFontScaleLabel();
+                updateLivePreview();
+            });
             updateFontScaleLabel();
+        }
+
+        if (accentColor) {
+            accentColor.addEventListener("input", updateLivePreview);
         }
 
         document.querySelectorAll("[data-color-preset]").forEach((button) => {
             button.addEventListener("click", () => {
                 if (accentColor) {
                     accentColor.value = button.dataset.colorPreset;
+                    accentColor.dispatchEvent(new Event("input", { bubbles: true }));
                 }
             });
         });
+
+        function showLogoPreview(file) {
+            if (!file || !file.type.startsWith("image/") || !logoPreview) {
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.addEventListener("load", () => {
+                logoPreview.src = reader.result;
+                logoPreview.hidden = false;
+
+                if (logoPlaceholder) {
+                    logoPlaceholder.hidden = true;
+                }
+            });
+            reader.readAsDataURL(file);
+        }
+
+        if (logoInput) {
+            logoInput.addEventListener("change", () => {
+                showLogoPreview(logoInput.files?.[0]);
+            });
+        }
+
+        if (logoDropzone) {
+            ["dragenter", "dragover"].forEach((eventName) => {
+                logoDropzone.addEventListener(eventName, (event) => {
+                    event.preventDefault();
+                    logoDropzone.classList.add("is-dragging");
+                });
+            });
+
+            ["dragleave", "drop"].forEach((eventName) => {
+                logoDropzone.addEventListener(eventName, (event) => {
+                    event.preventDefault();
+                    logoDropzone.classList.remove("is-dragging");
+                });
+            });
+
+            logoDropzone.addEventListener("drop", (event) => {
+                const file = event.dataTransfer?.files?.[0];
+                if (!file) {
+                    return;
+                }
+
+                if (logoInput && window.DataTransfer) {
+                    const transfer = new DataTransfer();
+                    transfer.items.add(file);
+                    logoInput.files = transfer.files;
+                }
+
+                showLogoPreview(file);
+            });
+        }
+
+        updateLivePreview();
     })();
 </script>
     </th:block>

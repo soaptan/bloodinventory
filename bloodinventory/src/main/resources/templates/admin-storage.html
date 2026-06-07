@@ -1,154 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layout/master-layout}">
 <head>
     <title>Storage Setup</title>
-    <th:block layout:fragment="custom-css">
-    <style>
-        .main-stack { display: grid; gap: 14px; }
-        .page-intro { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:18px 20px; }
-        .page-kicker { font-size:11px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:#7f94ae; margin-bottom:6px; }
-        .page-intro h1 { font-size:34px; color:#1f3f67; margin-bottom:6px; }
-        .page-intro p { color:#5f7796; font-size:14px; line-height:1.5; max-width:760px; }
-
-        .storage-grid {
-            display: grid;
-            grid-template-columns: 1.15fr 0.85fr;
-            gap: 14px;
-        }
-
-        .module-card {
-            background: white;
-            border-radius: 22px;
-            padding: 20px;
-            box-shadow: 0 10px 24px rgba(52,114,184,.08);
-            border: 1px solid #e5eef8;
-        }
-
-        .module-card h2 {
-            font-size: 22px;
-            color: #204a7a;
-            margin-bottom: 8px;
-        }
-
-        .module-card p {
-            color: #6b85a3;
-            font-size: 14px;
-            line-height: 1.6;
-            margin-bottom: 16px;
-        }
-
-        .alert-error {
-            background: #ffe7ea;
-            color: #b42334;
-            border: 1px solid #ffc6ce;
-            border-radius: 12px;
-            padding: 12px 14px;
-            margin-bottom: 14px;
-            font-size: 14px;
-        }
-
-        .storage-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .storage-table th,
-        .storage-table td {
-            padding: 12px 10px;
-            border-bottom: 1px solid #e9f1fb;
-            text-align: left;
-            font-size: 13px;
-            vertical-align: top;
-        }
-
-        .storage-table th {
-            color: #67809f;
-            font-weight: 700;
-        }
-
-        .loc-badge {
-            display: inline-block;
-            padding: 6px 10px;
-            border-radius: 999px;
-            font-size: 12px;
-            font-weight: 700;
-            color: white;
-            background: linear-gradient(135deg, #2f80ed 0%, #59a9ff 100%);
-        }
-
-        .summary-list {
-            display: grid;
-            gap: 10px;
-            margin-bottom: 16px;
-        }
-
-        .summary-item {
-            padding: 16px;
-            border-radius: 18px;
-            background: #f8fbff;
-            border: 1px solid #e4eef9;
-        }
-
-        .summary-item .label {
-            font-size: 13px;
-            color: #6b85a3;
-            margin-bottom: 6px;
-        }
-
-        .summary-item .value {
-            font-size: 28px;
-            font-weight: 800;
-            color: #1f4c82;
-        }
-
-        .form-grid {
-            display: grid;
-            gap: 12px;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .form-group label {
-            font-size: 13px;
-            font-weight: 700;
-            color: #35506f;
-            margin-bottom: 6px;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 12px 14px;
-            border: 1px solid #ccdcef;
-            border-radius: 12px;
-            outline: none;
-            font-size: 14px;
-            background: white;
-        }
-
-        .submit-btn {
-            border: none;
-            border-radius: 12px;
-            padding: 12px 16px;
-            font-size: 14px;
-            font-weight: 700;
-            color: white;
-            background: linear-gradient(90deg, #d62839 0%, #ff5d6c 100%);
-            cursor: pointer;
-            margin-top: 6px;
-        }
-
-        @media (max-width: 1000px) {
-            .storage-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
-    </th:block>
 </head>
 <body>
 
@@ -176,38 +31,58 @@
                         </div>
                     </section>
 
-                    <section class="storage-grid">
-                        <article class="module-card">
+                    <section class="two-col">
+                        <article id="update" class="module-card">
                             <h2>Configured Storage Locations</h2>
                             <p>Live data from the <code>storage_location</code> table using PostgreSQL function.</p>
 
-                            <table class="storage-table">
-                                <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Description</th>
-                                    <th>Staff ID</th>
-                                    <th>Status</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                <tr th:each="location : ${locations}">
-                                    <td th:text="${location.locationId}">1</td>
-                                    <td th:text="${location.description}">RBC Refrigerator Zone 1</td>
-                                    <td th:text="${location.staffId}">41</td>
-                                    <td><span class="loc-badge">Active</span></td>
-                                </tr>
-                                </tbody>
-                            </table>
+                            <div class="table-wrap">
+                                <table class="data-table">
+                                    <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Description</th>
+                                        <th>Updated By</th>
+                                        <th>Status</th>
+                                        <th id="delete">Operations</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr th:each="location : ${locations}">
+                                        <td th:text="${location.locationId}">1</td>
+                                        <td>
+                                            <form class="button-row" th:action="@{/admin/storage/{id}/update(id=${location.locationId})}" method="post">
+                                                <input type="text" name="description" th:value="${location.description}" required>
+                                                <button type="submit" class="secondary-btn">Update</button>
+                                            </form>
+                                        </td>
+                                        <td th:text="${location.staffId}">41</td>
+                                        <td>
+                                            <span class="pill"
+                                                  th:classappend="${location.active} ? ' pill-success' : ' pill-warning'"
+                                                  th:text="${location.active} ? 'Active' : 'Archived'">Active</span>
+                                        </td>
+                                        <td>
+                                            <form th:if="${location.active}" class="compact-form" th:action="@{/admin/storage/{id}/delete(id=${location.locationId})}" method="post">
+                                                <button type="submit" class="danger-btn btn-sm">Archive</button>
+                                            </form>
+                                            <form th:unless="${location.active}" class="compact-form" th:action="@{/admin/storage/{id}/restore(id=${location.locationId})}" method="post">
+                                                <button type="submit" class="secondary-btn btn-sm">Restore</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </article>
 
-                        <article class="module-card">
+                        <article id="add" class="module-card">
                             <h2>Storage Summary & Create Location</h2>
                             <p>Uses PostgreSQL function for count and procedure for insertion.</p>
 
                             <div class="summary-list">
                                 <div class="summary-item">
-                                    <div class="label">Total Storage Locations</div>
+                                    <div class="label">Active Storage Locations</div>
                                     <div class="value" th:text="${locationCount}">0</div>
                                 </div>
 
@@ -222,19 +97,15 @@
                                 </div>
                             </div>
 
-                            <form th:action="@{/admin/storage/add}" th:object="${locationRequest}" method="post">
-                                <div class="form-grid">
-                                    <div class="form-group">
+                            <form class="needs-validation" th:action="@{/admin/storage/add}" th:object="${locationRequest}" method="post" novalidate>
+                                <div class="form-grid single">
+                                    <div class="form-group full">
                                         <label>Description</label>
                                         <input type="text" th:field="*{description}" placeholder="Enter storage description" required>
+                                        <div class="invalid-feedback">Please enter a storage description.</div>
                                     </div>
 
-                                    <div class="form-group">
-                                        <label>Administrator Staff ID</label>
-                                        <input type="number" th:field="*{staffId}" placeholder="Enter blood administrator staff ID" required>
-                                    </div>
-
-                                    <button type="submit" class="submit-btn">Create Location</button>
+                                    <button type="submit" class="btn btn-primary">Create Location</button>
                                 </div>
                             </form>
                         </article>

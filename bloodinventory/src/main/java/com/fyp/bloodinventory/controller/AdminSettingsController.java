@@ -13,6 +13,7 @@ import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,6 +27,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.Principal;
+import java.util.Objects;
 
 @Controller
 public class AdminSettingsController {
@@ -99,7 +101,9 @@ public class AdminSettingsController {
             return ResponseEntity.notFound().build();
         }
 
-        ByteArrayResource resource = new ByteArrayResource(Files.readAllBytes(backupPath));
+        byte[] backupBytes = Objects.requireNonNull(Files.readAllBytes(backupPath), "Backup bytes must not be null.");
+        MediaType sqlMediaType = Objects.requireNonNull(MediaType.parseMediaType("application/sql"), "SQL media type must not be null.");
+        ByteArrayResource resource = new ByteArrayResource(backupBytes);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         ContentDisposition.attachment()
@@ -107,7 +111,7 @@ public class AdminSettingsController {
                                 .build()
                                 .toString())
                 .contentLength(resource.contentLength())
-                .contentType(MediaType.parseMediaType("application/sql"))
+                .contentType(sqlMediaType)
                 .body(resource);
     }
 
@@ -133,7 +137,7 @@ public class AdminSettingsController {
         notificationService.record(moduleName, actionType, message, actorName(principal));
     }
 
-    private String actorName(Principal principal) {
-        return principal == null ? null : principal.getName();
+    private @NonNull String actorName(Principal principal) {
+        return principal == null ? "system" : Objects.requireNonNull(principal.getName(), "Principal name must not be null.");
     }
 }

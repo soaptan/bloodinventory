@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.security.Principal;
 import java.util.Map;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/lab")
@@ -29,10 +30,10 @@ public class LabRestController {
     public ResponseEntity<Map<String, Object>> approvePendingDonation(@PathVariable Long donationId,
                                                                       Principal principal) {
         try {
-            String username = principal == null ? null : principal.getName();
+            String username = principal == null ? "system" : Objects.requireNonNull(principal.getName(), "Principal name must not be null.");
             labWorkflowService.approvePendingDonation(donationId, username);
             notificationService.record(
-                    "Pending Test Queue",
+                    "TTI Screening",
                     "UPDATE",
                     "Approved pending lab screening for donation ID " + donationId,
                     username
@@ -41,14 +42,18 @@ public class LabRestController {
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "donationId", donationId,
-                    "message", "Donation #" + donationId + " marked as SAFE."
+                    "message", "Donation #" + donationId + " marked as PASSED."
             ));
         } catch (Exception ex) {
             return ResponseEntity.badRequest().body(Map.of(
                     "success", false,
                     "donationId", donationId,
-                    "message", ex.getMessage() == null ? "Unable to approve the pending lab test." : ex.getMessage()
+                    "message", safeMessage(ex.getMessage(), "Unable to approve the pending lab test.")
             ));
         }
+    }
+
+    private String safeMessage(String message, String fallback) {
+        return message == null || message.isBlank() ? fallback : message;
     }
 }

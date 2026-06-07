@@ -26,6 +26,8 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.Timestamp;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -34,6 +36,8 @@ import java.util.Objects;
 public class StaffService {
 
     private static final String DEFAULT_PHOTO = "staff/default.png";
+    private static final DateTimeFormatter SESSION_TIMESTAMP_FORMAT =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final StaffRepository staffRepository;
     private final MedicalStaffRepository medicalStaffRepository;
@@ -103,6 +107,11 @@ public class StaffService {
         return buildStaffProfile(staff);
     }
 
+    public Long getStaffIdByUsername(@NonNull String username) {
+        Staff staff = findStaffByUsername(username);
+        return requireStaffId(staff);
+    }
+
     public StaffProfileUpdateRequest getProfileUpdateRequestByUsername(@NonNull String username) {
         Staff staff = findStaffByUsername(username);
         StaffProfileUpdateRequest request = new StaffProfileUpdateRequest();
@@ -131,6 +140,30 @@ public class StaffService {
         staff.setEmail(email);
         staff.setPhoneNo(phoneNo);
         staff.setGender(gender.toUpperCase());
+        staffRepository.save(staff);
+    }
+
+    @Transactional
+    public void updateOwnPassword(@NonNull String username,
+                                  String currentPassword,
+                                  String newPassword,
+                                  String confirmPassword) {
+        Staff staff = findStaffByUsername(username);
+
+        String normalizedCurrentPassword = requireText(currentPassword, "Please enter your current password.");
+        String normalizedNewPassword = requirePassword(newPassword, true);
+        String normalizedConfirmPassword = requirePassword(confirmPassword, true);
+
+        if (!normalizedNewPassword.equals(normalizedConfirmPassword)) {
+            throw new RuntimeException("New password and confirmation do not match.");
+        }
+
+        String storedPassword = PasswordHashSupport.normalizeStoredPassword(staff.getPassword());
+        if (!passwordEncoder.matches(normalizedCurrentPassword, storedPassword)) {
+            throw new RuntimeException("Current password is incorrect.");
+        }
+
+        staff.setPassword(prepareStoredPassword(normalizedNewPassword));
         staffRepository.save(staff);
     }
 
@@ -270,6 +303,7 @@ public class StaffService {
         profile.setInitials(buildInitials(staff.getFullName()));
         profile.setActive(!Boolean.FALSE.equals(staff.getActive()));
         profile.setLocked(Boolean.TRUE.equals(staff.getLocked()));
+        profile.setLastLoginDisplay(lastLoginDisplay(staff.getUsername()));
 
         if (!profile.getActive()) {
             profile.setStatusLabel("Inactive");
@@ -324,6 +358,22 @@ public class StaffService {
         }
 
         return profile;
+    }
+
+    private String lastLoginDisplay(String username) {
+        List<Timestamp> lastSeen = jdbcTemplate.queryForList("""
+                SELECT last_seen_at
+                FROM staff_login_session
+                WHERE LOWER(username) = LOWER(?)
+                ORDER BY last_seen_at DESC
+                LIMIT 1
+                """, Timestamp.class, username);
+
+        if (lastSeen.isEmpty() || lastSeen.get(0) == null) {
+            return "No session recorded";
+        }
+
+        return lastSeen.get(0).toLocalDateTime().format(SESSION_TIMESTAMP_FORMAT);
     }
 
     private void validateAccountUniqueness(String username, String icNumber, String email, Long staffId) {

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layout/master-layout}">
@@ -32,7 +32,7 @@
                         </div>
                     </section>
 
-                    <section class="workflow-card page-card">
+                    <section id="records" class="workflow-card page-card">
                         <div class="section-title">
                             <div>
                                 <h2>Traceability Records</h2>
@@ -43,7 +43,7 @@
                         <div class="empty-state" th:if="${#lists.isEmpty(traceabilityRecords)}">No traceability records were found.</div>
 
                         <div class="table-wrap" th:if="${!#lists.isEmpty(traceabilityRecords)}">
-                            <table class="workflow-table">
+                            <table class="data-table">
                                 <thead>
                                 <tr>
                                     <th>Stage</th>
@@ -72,8 +72,8 @@
                                     <td th:text="${record.testId != null ? record.testId : '-'}">1</td>
                                     <td>
                                         <span class="status-pill"
-                                              th:classappend="${#strings.equalsIgnoreCase(record.labFinalStatus, 'SAFE')} ? ' good' : (${#strings.equalsIgnoreCase(record.labFinalStatus, 'DISCARDED')} ? ' bad' : ' warn')"
-                                              th:text="${record.labFinalStatus != null ? record.labFinalStatus : 'PENDING'}">PENDING</span>
+                                              th:classappend="${#strings.equalsIgnoreCase(record.labFinalStatus, 'PASSED') or #strings.equalsIgnoreCase(record.labFinalStatus, 'SAFE')} ? ' good' : (${#strings.equalsIgnoreCase(record.labFinalStatus, 'FAILED') or #strings.equalsIgnoreCase(record.labFinalStatus, 'DISCARDED')} ? ' bad' : ' warn')"
+                                              th:text="${record.labFinalStatus != null ? record.labFinalStatus : 'QUARANTINED'}">QUARANTINED</span>
                                     </td>
                                     <td th:text="${record.locationDescription}">Storage</td>
                                     <td th:text="${record.patientName != null ? record.patientName : '-'}">Patient</td>

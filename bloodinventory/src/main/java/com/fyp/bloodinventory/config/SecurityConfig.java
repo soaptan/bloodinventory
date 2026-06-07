@@ -115,6 +115,7 @@ public class SecurityConfig {
                         .requestMatchers("/login", "/forgot-username", "/forgot-password", "/css/**", "/js/**", "/images/**", "/webjars/**", "/error").permitAll()
                         .requestMatchers("/access-denied", "/", "/dashboard").authenticated()
                         .requestMatchers("/profile/**", "/admin/staff/profile", "/admin/staff/profile/**").authenticated()
+                        .requestMatchers("/api/chatbot/**", "/api/smart-search/**").authenticated()
                         .requestMatchers("/api/lab/**").hasRole("LAB_TECHNICIAN")
                         .requestMatchers("/admin/**", "/medical/**", "/lab/**").access(staffModuleAccessService)
                         .anyRequest().authenticated()

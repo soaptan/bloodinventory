@@ -3,541 +3,361 @@
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layout/master-layout}">
 <head>
-    <title>Edit Your Profile</title>
+    <title>My Profile</title>
     <th:block layout:fragment="custom-css">
     <style>
-        .main {
-            overflow: auto;
-            padding: 20px;
-        }
-
-        .main-stack {
+        .profile-dashboard {
             display: grid;
+            grid-template-columns: minmax(280px, 0.36fr) minmax(0, 0.64fr);
             gap: 16px;
+            align-items: start;
         }
 
-        .profile-editor {
-            overflow: hidden;
-            border-radius: 28px;
-            background: #ffffff;
-            border: 1px solid #d8e6f4;
-            box-shadow: 0 20px 44px rgba(52, 114, 184, 0.12);
+        .profile-id-card,
+        .profile-action-card {
+            border-radius: 20px;
+            box-shadow: var(--shadow-card);
         }
 
-        .editor-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
+        .profile-id-card {
+            display: grid;
             gap: 18px;
-            padding: 18px 24px;
-            background: linear-gradient(135deg, #4f96d0 0%, #67b7e6 100%);
-            color: white;
+            text-align: center;
         }
 
-        .editor-kicker {
-            font-size: 12px;
-            font-weight: 700;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            color: rgba(255, 255, 255, 0.78);
-            margin-bottom: 6px;
-        }
-
-        .editor-header h1 {
-            font-size: 32px;
-            line-height: 1.08;
-        }
-
-        .editor-header p {
-            margin-top: 6px;
-            max-width: 620px;
-            font-size: 13px;
-            line-height: 1.5;
-            color: rgba(255, 255, 255, 0.92);
-        }
-
-        .editor-close {
-            width: 34px;
-            height: 34px;
+        .profile-avatar-large {
+            width: 112px;
+            height: 112px;
+            margin: 0 auto;
+            overflow: hidden;
             border-radius: 999px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            text-decoration: none;
-            font-size: 26px;
-            line-height: 1;
-            background: rgba(255, 255, 255, 0.14);
-            transition: background 0.2s ease, transform 0.2s ease;
+            background: linear-gradient(135deg, var(--primary-start), color-mix(in srgb, var(--primary-start) 68%, white));
+            box-shadow: 0 18px 34px rgba(40, 120, 255, 0.2);
         }
 
-        .editor-close:hover {
-            background: rgba(255, 255, 255, 0.22);
-            transform: translateY(-1px);
-        }
-
-        .editor-body {
-            display: grid;
-            grid-template-columns: 240px minmax(0, 1fr);
-            min-height: 620px;
-        }
-
-        .photo-column {
-            padding: 22px 20px;
-            display: grid;
-            align-content: start;
-            gap: 18px;
-            background: linear-gradient(180deg, #f8fbff 0%, #eef5fb 100%);
-            border-right: 1px solid #e0ebf7;
-        }
-
-        .photo-heading {
-            font-size: 14px;
-            font-weight: 700;
-            color: #31557e;
-        }
-
-        .photo-shell {
-            display: grid;
-            gap: 12px;
-            justify-items: start;
-        }
-
-        .photo-avatar {
-            position: relative;
-            width: 142px;
-            height: 142px;
-            border-radius: 50%;
-            overflow: hidden;
-            background: linear-gradient(135deg, #2f80ed 0%, #59a9ff 100%);
-            box-shadow: 0 16px 30px rgba(47, 128, 237, 0.2);
-        }
-
-        .photo-avatar img,
-        .photo-fallback {
+        .profile-avatar-large img,
+        .profile-avatar-fallback {
             width: 100%;
             height: 100%;
         }
 
-        .photo-avatar img {
+        .profile-avatar-large img {
             display: block;
             object-fit: cover;
         }
 
-        .photo-fallback {
+        .profile-avatar-fallback {
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
-            font-size: 42px;
-            font-weight: 800;
+            color: #fff;
+            font-size: 38px;
+            font-weight: 900;
             letter-spacing: 0.04em;
         }
 
-        .photo-caption {
-            font-size: 13px;
-            line-height: 1.45;
-            color: #5d7798;
+        .profile-identity {
+            display: grid;
+            gap: 6px;
         }
 
-        .photo-form {
+        .profile-identity h2 {
+            color: var(--text-strong);
+            font-size: 24px;
+            line-height: 1.15;
+            margin: 0;
+        }
+
+        .profile-identity p {
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .profile-pills {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .profile-meta-list {
             display: grid;
             gap: 10px;
+            text-align: left;
+            padding-top: 14px;
+            border-top: 1px solid var(--border);
         }
 
-        .photo-form label {
-            font-size: 12px;
-            font-weight: 700;
-            color: #6c86a6;
+        .profile-meta-item {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: flex-start;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
         }
 
-        .photo-form input[type="file"] {
-            width: 100%;
-            padding: 10px 12px;
-            border-radius: 14px;
-            border: 1px solid #d6e3f0;
-            background: #ffffff;
-            font-size: 12px;
+        .profile-meta-item:last-child {
+            border-bottom: none;
         }
 
-        .photo-btn {
-            min-height: 40px;
-            border: none;
-            border-radius: 8px;
-            padding: 10px 14px;
-            font-size: 13px;
-            font-weight: 700;
+        .profile-meta-item span {
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 850;
+            letter-spacing: 0.08em;
             text-transform: uppercase;
-            letter-spacing: 0.02em;
-            color: white;
-            background: linear-gradient(135deg, #4f96d0 0%, #67b7e6 100%);
-            cursor: pointer;
         }
 
-        .editor-content {
-            padding: 20px 24px 22px;
+        .profile-meta-item strong {
+            color: var(--text-strong);
+            font-size: 13px;
+            line-height: 1.35;
+            text-align: right;
+            word-break: break-word;
+        }
+
+        .profile-photo-form {
             display: grid;
-            align-content: start;
-            gap: 16px;
+            gap: 10px;
+            padding: 14px;
+            border-radius: 16px;
+            border: 1px dashed var(--border-strong);
+            background: var(--surface-soft);
+            text-align: left;
         }
 
-        .alert {
-            padding: 12px 14px;
-            border-radius: 14px;
-            font-size: 14px;
-            font-weight: 600;
+        .profile-photo-form label {
+            color: var(--text-strong);
+            font-size: 12px;
+            font-weight: 850;
         }
 
-        .alert-success {
-            background: #f0fdf4;
-            border: 1px solid #bbf7d0;
-            color: #166534;
+        .profile-photo-form input[type="file"] {
+            width: 100%;
+            min-height: 42px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid var(--border-strong);
+            background: var(--surface);
+            color: var(--text-body);
+            font-size: 12px;
         }
 
-        .alert-error {
-            background: #fef2f2;
-            border: 1px solid #fecaca;
-            color: #991b1b;
+        .profile-action-card {
+            display: grid;
+            gap: 18px;
+            padding: 0;
+            overflow: hidden;
         }
 
         .profile-tabs {
             display: flex;
-            align-items: flex-end;
-            gap: 0;
-            border-bottom: 1px solid #dce6f2;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 16px 16px 0;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface-soft);
         }
 
         .profile-tab {
-            min-height: 44px;
-            padding: 10px 18px;
+            min-height: 42px;
+            padding: 10px 16px;
             border: 1px solid transparent;
             border-bottom: none;
             border-radius: 14px 14px 0 0;
             background: transparent;
-            color: #4f6e92;
+            color: var(--text-muted);
             font-size: 13px;
-            font-weight: 700;
+            font-weight: 850;
             cursor: pointer;
-            transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
         }
 
         .profile-tab:hover {
-            color: #2f80ed;
+            color: var(--primary-start);
         }
 
         .profile-tab.is-active {
-            background: #ffffff;
-            color: #2f80ed;
-            border-color: #dce6f2;
-        }
-
-        .editor-form {
-            display: grid;
-            gap: 18px;
-            min-height: 0;
+            background: var(--surface);
+            border-color: var(--border);
+            color: var(--primary-start);
         }
 
         .profile-panel {
             display: none;
-            gap: 16px;
-            align-content: start;
-            padding-top: 8px;
+            padding: 18px;
         }
 
         .profile-panel.is-active {
             display: grid;
+            gap: 18px;
         }
 
-        .form-grid {
+        .profile-panel-head {
             display: grid;
-            grid-template-columns: 128px minmax(0, 1fr);
-            gap: 12px 18px;
-            align-items: center;
+            gap: 4px;
         }
 
-        .form-label {
-            justify-self: end;
-            font-size: 14px;
-            color: #35506f;
+        .profile-panel-head h2 {
+            color: var(--text-strong);
+            font-size: 22px;
+            margin: 0;
         }
 
-        .input-shell {
-            width: 100%;
-        }
-
-        .input-shell input,
-        .input-shell select,
-        .input-shell textarea {
-            width: 100%;
-            min-height: 40px;
-            padding: 10px 12px;
-            border-radius: 6px;
-            border: 1px solid #d4dfeb;
-            background: #ffffff;
-            color: #38597e;
+        .profile-panel-head p {
+            color: var(--text-muted);
             font-size: 13px;
-            outline: none;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            line-height: 1.45;
+            margin: 0;
         }
 
-        .input-shell input:focus,
-        .input-shell select:focus,
-        .input-shell textarea:focus {
-            border-color: #5d9fe0;
-            box-shadow: 0 0 0 3px rgba(93, 159, 224, 0.14);
+        .profile-form {
+            display: grid;
+            gap: 16px;
         }
 
-        .input-shell input[readonly] {
-            background: #f6f9fc;
-            color: #7088a6;
+        .profile-form .form-group label {
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 850;
+            letter-spacing: 0.08em;
+            margin-bottom: 1px;
+            text-transform: uppercase;
         }
 
-        .dashboard-grid {
+        .profile-form .form-group input,
+        .profile-form .form-group select {
+            font-weight: 700;
+        }
+
+        .profile-form .form-group input[readonly] {
+            background: var(--surface-muted);
+            color: var(--text-muted);
+        }
+
+        .profile-form.was-validated .form-group input:invalid,
+        .profile-form.was-validated .form-group select:invalid {
+            border-color: #ef4444;
+            background: #fff5f6;
+        }
+
+        .profile-form.was-validated .form-group input:valid,
+        .profile-form.was-validated .form-group select:valid {
+            border-color: #22c55e;
+        }
+
+        .profile-form.was-validated .invalid-feedback {
+            display: block;
+        }
+
+        .invalid-feedback {
+            display: none;
+        }
+
+        .profile-fields {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .account-snapshot {
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 12px;
         }
 
-        .dashboard-card {
-            padding: 16px;
-            border-radius: 16px;
-            background: #f8fbff;
-            border: 1px solid #dfebf8;
+        .snapshot-card {
             display: grid;
-            gap: 8px;
+            gap: 6px;
+            padding: 14px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            background: var(--surface-soft);
         }
 
-        .dashboard-card span {
+        .snapshot-card span {
+            color: var(--text-muted);
             font-size: 11px;
-            font-weight: 800;
+            font-weight: 850;
             letter-spacing: 0.08em;
             text-transform: uppercase;
-            color: #7c93ad;
         }
 
-        .dashboard-card strong {
-            font-size: 20px;
-            font-weight: 800;
-            color: #1f4b80;
-            line-height: 1.2;
+        .snapshot-card strong {
+            color: var(--text-strong);
+            font-size: 15px;
+            line-height: 1.35;
+            word-break: break-word;
         }
 
-        .dashboard-card p {
+        .security-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .security-grid .current-password {
+            grid-column: 1 / -1;
+        }
+
+        .field-hint {
+            color: var(--text-muted);
             font-size: 12px;
             line-height: 1.45;
-            color: #6b85a3;
         }
 
-        .dashboard-link {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 40px;
-            padding: 10px 16px;
-            border-radius: 10px;
-            background: #eff6ff;
-            border: 1px solid #d7e5f5;
-            color: #2f80ed;
-            text-decoration: none;
-            font-size: 13px;
-            font-weight: 700;
-            justify-self: start;
-        }
-
-        .advanced-grid {
-            align-items: stretch;
-        }
-
-        .editor-actions {
+        .profile-actions {
             display: flex;
             justify-content: flex-end;
             gap: 10px;
-            padding-top: 16px;
-            border-top: 1px solid #e4edf7;
+            padding-top: 14px;
+            border-top: 1px solid var(--border);
         }
 
-        .editor-secondary,
-        .editor-primary {
-            min-width: 92px;
-            min-height: 42px;
-            border-radius: 8px;
-            padding: 10px 16px;
-            font-size: 14px;
-            font-weight: 700;
-            text-decoration: none;
-            cursor: pointer;
+        .btn.is-loading {
+            opacity: 0.78;
+            pointer-events: none;
         }
 
-        .editor-secondary {
-            border: 1px solid #cfdcec;
-            background: #eef4fb;
-            color: #5f7796;
+        body.theme-dark .profile-photo-form,
+        body.theme-dark .profile-tabs,
+        body.theme-dark .snapshot-card {
+            background: var(--surface-muted);
+            border-color: var(--border);
         }
 
-        .editor-primary {
-            border: none;
-            color: white;
-            background: linear-gradient(135deg, #627ea9 0%, #496a97 100%);
-            box-shadow: 0 12px 24px rgba(73, 106, 151, 0.18);
-        }
-
-        .field-note {
-            font-size: 12px;
-            color: #7189a6;
-            line-height: 1.5;
-        }
-
-        body.theme-dark .profile-editor {
-            background: #0f1d2c;
-            border-color: #22384d;
-            box-shadow: 0 20px 44px rgba(0, 0, 0, 0.3);
-        }
-
-        body.theme-dark .editor-header {
-            background: linear-gradient(135deg, #295480 0%, #3770a8 100%);
-        }
-
-        body.theme-dark .photo-column {
-            background: linear-gradient(180deg, #102030 0%, #0d1a28 100%);
-            border-right-color: #203447;
-        }
-
-        body.theme-dark .photo-heading,
-        body.theme-dark .form-label,
-        body.theme-dark .dashboard-card strong {
-            color: #e8f1fb;
-        }
-
-        body.theme-dark .photo-caption,
-        body.theme-dark .photo-form label,
-        body.theme-dark .dashboard-card p,
-        body.theme-dark .dashboard-card span,
-        body.theme-dark .field-note {
-            color: #96abc2;
-        }
-
-        body.theme-dark .photo-form input[type="file"],
-        body.theme-dark .input-shell input,
-        body.theme-dark .input-shell select,
-        body.theme-dark .input-shell textarea {
-            background: #0b1622;
-            border-color: #294158;
-            color: #e8f1fb;
-        }
-
-        body.theme-dark .input-shell input[readonly] {
-            background: #122132;
-            color: #9db0c7;
-        }
-
-        body.theme-dark .profile-tabs {
-            border-bottom-color: #22384d;
-        }
-
-        body.theme-dark .profile-tab {
-            color: #8fa6bf;
-        }
-
-        body.theme-dark .profile-tab.is-active {
-            background: #0f1d2c;
-            color: #8ec6ff;
-            border-color: #22384d;
-        }
-
-        body.theme-dark .dashboard-card,
-        body.theme-dark .dashboard-link {
-            background: #122132;
-            border-color: #22384d;
-        }
-
-        body.theme-dark .dashboard-link {
-            color: #8ec6ff;
-        }
-
-        body.theme-dark .editor-actions {
-            border-top-color: #22384d;
-        }
-
-        body.theme-dark .editor-secondary {
-            border-color: #294158;
-            background: #122132;
-            color: #d6e4f5;
+        body.theme-dark .profile-form.was-validated .form-group input:invalid,
+        body.theme-dark .profile-form.was-validated .form-group select:invalid {
+            background: rgba(239, 68, 68, 0.12);
         }
 
         @media (max-width: 1120px) {
-            .editor-body {
-                grid-template-columns: 1fr;
-            }
-
-            .photo-column {
-                border-right: none;
-                border-bottom: 1px solid #e0ebf7;
-            }
-
-            body.theme-dark .photo-column {
-                border-bottom-color: #203447;
-            }
-        }
-
-        @media (max-width: 820px) {
-            .main {
-                padding: 14px;
-            }
-
-            .editor-header {
-                padding: 16px 18px;
-            }
-
-            .editor-header h1 {
-                font-size: 28px;
-            }
-
-            .editor-content,
-            .photo-column {
-                padding: 18px;
-            }
-
-            .dashboard-grid {
+            .profile-dashboard {
                 grid-template-columns: 1fr;
             }
         }
 
-        @media (max-width: 680px) {
-            .form-grid {
+        @media (max-width: 760px) {
+            .profile-fields,
+            .security-grid,
+            .account-snapshot {
                 grid-template-columns: 1fr;
-            }
-
-            .form-label {
-                justify-self: start;
             }
 
             .profile-tabs {
-                flex-wrap: wrap;
-                gap: 8px;
                 border-bottom: none;
             }
 
-            .profile-tab {
-                border: 1px solid #dce6f2;
+            .profile-tab,
+            .profile-tab.is-active {
+                border: 1px solid var(--border);
                 border-radius: 12px;
             }
 
-            .profile-tab.is-active {
-                border-bottom: 1px solid #dce6f2;
-            }
-
-            body.theme-dark .profile-tab {
-                border-color: #22384d;
-            }
-
-            .editor-actions {
+            .profile-actions {
                 flex-direction: column-reverse;
             }
 
-            .editor-secondary,
-            .editor-primary {
+            .profile-actions .btn {
                 width: 100%;
-                text-align: center;
             }
         }
     </style>
@@ -546,7 +366,7 @@
 <body>
 
     <th:block layout:fragment="app-subtitle">
-        Personal workspace for account details, contact updates, and profile photo management.
+        Personal workspace for account details, security, and profile photo management.
     </th:block>
 
     <th:block layout:fragment="sidebar">
@@ -554,175 +374,212 @@
     </th:block>
 
     <th:block layout:fragment="content">
-                <div class="main-stack">
-                    <section class="profile-editor page-card" data-profile-editor>
-                        <div class="editor-header">
-                            <div>
-                                <div class="editor-kicker">My Account</div>
-                                <h1>Edit Your Profile</h1>
-                                <p>Update your own staff profile details, keep your contact information current, and manage your profile photo from one place.</p>
+                <div class="main-stack" data-profile-dashboard>
+                    <section class="page-intro page-card">
+                        <div>
+                            <div class="page-kicker">My Account</div>
+                            <h1>Profile Dashboard</h1>
+                            <p>Review your account identity, update contact details, and change your password from one unified workspace.</p>
+                        </div>
+                        <a class="btn btn-secondary" th:href="${dashboardPath}" th:text="${'Open ' + dashboardLabel}">Open Dashboard</a>
+                    </section>
+
+                    <section class="profile-dashboard">
+                        <aside class="profile-id-card module-card">
+                            <div class="profile-avatar-large">
+                                <img th:if="${profile.photoUrl != null}"
+                                     th:src="${profile.photoUrl}"
+                                     alt="Staff profile photo"
+                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <div class="profile-avatar-fallback"
+                                     th:style="${profile.photoUrl != null ? 'display:none;' : ''}"
+                                     th:text="${profile.initials}">SP</div>
                             </div>
 
-                            <a class="editor-close" th:href="${dashboardPath}" aria-label="Close profile editor">&times;</a>
-                        </div>
-
-                        <div class="editor-body">
-                            <aside class="photo-column">
-                                <div class="photo-heading">Photo:</div>
-
-                                <div class="photo-shell">
-                                    <div class="photo-avatar">
-                                        <img th:if="${profile.photoUrl != null}"
-                                             th:src="${profile.photoUrl}"
-                                             alt="Staff profile photo"
-                                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                                        <div class="photo-fallback"
-                                             th:style="${profile.photoUrl != null ? 'display:none;' : ''}"
-                                             th:text="${profile.initials}">SP</div>
-                                    </div>
-
-                                    <div class="photo-caption">
-                                        <strong th:text="${profile.staffTypeLabel}">Staff Role</strong>
-                                        <div th:text="${dashboardLabel}">Dashboard</div>
-                                    </div>
-                                </div>
-
-                                <form th:action="@{/profile/photo}" method="post" enctype="multipart/form-data" class="photo-form">
-                                    <label for="profile-photo">Choose a new profile image</label>
-                                    <input id="profile-photo" type="file" name="photoFile" accept="image/*" required>
-                                    <button type="submit" class="photo-btn">Change Photo</button>
-                                </form>
-                            </aside>
-
-                            <div class="editor-content">
-                                <div class="profile-tabs" role="tablist" aria-label="Profile sections">
-                                    <button type="button" class="profile-tab is-active" data-profile-tab="personal">Personal</button>
-                                    <button type="button" class="profile-tab" data-profile-tab="dashboard">Dashboard</button>
-                                    <button type="button" class="profile-tab" data-profile-tab="advanced">Advanced</button>
-                                </div>
-
-                                <form th:action="@{/profile}" method="post" th:object="${profileForm}" class="editor-form">
-                                    <section class="profile-panel is-active" data-profile-panel="personal">
-                                        <div class="form-grid">
-                                            <label class="form-label" for="full-name">Name:</label>
-                                            <div class="input-shell">
-                                                <input id="full-name" type="text" th:field="*{fullName}" required>
-                                            </div>
-
-                                            <label class="form-label" for="staff-title">Title:</label>
-                                            <div class="input-shell">
-                                                <input id="staff-title" type="text" th:value="${profile.staffTypeLabel}" readonly>
-                                            </div>
-
-                                            <th:block th:if="${profile.primaryDetailLabel != null}">
-                                                <label class="form-label" for="primary-detail" th:text="${profile.primaryDetailLabel + ':'}">Organization:</label>
-                                                <div class="input-shell">
-                                                    <input id="primary-detail" type="text" th:value="${profile.primaryDetailValue}" readonly>
-                                                </div>
-                                            </th:block>
-
-                                            <th:block th:if="${profile.secondaryDetailLabel != null}">
-                                                <label class="form-label" for="secondary-detail" th:text="${profile.secondaryDetailLabel + ':'}">Position:</label>
-                                                <div class="input-shell">
-                                                    <input id="secondary-detail" type="text" th:value="${profile.secondaryDetailValue}" readonly>
-                                                </div>
-                                            </th:block>
-
-                                            <label class="form-label" for="phone-no">Phone:</label>
-                                            <div class="input-shell">
-                                                <input id="phone-no" type="text" th:field="*{phoneNo}" placeholder="Enter your phone number">
-                                            </div>
-
-                                            <label class="form-label" for="email">Email:</label>
-                                            <div class="input-shell">
-                                                <input id="email" type="email" th:field="*{email}" required>
-                                            </div>
-
-                                            <label class="form-label" for="gender">Gender:</label>
-                                            <div class="input-shell">
-                                                <select id="gender" th:field="*{gender}" required>
-                                                    <option value="">Select gender</option>
-                                                    <option value="MALE">Male</option>
-                                                    <option value="FEMALE">Female</option>
-                                                    <option value="OTHER">Other</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </section>
-
-                                    <section class="profile-panel" data-profile-panel="dashboard">
-                                        <div class="dashboard-grid">
-                                            <article class="dashboard-card">
-                                                <span>Staff ID</span>
-                                                <strong th:text="${profile.staffId}">0</strong>
-                                                <p>Your internal personnel identifier for system access records.</p>
-                                            </article>
-
-                                            <article class="dashboard-card">
-                                                <span>Username</span>
-                                                <strong th:text="${profile.username}">username</strong>
-                                                <p>Your login name used to enter the platform securely.</p>
-                                            </article>
-
-                                            <article class="dashboard-card">
-                                                <span>Workspace</span>
-                                                <strong th:text="${dashboardLabel}">Dashboard</strong>
-                                                <p>Return to your role-specific dashboard after saving profile changes.</p>
-                                            </article>
-                                        </div>
-
-                                        <a class="dashboard-link" th:href="${dashboardPath}" th:text="${'Open ' + dashboardLabel}">Open Dashboard</a>
-                                    </section>
-
-                                    <section class="profile-panel" data-profile-panel="advanced">
-                                        <div class="field-note">
-                                            Sensitive identifiers stay visible here for reference, while editable contact details remain in the Personal tab.
-                                        </div>
-
-                                        <div class="form-grid advanced-grid">
-                                            <label class="form-label" for="staff-id-display">Staff ID:</label>
-                                            <div class="input-shell">
-                                                <input id="staff-id-display" type="text" th:value="${profile.staffId}" readonly>
-                                            </div>
-
-                                            <label class="form-label" for="username-display">Username:</label>
-                                            <div class="input-shell">
-                                                <input id="username-display" type="text" th:value="${profile.username}" readonly>
-                                            </div>
-
-                                            <label class="form-label" for="ic-number-display">IC Number:</label>
-                                            <div class="input-shell">
-                                                <input id="ic-number-display" type="text" th:value="${profile.icNumber}" readonly>
-                                            </div>
-
-                                            <label class="form-label" for="role-display">Role:</label>
-                                            <div class="input-shell">
-                                                <input id="role-display" type="text" th:value="${profile.staffTypeLabel}" readonly>
-                                            </div>
-
-                                            <th:block th:if="${profile.primaryDetailLabel != null}">
-                                                <label class="form-label" for="primary-detail-advanced" th:text="${profile.primaryDetailLabel + ':'}">Primary Detail:</label>
-                                                <div class="input-shell">
-                                                    <input id="primary-detail-advanced" type="text" th:value="${profile.primaryDetailValue}" readonly>
-                                                </div>
-                                            </th:block>
-
-                                            <th:block th:if="${profile.secondaryDetailLabel != null}">
-                                                <label class="form-label" for="secondary-detail-advanced" th:text="${profile.secondaryDetailLabel + ':'}">Secondary Detail:</label>
-                                                <div class="input-shell">
-                                                    <input id="secondary-detail-advanced" type="text" th:value="${profile.secondaryDetailValue}" readonly>
-                                                </div>
-                                            </th:block>
-                                        </div>
-                                    </section>
-
-                                    <div class="editor-actions">
-                                        <a class="editor-secondary" th:href="${dashboardPath}">Cancel</a>
-                                        <button type="submit" class="editor-primary">Save</button>
-                                    </div>
-                                </form>
+                            <div class="profile-identity">
+                                <h2 data-profile-name th:text="${profile.fullName}">Staff Name</h2>
+                                <p data-profile-username th:text="${'@' + profile.username}">@username</p>
                             </div>
-                        </div>
+
+                            <div class="profile-pills">
+                                <span class="pill"
+                                      th:classappend="${profile.roleAccentClass == 'administrator'} ? ' pill-danger' : (${profile.roleAccentClass == 'medical'} ? ' pill-success' : ' pill-default')"
+                                      th:text="${profile.staffTypeLabel}">Staff Role</span>
+                                <span class="pill"
+                                      th:classappend="${profile.statusAccentClass == 'active'} ? ' pill-success' : (${profile.statusAccentClass == 'locked'} ? ' pill-warning' : ' pill-danger')"
+                                      th:text="${profile.statusLabel}">Active</span>
+                            </div>
+
+                            <div class="profile-meta-list">
+                                <div class="profile-meta-item">
+                                    <span>Staff ID</span>
+                                    <strong th:text="${profile.staffId}">0</strong>
+                                </div>
+                                <div class="profile-meta-item">
+                                    <span>Last Login</span>
+                                    <strong th:text="${profile.lastLoginDisplay}">No session recorded</strong>
+                                </div>
+                                <div class="profile-meta-item">
+                                    <span>Email</span>
+                                    <strong data-profile-email th:text="${profile.email}">email@example.com</strong>
+                                </div>
+                                <div class="profile-meta-item">
+                                    <span>Phone</span>
+                                    <strong data-profile-phone th:text="${profile.phoneNo}">Not provided</strong>
+                                </div>
+                            </div>
+
+                            <form th:action="@{/profile/photo}" method="post" enctype="multipart/form-data"
+                                  class="profile-photo-form needs-validation" novalidate>
+                                <label for="profile-photo">Profile Photo</label>
+                                <input id="profile-photo" type="file" name="photoFile" accept="image/*" required>
+                                <div class="invalid-feedback">Please choose an image file.</div>
+                                <button type="submit" class="btn btn-secondary btn-sm">Update Photo</button>
+                            </form>
+                        </aside>
+
+                        <article class="profile-action-card module-card">
+                            <div class="profile-tabs" role="tablist" aria-label="Profile actions">
+                                <button type="button" class="profile-tab is-active"
+                                        id="edit-profile-tab"
+                                        data-profile-tab="edit-profile"
+                                        role="tab"
+                                        aria-controls="edit-profile-panel"
+                                        aria-selected="true">Edit Details</button>
+                                <button type="button" class="profile-tab"
+                                        id="security-tab"
+                                        data-profile-tab="security"
+                                        role="tab"
+                                        aria-controls="security-panel"
+                                        aria-selected="false">Security</button>
+                            </div>
+
+                            <section class="profile-panel is-active"
+                                     id="edit-profile-panel"
+                                     data-profile-panel="edit-profile"
+                                     role="tabpanel"
+                                     aria-labelledby="edit-profile-tab">
+                                <div class="profile-panel-head">
+                                    <h2>Edit Profile</h2>
+                                    <p>Keep your contact details current while protected role identifiers remain read-only.</p>
+                                </div>
+
+                                <div class="account-snapshot">
+                                    <article class="snapshot-card">
+                                        <span>Username</span>
+                                        <strong th:text="${profile.username}">username</strong>
+                                    </article>
+                                    <article class="snapshot-card">
+                                        <span>Workspace</span>
+                                        <strong th:text="${dashboardLabel}">Dashboard</strong>
+                                    </article>
+                                    <article class="snapshot-card">
+                                        <span>IC Number</span>
+                                        <strong th:text="${profile.icNumber}">000000-00-0000</strong>
+                                    </article>
+                                </div>
+
+                                <form th:action="@{/profile}" method="post" th:object="${profileForm}"
+                                      class="profile-form needs-validation" data-profile-details-form novalidate>
+                                    <div class="form-grid profile-fields">
+                                        <div class="form-group">
+                                            <label for="full-name">Full Name</label>
+                                            <input id="full-name" type="text" th:field="*{fullName}" required>
+                                            <div class="invalid-feedback">Full name is required.</div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label for="email">Email</label>
+                                            <input id="email" type="email" th:field="*{email}" required>
+                                            <div class="invalid-feedback">Enter a valid email address.</div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label for="phone-no">Phone</label>
+                                            <input id="phone-no" type="text" th:field="*{phoneNo}" placeholder="Enter phone number">
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label for="gender">Gender</label>
+                                            <select id="gender" th:field="*{gender}" required>
+                                                <option value="">Select gender</option>
+                                                <option value="MALE">Male</option>
+                                                <option value="FEMALE">Female</option>
+                                                <option value="OTHER">Other</option>
+                                            </select>
+                                            <div class="invalid-feedback">Select a gender.</div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label for="staff-title">Role</label>
+                                            <input id="staff-title" type="text" th:value="${profile.staffTypeLabel}" readonly>
+                                        </div>
+
+                                        <th:block th:if="${profile.primaryDetailLabel != null}">
+                                            <div class="form-group">
+                                                <label for="primary-detail" th:text="${profile.primaryDetailLabel}">Primary Detail</label>
+                                                <input id="primary-detail" type="text" th:value="${profile.primaryDetailValue}" readonly>
+                                            </div>
+                                        </th:block>
+
+                                        <th:block th:if="${profile.secondaryDetailLabel != null}">
+                                            <div class="form-group">
+                                                <label for="secondary-detail" th:text="${profile.secondaryDetailLabel}">Secondary Detail</label>
+                                                <input id="secondary-detail" type="text" th:value="${profile.secondaryDetailValue}" readonly>
+                                            </div>
+                                        </th:block>
+                                    </div>
+
+                                    <div class="profile-actions">
+                                        <a class="btn btn-ghost" th:href="${dashboardPath}">Cancel</a>
+                                        <button type="submit" class="btn btn-primary" data-loading-label="Saving...">Save Changes</button>
+                                    </div>
+                                </form>
+                            </section>
+
+                            <section class="profile-panel"
+                                     id="security-panel"
+                                     data-profile-panel="security"
+                                     role="tabpanel"
+                                     aria-labelledby="security-tab">
+                                <div class="profile-panel-head">
+                                    <h2>Security</h2>
+                                    <p>Change your password after confirming your current credentials.</p>
+                                </div>
+
+                                <form th:action="@{/profile/password}" method="post"
+                                      class="profile-form needs-validation" data-password-form novalidate>
+                                    <div class="form-grid security-grid">
+                                        <div class="form-group current-password">
+                                            <label for="current-password">Current Password</label>
+                                            <input id="current-password" name="currentPassword" type="password"
+                                                   autocomplete="current-password" required>
+                                            <div class="invalid-feedback">Current password is required.</div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label for="new-password">New Password</label>
+                                            <input id="new-password" name="newPassword" type="password"
+                                                   autocomplete="new-password" minlength="8" required>
+                                            <div class="field-hint">Must be at least 8 characters long.</div>
+                                            <div class="invalid-feedback">Enter at least 8 characters.</div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label for="confirm-password">Confirm Password</label>
+                                            <input id="confirm-password" name="confirmPassword" type="password"
+                                                   autocomplete="new-password" minlength="8" required>
+                                            <div class="invalid-feedback">Confirm the new password.</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="profile-actions">
+                                        <button type="reset" class="btn btn-ghost">Clear</button>
+                                        <button type="submit" class="btn btn-primary" data-loading-label="Updating...">Update Password</button>
+                                    </div>
+                                </form>
+                            </section>
+                        </article>
                     </section>
                 </div>
     </th:block>
@@ -730,30 +587,131 @@
     <th:block layout:fragment="custom-js">
 <script>
     (() => {
-        document.querySelectorAll("[data-profile-editor]").forEach((editor) => {
-            const tabs = editor.querySelectorAll("[data-profile-tab]");
-            const panels = editor.querySelectorAll("[data-profile-panel]");
+        const dashboard = document.querySelector("[data-profile-dashboard]");
+        if (!dashboard) {
+            return;
+        }
 
-            if (!tabs.length || !panels.length) {
+        const csrfToken = document.querySelector("meta[name='_csrf']")?.getAttribute("content") || "";
+        const csrfHeader = document.querySelector("meta[name='_csrf_header']")?.getAttribute("content") || "";
+
+        function activateTab(targetName) {
+            dashboard.querySelectorAll("[data-profile-tab]").forEach((tab) => {
+                const isActive = tab.getAttribute("data-profile-tab") === targetName;
+                tab.classList.toggle("is-active", isActive);
+                tab.setAttribute("aria-selected", String(isActive));
+            });
+
+            dashboard.querySelectorAll("[data-profile-panel]").forEach((panel) => {
+                panel.classList.toggle("is-active", panel.getAttribute("data-profile-panel") === targetName);
+            });
+        }
+
+        dashboard.querySelectorAll("[data-profile-tab]").forEach((tab) => {
+            tab.addEventListener("click", () => activateTab(tab.getAttribute("data-profile-tab")));
+        });
+
+        function setButtonLoading(button, isLoading) {
+            if (!(button instanceof HTMLButtonElement)) {
                 return;
             }
 
-            const activateTab = (targetName) => {
-                tabs.forEach((tab) => {
-                    tab.classList.toggle("is-active", tab.getAttribute("data-profile-tab") === targetName);
-                });
+            if (isLoading) {
+                button.dataset.originalText = button.textContent.trim();
+                button.textContent = button.dataset.loadingLabel || "Saving...";
+                button.disabled = true;
+                button.classList.add("is-loading");
+                return;
+            }
 
-                panels.forEach((panel) => {
-                    panel.classList.toggle("is-active", panel.getAttribute("data-profile-panel") === targetName);
-                });
-            };
+            button.textContent = button.dataset.originalText || button.textContent;
+            button.disabled = false;
+            button.classList.remove("is-loading");
+        }
 
-            tabs.forEach((tab) => {
-                tab.addEventListener("click", () => {
-                    activateTab(tab.getAttribute("data-profile-tab"));
+        function toast(icon, title) {
+            if (window.Toast) {
+                window.Toast.fire({ icon, title });
+            }
+        }
+
+        async function submitAjax(form, successFallback, onSuccess) {
+            form.classList.add("was-validated");
+
+            if (!form.checkValidity()) {
+                toast("error", "Please fix the highlighted form fields.");
+                return;
+            }
+
+            const submitButton = form.querySelector("button[type='submit']");
+            setButtonLoading(submitButton, true);
+
+            try {
+                const headers = { Accept: "application/json" };
+                if (csrfToken && csrfHeader) {
+                    headers[csrfHeader] = csrfToken;
+                }
+
+                const response = await fetch(form.action, {
+                    method: "POST",
+                    headers,
+                    body: new FormData(form)
+                });
+                const data = await response.json().catch(() => ({
+                    success: false,
+                    message: "The server returned an unreadable response."
+                }));
+
+                if (!response.ok || !data.success) {
+                    toast("error", data.message || "Update failed.");
+                    return;
+                }
+
+                toast("success", data.message || successFallback);
+
+                if (typeof onSuccess === "function") {
+                    onSuccess(data);
+                }
+            } catch (error) {
+                console.error("Profile update failed:", error);
+                toast("error", "A network error occurred.");
+            } finally {
+                setButtonLoading(submitButton, false);
+            }
+        }
+
+        const detailsForm = dashboard.querySelector("[data-profile-details-form]");
+        if (detailsForm instanceof HTMLFormElement) {
+            detailsForm.addEventListener("submit", (event) => {
+                event.preventDefault();
+                submitAjax(detailsForm, "Profile updated successfully.", (data) => {
+                    const fullName = data.fullName || detailsForm.querySelector("#full-name")?.value || "";
+                    const email = data.email || detailsForm.querySelector("#email")?.value || "Not provided";
+                    const phoneNo = data.phoneNo || detailsForm.querySelector("#phone-no")?.value || "Not provided";
+
+                    dashboard.querySelectorAll("[data-profile-name]").forEach((element) => {
+                        element.textContent = fullName;
+                    });
+                    dashboard.querySelectorAll("[data-profile-email]").forEach((element) => {
+                        element.textContent = email;
+                    });
+                    dashboard.querySelectorAll("[data-profile-phone]").forEach((element) => {
+                        element.textContent = phoneNo;
+                    });
                 });
             });
-        });
+        }
+
+        const passwordForm = dashboard.querySelector("[data-password-form]");
+        if (passwordForm instanceof HTMLFormElement) {
+            passwordForm.addEventListener("submit", (event) => {
+                event.preventDefault();
+                submitAjax(passwordForm, "Password updated successfully.", () => {
+                    passwordForm.reset();
+                    passwordForm.classList.remove("was-validated");
+                });
+            });
+        }
     })();
 </script>
     </th:block>

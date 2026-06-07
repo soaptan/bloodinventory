@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layout/master-layout}">
@@ -533,7 +533,7 @@
                                 </div>
                             </div>
 
-                            <table class="report-table">
+                            <table class="data-table">
                                 <thead>
                                 <tr>
                                     <th>Component Type</th>
@@ -557,7 +557,7 @@
                                 </div>
                             </div>
 
-                            <table class="report-table">
+                            <table class="data-table">
                                 <thead>
                                 <tr>
                                     <th>Staff Type</th>
@@ -581,7 +581,7 @@
                                 </div>
                             </div>
 
-                            <table class="report-table">
+                            <table class="data-table">
                                 <thead>
                                 <tr>
                                     <th>Component ID</th>
@@ -611,7 +611,7 @@
                                 </div>
                             </div>
 
-                            <table class="report-table">
+                            <table class="data-table">
                                 <thead>
                                 <tr>
                                     <th>Time</th>
@@ -646,6 +646,94 @@
                             </table>
                         </article>
                     </section>
+
+                    <div class="report-download-backdrop" data-report-download-modal aria-hidden="true">
+                        <form class="report-download-dialog"
+                              th:action="@{/admin/reports/download}"
+                              method="get"
+                              role="dialog"
+                              aria-modal="true"
+                              aria-labelledby="report-download-title">
+                            <div class="download-dialog-header">
+                                <h2 id="report-download-title">Download Report</h2>
+                                <button type="button" class="download-close" data-report-download-close aria-label="Close download dialog">&times;</button>
+                            </div>
+
+                            <div class="download-dialog-body">
+                                <div class="download-field">
+                                    <label for="report-download-type">Report</label>
+                                    <select id="report-download-type" name="type">
+                                        <option value="summary">Reports Summary</option>
+                                        <option value="available-stock">Available Stock by Type</option>
+                                        <option value="staff-roles">Staff Totals by Role</option>
+                                        <option value="near-expiry">Near Expiry Alerts</option>
+                                        <option value="activity">System Activity Notifications</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <div class="download-format-title">Format</div>
+                                    <div class="download-format-grid">
+                                        <label class="download-format-option">
+                                            <input type="radio" name="format" value="csv" checked>
+                                            <span class="download-format-card">
+                                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                                    <path d="M14 2v6h6"></path>
+                                                    <path d="M8 13h8"></path>
+                                                    <path d="M8 17h5"></path>
+                                                </svg>
+                                                CSV
+                                            </span>
+                                        </label>
+
+                                        <label class="download-format-option">
+                                            <input type="radio" name="format" value="excel">
+                                            <span class="download-format-card">
+                                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                                    <path d="M3 3h18v18H3z"></path>
+                                                    <path d="M3 9h18"></path>
+                                                    <path d="M9 9v12"></path>
+                                                    <path d="m13 13 4 4"></path>
+                                                    <path d="m17 13-4 4"></path>
+                                                </svg>
+                                                Excel
+                                            </span>
+                                        </label>
+
+                                        <label class="download-format-option">
+                                            <input type="radio" name="format" value="pdf">
+                                            <span class="download-format-card">
+                                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                                    <path d="M14 2v6h6"></path>
+                                                    <path d="M8 15h8"></path>
+                                                    <path d="M8 18h4"></path>
+                                                </svg>
+                                                PDF
+                                            </span>
+                                        </label>
+
+                                        <label class="download-format-option">
+                                            <input type="radio" name="format" value="html">
+                                            <span class="download-format-card">
+                                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                                    <path d="M16 18l6-6-6-6"></path>
+                                                    <path d="M8 6l-6 6 6 6"></path>
+                                                </svg>
+                                                HTML
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="download-dialog-footer">
+                                <button type="button" class="download-footer-btn" data-report-download-close>Cancel</button>
+                                <button type="submit" class="download-footer-btn primary">Download</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
     </th:block>
 
@@ -666,10 +754,14 @@
         const openModal = () => {
             closeActions();
             modal?.classList.add("open");
+            modal?.setAttribute("aria-hidden", "false");
+            modal?.querySelector("select")?.focus();
         };
 
         const closeModal = () => {
             modal?.classList.remove("open");
+            modal?.setAttribute("aria-hidden", "true");
+            toggle?.focus();
         };
 
         toggle?.addEventListener("click", (event) => {
@@ -678,7 +770,10 @@
             toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
         });
 
-        downloadOpen?.addEventListener("click", openModal);
+        downloadOpen?.addEventListener("click", (event) => {
+            event.stopPropagation();
+            openModal();
+        });
         closeButtons.forEach((button) => button.addEventListener("click", closeModal));
 
         modal?.addEventListener("click", (event) => {

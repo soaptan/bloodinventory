@@ -5,7 +5,7 @@ public class LabScreeningRequest {
     private Long donationId;
     private String ttiScreening = "NEGATIVE";
     private String bloodTypeMatch = "MATCHED";
-    private String finalStatus = "SAFE";
+    private String finalStatus = "PASSED";
 
     public Long getDonationId() {
         return donationId;

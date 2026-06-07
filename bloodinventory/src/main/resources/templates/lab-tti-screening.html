@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layout/master-layout}">
@@ -27,45 +27,75 @@
                     <section class="page-intro page-card">
                         <div>
                             <div class="page-kicker">TTI Screening</div>
-                            <h1>Record Screening Results</h1>
-                            <p>Save infectious disease screening and blood type match outcomes; safe results release components for medical review.</p>
+                            <h1>Pending Queue and Screening Results</h1>
+                            <p>Review quarantined donations, approve clear samples, or save detailed TTI and blood type match outcomes from one workspace.</p>
                         </div>
                     </section>
 
                     <section class="workflow-grid">
-                        <article class="workflow-card page-card">
+                        <article id="queue" class="workflow-card page-card">
                             <div class="section-title">
                                 <div>
-                                    <h2>Pending Test List</h2>
-                                    <p th:text="${#lists.size(pendingTests)} + ' samples ready for result entry'">0 samples ready for result entry</p>
+                                    <h2>Pending Test Queue</h2>
+                                    <p data-pending-count-label
+                                       th:data-pending-count="${#lists.size(pendingTests)}"
+                                       th:text="${#lists.size(pendingTests)} + ' samples ready for result entry'">0 samples ready for result entry</p>
                                 </div>
                             </div>
-                            <div class="empty-state" th:if="${#lists.isEmpty(pendingTests)}">No quarantined donations are waiting for screening.</div>
-                            <div class="table-wrap" th:if="${!#lists.isEmpty(pendingTests)}">
-                                <table class="workflow-table">
+                            <div class="empty-state"
+                                 data-pending-empty
+                                 th:hidden="${!#lists.isEmpty(pendingTests)}">No quarantined donations are waiting for screening.</div>
+                            <div class="table-wrap"
+                                 data-pending-table
+                                 th:hidden="${#lists.isEmpty(pendingTests)}">
+                                <table class="data-table">
                                     <thead>
                                     <tr>
                                         <th>Donation</th>
+                                        <th>Collection Time</th>
                                         <th>Donor</th>
                                         <th>Group</th>
                                         <th>Components</th>
-                                        <th>Status</th>
+                                        <th>Latest Result</th>
+                                        <th>Action</th>
                                     </tr>
                                     </thead>
                                     <tbody>
-                                    <tr th:each="test : ${pendingTests}" data-search-item>
+                                    <tr th:each="test : ${pendingTests}"
+                                        th:id="${'pending-donation-' + test.donationId}"
+                                        th:data-donation-id="${test.donationId}"
+                                        data-pending-row
+                                        data-search-item>
                                         <td th:text="${test.donationId}">1</td>
+                                        <td th:text="${test.collectionTimestamp != null ? #dates.format(test.collectionTimestamp, 'yyyy-MM-dd HH:mm') : '-'}">2026-07-01 08:00</td>
                                         <td th:text="${test.donorName}">Donor Name</td>
                                         <td><span class="status-pill neutral" th:text="${test.bloodGroup}">A+</span></td>
                                         <td th:text="${test.componentTypes}">RBC</td>
-                                        <td><span class="status-pill warn" th:text="${test.componentStatuses}">QUARANTINED</span></td>
+                                        <td><span class="status-pill warn" th:text="${test.finalStatus}">PENDING</span></td>
+                                        <td>
+                                            <div class="button-row">
+                                                <button type="button"
+                                                        class="text-btn async-approve-btn"
+                                                        data-approve-pending-test
+                                                        th:data-donation-id="${test.donationId}"
+                                                        th:data-approve-url="@{/api/lab/approve/{donationId}(donationId=${test.donationId})}">
+                                                    Approve Safe
+                                                </button>
+                                                <button type="button"
+                                                        class="secondary-btn"
+                                                        data-select-pending-donation
+                                                        th:data-donation-id="${test.donationId}">
+                                                    Record Result
+                                                </button>
+                                            </div>
+                                        </td>
                                     </tr>
                                     </tbody>
                                 </table>
                             </div>
                         </article>
 
-                        <aside class="form-card page-card">
+                        <aside id="add" class="form-card page-card">
                             <div class="section-title">
                                 <div>
                                     <h2>Screening Entry</h2>
@@ -99,7 +129,7 @@
                                     <div class="form-group full">
                                         <label for="finalStatus">Final Status</label>
                                         <select id="finalStatus" th:field="*{finalStatus}" required>
-                                            <option th:each="status : ${finalStatuses}" th:value="${status}" th:text="${status}">SAFE</option>
+                                            <option th:each="status : ${finalStatuses}" th:value="${status}" th:text="${status}">PASSED</option>
                                         </select>
                                     </div>
                                     <div class="form-group full">
@@ -110,7 +140,7 @@
                         </aside>
                     </section>
 
-                    <section class="workflow-card page-card">
+                    <section id="update" class="workflow-card page-card">
                         <div class="section-title">
                             <div>
                                 <h2>Screening History</h2>
@@ -119,7 +149,7 @@
                         </div>
                         <div class="empty-state" th:if="${#lists.isEmpty(testRecords)}">No lab test records have been saved.</div>
                         <div class="table-wrap" th:if="${!#lists.isEmpty(testRecords)}">
-                            <table class="workflow-table">
+                            <table class="data-table">
                                 <thead>
                                 <tr>
                                     <th>Test</th>
@@ -130,6 +160,7 @@
                                     <th>Blood Match</th>
                                     <th>Final</th>
                                     <th>Staff</th>
+                                    <th id="delete">Operations</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -139,15 +170,167 @@
                                     <td th:text="${test.donationId}">1</td>
                                     <td th:text="${test.donorName}">Donor Name</td>
                                     <td><span class="status-pill" th:classappend="${#strings.equalsIgnoreCase(test.ttiScreening, 'NEGATIVE')} ? ' good' : (${#strings.equalsIgnoreCase(test.ttiScreening, 'POSITIVE')} ? ' bad' : ' warn')" th:text="${test.ttiScreening}">NEGATIVE</span></td>
-                                    <td><span class="status-pill" th:classappend="${#strings.equalsIgnoreCase(test.bloodTypeMatch, 'MATCHED')} ? ' good' : (${#strings.equalsIgnoreCase(test.bloodTypeMatch, 'MISMATCHED')} ? ' bad' : ' warn')" th:text="${test.bloodTypeMatch}">MATCHED</span></td>
-                                    <td><span class="status-pill" th:classappend="${#strings.equalsIgnoreCase(test.finalStatus, 'SAFE')} ? ' good' : (${#strings.equalsIgnoreCase(test.finalStatus, 'DISCARDED')} ? ' bad' : ' warn')" th:text="${test.finalStatus}">SAFE</span></td>
+                                    <td><span class="status-pill" th:classappend="${#strings.equalsIgnoreCase(test.bloodTypeMatch, 'MATCHED')} ? ' good' : (${#strings.equalsIgnoreCase(test.bloodTypeMatch, 'NOT_MATCHED') or #strings.equalsIgnoreCase(test.bloodTypeMatch, 'MISMATCHED')} ? ' bad' : ' warn')" th:text="${test.bloodTypeMatch}">MATCHED</span></td>
+                                    <td><span class="status-pill" th:classappend="${#strings.equalsIgnoreCase(test.finalStatus, 'PASSED') or #strings.equalsIgnoreCase(test.finalStatus, 'SAFE')} ? ' good' : (${#strings.equalsIgnoreCase(test.finalStatus, 'FAILED') or #strings.equalsIgnoreCase(test.finalStatus, 'DISCARDED')} ? ' bad' : ' warn')" th:text="${test.finalStatus}">PASSED</span></td>
                                     <td th:text="${test.staffName}">Staff Name</td>
+                                    <td>
+                                        <form class="button-row" th:action="@{/lab/tti-screening}" method="post">
+                                            <input type="hidden" name="donationId" th:value="${test.donationId}">
+                                            <select name="ttiScreening" required>
+                                                <option th:each="result : ${ttiResults}"
+                                                        th:value="${result}"
+                                                        th:selected="${#strings.equalsIgnoreCase(result, test.ttiScreening)}"
+                                                        th:text="${result}">NEGATIVE</option>
+                                            </select>
+                                            <select name="bloodTypeMatch" required>
+                                                <option th:each="result : ${bloodTypeResults}"
+                                                        th:value="${result}"
+                                                        th:selected="${#strings.equalsIgnoreCase(result, test.bloodTypeMatch)}"
+                                                        th:text="${result}">MATCHED</option>
+                                            </select>
+                                            <select name="finalStatus" required>
+                                                <option th:each="status : ${finalStatuses}"
+                                                        th:value="${status}"
+                                                        th:selected="${#strings.equalsIgnoreCase(status, test.finalStatus)}"
+                                                        th:text="${status}">PASSED</option>
+                                            </select>
+                                            <button type="submit" class="secondary-btn">Update</button>
+                                        </form>
+                                        <form class="compact-form" th:action="@{/lab/tti-screening/delete}" method="post">
+                                            <input type="hidden" name="testId" th:value="${test.testId}">
+                                            <button type="submit" class="danger-btn btn-sm">Delete</button>
+                                        </form>
+                                    </td>
                                 </tr>
                                 </tbody>
                             </table>
                         </div>
                     </section>
                 </div>
+    </th:block>
+
+    <th:block layout:fragment="custom-js">
+        <script>
+            (() => {
+                const csrfToken = document.querySelector("meta[name='_csrf']")?.getAttribute("content");
+                const csrfHeader = document.querySelector("meta[name='_csrf_header']")?.getAttribute("content");
+                const countLabel = document.querySelector("[data-pending-count-label]");
+                const tableWrap = document.querySelector("[data-pending-table]");
+                const emptyState = document.querySelector("[data-pending-empty]");
+                const donationSelect = document.getElementById("donationId");
+                const entryCard = document.getElementById("add");
+                const translate = window.BloodInventoryTranslate || ((value) => value);
+
+                const showToast = (icon, title) => {
+                    const translatedTitle = translate(title);
+                    if (window.Toast) {
+                        window.Toast.fire({ icon, title: translatedTitle });
+                        return;
+                    }
+
+                    if (window.Swal) {
+                        window.Swal.fire({ icon, title: translatedTitle, timer: 3000, showConfirmButton: false });
+                    }
+                };
+
+                const pendingRows = () => Array.from(document.querySelectorAll("[data-pending-row]"));
+
+                const updatePendingCount = () => {
+                    const count = pendingRows().length;
+                    if (countLabel) {
+                        countLabel.dataset.pendingCount = String(count);
+                        countLabel.textContent = `${count} sample${count === 1 ? "" : "s"} ready for result entry`;
+                    }
+
+                    if (tableWrap) {
+                        tableWrap.hidden = count === 0;
+                    }
+                    if (emptyState) {
+                        emptyState.hidden = count !== 0;
+                    }
+                };
+
+                const parseJson = async (response) => {
+                    try {
+                        return await response.json();
+                    } catch (error) {
+                        return {
+                            success: response.ok,
+                            message: response.ok ? "Lab test approved." : "Unable to approve the lab test."
+                        };
+                    }
+                };
+
+                const removePendingDonation = (donationId) => {
+                    const row = document.getElementById(`pending-donation-${donationId}`);
+                    const option = donationSelect?.querySelector(`option[value="${donationId}"]`);
+
+                    option?.remove();
+
+                    if (row) {
+                        row.classList.add("is-removing");
+                        window.setTimeout(() => {
+                            row.remove();
+                            updatePendingCount();
+                        }, 360);
+                    } else {
+                        updatePendingCount();
+                    }
+                };
+
+                const approvePendingTest = async (button) => {
+                    const approveUrl = button.dataset.approveUrl;
+                    const donationId = button.dataset.donationId;
+                    const originalText = button.textContent;
+                    const headers = { Accept: "application/json" };
+
+                    if (csrfToken && csrfHeader) {
+                        headers[csrfHeader] = csrfToken;
+                    }
+
+                    button.disabled = true;
+                    button.classList.add("is-busy");
+                    button.textContent = translate("Approving...");
+
+                    try {
+                        const response = await fetch(approveUrl, {
+                            method: "POST",
+                            headers
+                        });
+                        const data = await parseJson(response);
+
+                        if (!response.ok || !data.success) {
+                            throw new Error(data.message || "Unable to approve the lab test.");
+                        }
+
+                        showToast("success", data.message || `Donation #${donationId} marked as PASSED.`);
+                        removePendingDonation(donationId);
+                    } catch (error) {
+                        button.disabled = false;
+                        button.classList.remove("is-busy");
+                        button.textContent = originalText;
+                        showToast("error", error.message || "A network error occurred.");
+                    }
+                };
+
+                document.querySelectorAll("[data-select-pending-donation]").forEach((button) => {
+                    button.addEventListener("click", () => {
+                        if (donationSelect) {
+                            donationSelect.value = button.dataset.donationId || "";
+                            donationSelect.dispatchEvent(new Event("change", { bubbles: true }));
+                        }
+
+                        entryCard?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    });
+                });
+
+                document.querySelectorAll("[data-approve-pending-test]").forEach((button) => {
+                    button.addEventListener("click", () => approvePendingTest(button));
+                });
+
+                updatePendingCount();
+            })();
+        </script>
     </th:block>
 
 </body>

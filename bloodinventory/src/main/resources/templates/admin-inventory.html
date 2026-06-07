@@ -4,574 +4,6 @@
       layout:decorate="~{layout/master-layout}">
 <head>
     <title>Inventory Monitor</title>
-    <th:block layout:fragment="custom-css">
-    <style>
-        .main-stack { display:grid; gap:14px; }
-        .page-intro { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:18px 20px; }
-        .page-kicker { font-size:11px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:#7f94ae; margin-bottom:6px; }
-        .page-intro h1 { font-size:34px; color:#1f3f67; margin-bottom:6px; }
-        .page-intro p { color:#5f7796; font-size:14px; line-height:1.5; max-width:760px; }
-
-        .summary-grid {
-            display:grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap:14px;
-        }
-
-        .summary-card {
-            background:white;
-            border-radius:20px;
-            padding:18px;
-            box-shadow:0 10px 24px rgba(52,114,184,.08);
-            border:1px solid #e5eef8;
-        }
-
-        .summary-card .label {
-            font-size:13px;
-            color:#6b85a3;
-            margin-bottom:8px;
-        }
-
-        .summary-card .value {
-            font-size:30px;
-            font-weight:800;
-            color:#1f4c82;
-        }
-
-        .inventory-grid {
-            display:grid;
-            grid-template-columns: 1fr 1fr;
-            gap:14px;
-        }
-
-        .module-card {
-            background:white;
-            border-radius:22px;
-            padding:20px;
-            box-shadow:0 10px 24px rgba(52,114,184,.08);
-            border:1px solid #e5eef8;
-        }
-
-        .module-card h2 {
-            font-size:22px;
-            color:#204a7a;
-            margin-bottom:8px;
-        }
-
-        .module-card p {
-            color:#6b85a3;
-            font-size:14px;
-            line-height:1.6;
-            margin-bottom:16px;
-        }
-
-        .monitor-table {
-            width:100%;
-            border-collapse:collapse;
-        }
-
-        .monitor-table th,
-        .monitor-table td {
-            padding:12px 10px;
-            border-bottom:1px solid #e9f1fb;
-            text-align:left;
-            font-size:13px;
-            vertical-align:top;
-        }
-
-        .monitor-table th {
-            color:#67809f;
-            font-weight:700;
-        }
-
-        .pill {
-            display:inline-block;
-            padding:6px 10px;
-            border-radius:999px;
-            font-size:12px;
-            font-weight:700;
-            color:white;
-        }
-
-        .pill.available { background:#67b85a; }
-        .pill.used { background:#3d69b8; }
-        .pill.reserved { background:#f6ad2f; }
-        .pill.other { background:#ef5d75; }
-
-        .overview-panel {
-            display:grid;
-            gap:16px;
-            padding:18px;
-        }
-
-        .overview-header {
-            display:flex;
-            justify-content:space-between;
-            gap:16px;
-            align-items:flex-start;
-        }
-
-        .overview-header h2 {
-            font-size:24px;
-            color:#204a7a;
-            margin-bottom:6px;
-        }
-
-        .overview-subtitle {
-            color:#6b85a3;
-            font-size:13px;
-            line-height:1.5;
-        }
-
-        .overview-subtitle code,
-        .module-card code {
-            background:#eaf4ff;
-            color:#1f5f9f;
-            border-radius:7px;
-            padding:2px 6px;
-        }
-
-        .overview-controls {
-            display:grid;
-            grid-template-columns:repeat(4, minmax(110px, 1fr));
-            align-items:end;
-            gap:10px;
-            min-width:min(720px, 100%);
-        }
-
-        .overview-control {
-            display:grid;
-            gap:6px;
-        }
-
-        .overview-control-label {
-            font-size:10px;
-            font-weight:800;
-            letter-spacing:.1em;
-            text-transform:uppercase;
-            color:#67809f;
-        }
-
-        .overview-select,
-        .overview-apply-button {
-            min-height:38px;
-            border:1px solid #cfe0f3;
-            border-radius:12px;
-            background:#f5f9ff;
-            color:#24476f;
-            padding:8px 12px;
-            font-size:12px;
-            font-weight:800;
-        }
-
-        .overview-select {
-            width:100%;
-        }
-
-        .overview-apply-button {
-            cursor:pointer;
-            background:#2f80ed;
-            border-color:#2f80ed;
-            color:#fff;
-            box-shadow:0 8px 18px rgba(47,128,237,.22);
-        }
-
-        .overview-apply-button:hover {
-            background:#216fd4;
-            border-color:#216fd4;
-        }
-
-        .overview-visual-grid {
-            display:grid;
-            grid-template-columns:minmax(0, 1.35fr) minmax(360px, .65fr);
-            gap:12px;
-            align-items:stretch;
-        }
-
-        .chart-shell,
-        .timeline-table-shell,
-        .inventory-data-card {
-            border:1px solid #e4eef9;
-            border-radius:18px;
-            background:white;
-        }
-
-        .chart-shell {
-            min-height:320px;
-            padding:12px;
-            display:grid;
-            grid-template-rows:auto minmax(230px, 1fr) auto;
-            gap:12px;
-            overflow:hidden;
-        }
-
-        .chart-meta,
-        .inventory-chart-metrics {
-            display:flex;
-            align-items:center;
-            justify-content:space-between;
-            gap:10px;
-            flex-wrap:wrap;
-        }
-
-        .chart-meta-item {
-            display:grid;
-            gap:2px;
-        }
-
-        .chart-meta-item span {
-            font-size:10px;
-            font-weight:800;
-            letter-spacing:.1em;
-            text-transform:uppercase;
-            color:#7f94ae;
-        }
-
-        .chart-meta-item strong {
-            font-size:22px;
-            color:#24476f;
-            line-height:1;
-        }
-
-        .overview-chart {
-            width:100%;
-            height:100%;
-            min-height:230px;
-            display:block;
-        }
-
-        .chart-legend {
-            min-height:24px;
-            display:flex;
-            align-items:center;
-            gap:8px 14px;
-            flex-wrap:wrap;
-        }
-
-        .chart-legend-item {
-            display:inline-flex;
-            align-items:center;
-            gap:6px;
-            font-size:11px;
-            font-weight:700;
-            color:#5f7796;
-        }
-
-        .legend-icon {
-            width:22px;
-            height:22px;
-            border-radius:8px;
-            display:inline-flex;
-            align-items:center;
-            justify-content:center;
-            color:#fff;
-            flex-shrink:0;
-        }
-
-        .legend-icon svg {
-            width:14px;
-            height:14px;
-            stroke:currentColor;
-            stroke-width:2.2;
-            fill:none;
-            stroke-linecap:round;
-            stroke-linejoin:round;
-        }
-
-        .timeline-table-shell {
-            max-height:356px;
-            overflow:auto;
-        }
-
-        .timeline-table {
-            width:100%;
-            min-width:560px;
-            border-collapse:collapse;
-        }
-
-        .timeline-table th,
-        .timeline-table td {
-            padding:10px 12px;
-            border-bottom:1px solid #e9f1fb;
-            text-align:left;
-            font-size:12px;
-            color:#28496f;
-            white-space:nowrap;
-        }
-
-        .timeline-table th {
-            position:sticky;
-            top:0;
-            z-index:1;
-            background:#f6faff;
-            color:#67809f;
-            font-size:10px;
-            font-weight:800;
-            letter-spacing:.08em;
-            text-transform:uppercase;
-        }
-
-        .metric-token {
-            display:inline-flex;
-            min-width:42px;
-            justify-content:center;
-            padding:5px 8px;
-            border-radius:999px;
-            color:white;
-            background:linear-gradient(135deg, #2f80ed 0%, #59a9ff 100%);
-            font-size:11px;
-            font-weight:800;
-        }
-
-        .inventory-data-grid {
-            display:grid;
-            grid-template-columns:1fr 1fr;
-            gap:12px;
-        }
-
-        .inventory-data-card {
-            padding:16px;
-            display:grid;
-            gap:12px;
-            min-height:240px;
-            overflow:hidden;
-        }
-
-        .inventory-data-card h3 {
-            color:#204a7a;
-            font-size:18px;
-            margin:0;
-        }
-
-        .inventory-data-card p {
-            margin:0;
-            color:#6b85a3;
-            font-size:12px;
-            line-height:1.4;
-        }
-
-        .inventory-data-scroll {
-            max-height:320px;
-            overflow:auto;
-        }
-
-        .inventory-two-chart-grid {
-            display:grid;
-            grid-template-columns:repeat(2, minmax(0, 1fr));
-            gap:14px;
-        }
-
-        .inventory-chart-card {
-            min-height:520px;
-            display:grid;
-            grid-template-rows:auto auto minmax(320px, 1fr) auto;
-            gap:14px;
-            padding:16px;
-            border:1px solid #e4eef9;
-            border-radius:18px;
-            background:white;
-            overflow:hidden;
-        }
-
-        .inventory-chart-card-header {
-            display:flex;
-            justify-content:space-between;
-            align-items:flex-start;
-            gap:12px;
-        }
-
-        .inventory-chart-card-header > div {
-            min-width:0;
-        }
-
-        .inventory-chart-card h3 {
-            color:#204a7a;
-            font-size:20px;
-            line-height:1.2;
-            margin:0 0 4px;
-        }
-
-        .inventory-chart-card p {
-            margin:0;
-            color:#6b85a3;
-            font-size:12px;
-            line-height:1.4;
-        }
-
-        .chart-filter-row {
-            display:grid;
-            grid-template-columns:minmax(150px, 1fr) minmax(150px, 1fr) minmax(120px, .85fr);
-            gap:10px;
-            align-items:end;
-        }
-
-        .chart-filter-control {
-            display:grid;
-            gap:6px;
-        }
-
-        .chart-filter-control label {
-            font-size:10px;
-            font-weight:800;
-            letter-spacing:.1em;
-            text-transform:uppercase;
-            color:#67809f;
-        }
-
-        .chart-filter-select,
-        .chart-filter-button {
-            min-height:38px;
-            border:1px solid #cfe0f3;
-            border-radius:12px;
-            padding:8px 10px;
-            font-size:12px;
-            font-weight:800;
-        }
-
-        .chart-filter-select {
-            width:100%;
-            background:#f5f9ff;
-            color:#24476f;
-        }
-
-        .chart-filter-button {
-            cursor:pointer;
-            background:#2f80ed;
-            border-color:#2f80ed;
-            color:#fff;
-            box-shadow:0 8px 18px rgba(47,128,237,.2);
-        }
-
-        .chart-filter-button:hover {
-            background:#216fd4;
-            border-color:#216fd4;
-        }
-
-        .chart-count-pill {
-            flex-shrink:0;
-            display:inline-flex;
-            min-height:30px;
-            align-items:center;
-            justify-content:center;
-            padding:6px 10px;
-            border-radius:999px;
-            background:#eaf4ff;
-            color:#1f5f9f;
-            font-size:11px;
-            font-weight:800;
-            white-space:nowrap;
-        }
-
-        .blood-component-chart {
-            width:100%;
-            height:100%;
-            min-height:320px;
-            display:block;
-        }
-
-        body.theme-dark .overview-header h2,
-        body.theme-dark .inventory-chart-card h3,
-        body.theme-dark .inventory-data-card h3,
-        body.theme-dark .chart-meta-item strong,
-        body.theme-dark .timeline-table td {
-            color:#e8f1fb;
-        }
-
-        body.theme-dark .overview-subtitle,
-        body.theme-dark .overview-control-label,
-        body.theme-dark .chart-meta-item span,
-        body.theme-dark .chart-legend-item,
-        body.theme-dark .inventory-chart-card p,
-        body.theme-dark .timeline-table th,
-        body.theme-dark .inventory-data-card p {
-            color:#93a7c1;
-        }
-
-        body.theme-dark .overview-subtitle code,
-        body.theme-dark .module-card code {
-            background:#132334;
-            color:#a6d4ff;
-        }
-
-        body.theme-dark .chart-shell,
-        body.theme-dark .timeline-table-shell,
-        body.theme-dark .inventory-chart-card,
-        body.theme-dark .inventory-data-card {
-            background:#0b1622;
-            border-color:#22384d;
-        }
-
-        body.theme-dark .chart-count-pill {
-            background:#132334;
-            color:#a6d4ff;
-        }
-
-        body.theme-dark .overview-select {
-            background:#0b1622;
-            border-color:#22384d;
-            color:#c7d7ea;
-        }
-
-        body.theme-dark .chart-filter-select {
-            background:#0b1622;
-            border-color:#22384d;
-            color:#c7d7ea;
-        }
-
-        body.theme-dark .overview-apply-button,
-        body.theme-dark .chart-filter-button {
-            background:#2f80ed;
-            border-color:#2f80ed;
-            color:#fff;
-        }
-
-        body.theme-dark .timeline-table th {
-            background:#132334;
-        }
-
-        body.theme-dark .timeline-table th,
-        body.theme-dark .timeline-table td {
-            border-bottom-color:#203447;
-        }
-
-        @media (max-width: 1100px) {
-            .summary-grid {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
-
-            .inventory-grid,
-            .overview-visual-grid,
-            .inventory-two-chart-grid,
-            .inventory-data-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .overview-header {
-                flex-direction:column;
-            }
-
-            .overview-controls {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                min-width:100%;
-            }
-
-        }
-
-        @media (max-width: 680px) {
-            .summary-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .overview-controls {
-                grid-template-columns: 1fr;
-            }
-
-            .chart-filter-row {
-                grid-template-columns:1fr;
-            }
-        }
-    </style>
-    </th:block>
 </head>
 <body>
 
@@ -588,77 +20,102 @@
     </th:block>
 
     <th:block layout:fragment="content">
-                <div class="main-stack">
-                    <section class="page-intro page-card">
-                        <div>
-                            <div class="page-kicker">Inventory Monitor</div>
-                            <h1>Inventory Monitoring</h1>
-                            <p>
-                                Review live blood component status, availability, and near-expiry items using PostgreSQL functions.
-                            </p>
-                        </div>
+                <div class="section flex-col gap-md inventory-dashboard">
+                    <section class="section gap-sm">
+                        <div class="section-subtitle">Inventory Monitor</div>
+                        <h1 class="section-title">Inventory Monitoring</h1>
+                        <p>
+                            Review live blood component status, availability, and near-expiry items using PostgreSQL functions.
+                        </p>
                     </section>
 
-                    <section class="overview-panel page-card" data-search-item>
-                        <div class="overview-header">
+                    <section class="stat-grid inventory-summary-grid">
+                        <article class="stat-card inventory-summary-card inventory-summary-total">
+                            <div class="stat-card-label">Total Components</div>
+                            <div class="stat-card-value" th:text="${inventorySummary.totalComponents}">0</div>
+                            <div class="form-help">Blood components currently tracked.</div>
+                        </article>
+                        <article class="stat-card inventory-summary-card inventory-summary-available">
+                            <div class="stat-card-label">Available Stock</div>
+                            <div class="stat-card-value" th:text="${inventorySummary.availableComponents}">0</div>
+                            <div class="form-help">Units ready for controlled release.</div>
+                        </article>
+                        <article class="stat-card inventory-summary-card inventory-summary-expiry">
+                            <div class="stat-card-label">Near Expiry</div>
+                            <div class="stat-card-value" th:text="${inventorySummary.nearExpiryComponents}">0</div>
+                            <div class="form-help">Components requiring attention soon.</div>
+                        </article>
+                        <article class="stat-card inventory-summary-card inventory-summary-donations">
+                            <div class="stat-card-label">Total Donations</div>
+                            <div class="stat-card-value" th:text="${inventorySummary.totalDonations}">0</div>
+                            <div class="form-help">Donation records feeding inventory.</div>
+                        </article>
+                    </section>
+
+                    <section class="section gap-md" data-search-item>
+                        <div class="flex flex-between flex-col-mobile gap-lg">
                             <div>
-                                <div class="page-kicker">Inventory Overview</div>
-                                <h2>Blood Component Charts</h2>
-                                <p class="overview-subtitle">
-                                    Live chart data generated from <code>blood_component</code> status and expiry timestamp records.
+                                <div class="section-subtitle mb-2">Inventory Overview</div>
+                                <h2 class="section-title">Blood Component Charts</h2>
+                                <p class="text-muted text-sm">
+                                    Live chart data generated from <code class="inventory-code-chip">blood_component</code> status and expiry timestamp records.
                                 </p>
                             </div>
                         </div>
 
-                        <div class="inventory-two-chart-grid">
-                            <article class="inventory-chart-card">
-                                <div class="inventory-chart-card-header">
+                        <div class="grid grid-2 gap-md inventory-chart-grid">
+                            <article class="card p-lg inventory-chart-card">
+                                <div class="inventory-chart-header">
                                     <div>
-                                        <h3>Status Data</h3>
-                                        <p>Blood component units grouped by current status.</p>
+                                        <h3 class="text-lg font-bold mb-1">Status Data</h3>
+                                        <p class="text-sm text-muted">Blood component units grouped by current status.</p>
                                     </div>
-                                    <span class="chart-count-pill" th:text="|${inventorySummary.totalComponents} units|">0 units</span>
+                                    <span class="badge badge-primary" th:text="|${inventorySummary.totalComponents} units|">0 units</span>
                                 </div>
 
-                                <div class="chart-filter-row">
-                                    <div class="chart-filter-control">
-                                        <label for="status-component-filter">Filter</label>
-                                        <select id="status-component-filter" class="chart-filter-select" data-status-component-filter>
+                                <div class="inventory-control-bar">
+                                    <div class="form-group">
+                                        <label for="status-component-filter" class="form-label">Filter</label>
+                                        <select id="status-component-filter" class="form-select" data-status-component-filter>
                                             <option value="all">All component types</option>
                                             <option value="RBC">RBC</option>
                                             <option value="PLASMA">Plasma</option>
                                             <option value="PLATELET">Platelet</option>
                                         </select>
                                     </div>
-                                    <div class="chart-filter-control">
-                                        <label for="status-sort">Sort</label>
-                                        <select id="status-sort" class="chart-filter-select" data-status-sort>
+                                    <div class="form-group">
+                                        <label for="status-sort" class="form-label">Sort</label>
+                                        <select id="status-sort" class="form-select" data-status-sort>
                                             <option value="value_desc">Highest units</option>
                                             <option value="value_asc">Lowest units</option>
                                             <option value="name_asc">Status A-Z</option>
                                             <option value="name_desc">Status Z-A</option>
                                         </select>
                                     </div>
-                                    <button type="button" class="chart-filter-button" data-status-apply>Apply</button>
+                                    <div class="form-group inventory-apply-control">
+                                        <button type="button" class="btn btn-primary" data-status-apply>Apply</button>
+                                    </div>
                                 </div>
 
-                                <svg class="blood-component-chart" data-status-chart role="img" aria-label="Blood component status chart"></svg>
-                                <div class="chart-legend" data-status-legend></div>
+                                <div class="inventory-chart-frame">
+                                    <svg class="blood-component-chart" data-status-chart role="img" aria-label="Blood component status chart"></svg>
+                                </div>
+                                <div class="chart-legend gap-sm mt-md flex flex-wrap" data-status-legend></div>
                             </article>
 
-                            <article class="inventory-chart-card">
-                                <div class="inventory-chart-card-header">
+                            <article class="card p-lg inventory-chart-card">
+                                <div class="inventory-chart-header">
                                     <div>
-                                        <h3>Expiry Data</h3>
-                                        <p>Blood component units grouped by expiry date and status.</p>
+                                        <h3 class="text-lg font-bold mb-1">Expiry Data</h3>
+                                        <p class="text-sm text-muted">Blood component units grouped by expiry date and status.</p>
                                     </div>
-                                    <span class="chart-count-pill" th:text="|${inventorySummary.nearExpiryComponents} near|">0 near</span>
+                                    <span class="badge badge-primary" th:text="|${inventorySummary.nearExpiryComponents} near|">0 near</span>
                                 </div>
 
-                                <div class="chart-filter-row">
-                                    <div class="chart-filter-control">
-                                        <label for="expiry-status-filter">Filter</label>
-                                        <select id="expiry-status-filter" class="chart-filter-select" data-expiry-status-filter>
+                                <div class="inventory-control-bar">
+                                    <div class="form-group">
+                                        <label for="expiry-status-filter" class="form-label">Filter</label>
+                                        <select id="expiry-status-filter" class="form-select" data-expiry-status-filter>
                                             <option value="all">All statuses</option>
                                             <option value="AVAILABLE">Available</option>
                                             <option value="USED">Used</option>
@@ -668,20 +125,24 @@
                                             <option value="DISCARDED">Discarded</option>
                                         </select>
                                     </div>
-                                    <div class="chart-filter-control">
-                                        <label for="expiry-sort">Sort</label>
-                                        <select id="expiry-sort" class="chart-filter-select" data-expiry-sort>
+                                    <div class="form-group">
+                                        <label for="expiry-sort" class="form-label">Sort</label>
+                                        <select id="expiry-sort" class="form-select" data-expiry-sort>
                                             <option value="date_asc">Earliest expiry</option>
                                             <option value="date_desc">Latest expiry</option>
                                             <option value="value_desc">Highest units</option>
                                             <option value="value_asc">Lowest units</option>
                                         </select>
                                     </div>
-                                    <button type="button" class="chart-filter-button" data-expiry-apply>Apply</button>
+                                    <div class="form-group inventory-apply-control">
+                                        <button type="button" class="btn btn-primary" data-expiry-apply>Apply</button>
+                                    </div>
                                 </div>
 
-                                <svg class="blood-component-chart" data-expiry-chart role="img" aria-label="Blood component expiry chart"></svg>
-                                <div class="chart-legend" data-expiry-legend></div>
+                                <div class="inventory-chart-frame">
+                                    <svg class="blood-component-chart" data-expiry-chart role="img" aria-label="Blood component expiry chart"></svg>
+                                </div>
+                                <div class="chart-legend gap-sm mt-md flex flex-wrap" data-expiry-legend></div>
                             </article>
                         </div>
 

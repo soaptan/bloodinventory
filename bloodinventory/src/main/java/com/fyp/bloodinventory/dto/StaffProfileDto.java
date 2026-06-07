@@ -29,6 +29,7 @@ public class StaffProfileDto {
     private Boolean locked;
     private String statusLabel;
     private String statusAccentClass;
+    private String lastLoginDisplay;
 
     public Long getStaffId() {
         return staffId;
@@ -228,5 +229,13 @@ public class StaffProfileDto {
 
     public void setStatusAccentClass(String statusAccentClass) {
         this.statusAccentClass = statusAccentClass;
+    }
+
+    public String getLastLoginDisplay() {
+        return lastLoginDisplay;
+    }
+
+    public void setLastLoginDisplay(String lastLoginDisplay) {
+        this.lastLoginDisplay = lastLoginDisplay;
     }
 }

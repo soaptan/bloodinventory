@@ -6,6 +6,7 @@ public class DeferralRuleDto {
     private String description;
     private Integer defaultCoolingPeriodDays;
     private Long staffId;
+    private Boolean active;
 
     public Long getReasonId() {
         return reasonId;
@@ -37,5 +38,17 @@ public class DeferralRuleDto {
 
     public void setStaffId(Long staffId) {
         this.staffId = staffId;
+    }
+
+    public Boolean getActive() {
+        return active;
+    }
+
+    public void setActive(Boolean active) {
+        this.active = active;
+    }
+
+    public boolean isActive() {
+        return Boolean.TRUE.equals(active);
     }
 }

@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.security.Principal;
+import java.util.Objects;
 
 @Controller
 public class LabWorkflowController {
@@ -28,8 +29,8 @@ public class LabWorkflowController {
 
     @GetMapping("/lab/pending-tests")
     public String pendingTests(Model model) {
-        model.addAttribute("pendingTests", labWorkflowService.getPendingTests());
-        return "lab-pending-tests";
+        populateTtiScreening(model);
+        return "lab-tti-screening";
     }
 
     @GetMapping("/lab/tti-screening")
@@ -51,6 +52,26 @@ public class LabWorkflowController {
                     actorName(principal)
             );
             redirectAttributes.addFlashAttribute("successMessage", "Screening result recorded.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
+
+        return "redirect:/lab/tti-screening";
+    }
+
+    @PostMapping("/lab/tti-screening/delete")
+    public String deleteScreening(@RequestParam("testId") Long testId,
+                                  Principal principal,
+                                  RedirectAttributes redirectAttributes) {
+        try {
+            labWorkflowService.deleteScreening(testId);
+            notificationService.record(
+                    "TTI Screening",
+                    "DELETE",
+                    "Deleted lab screening result ID " + testId,
+                    actorName(principal)
+            );
+            redirectAttributes.addFlashAttribute("successMessage", "Screening result deleted.");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
         }
@@ -103,7 +124,7 @@ public class LabWorkflowController {
         }
     }
 
-    private String actorName(Principal principal) {
-        return principal == null ? null : principal.getName();
+    private @NonNull String actorName(Principal principal) {
+        return principal == null ? "system" : Objects.requireNonNull(principal.getName(), "Principal name must not be null.");
     }
 }

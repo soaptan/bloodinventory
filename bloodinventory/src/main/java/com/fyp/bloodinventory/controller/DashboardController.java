@@ -14,12 +14,12 @@ import com.fyp.bloodinventory.service.InventoryMonitorService;
 import com.fyp.bloodinventory.service.LabWorkflowService;
 import com.fyp.bloodinventory.service.MedicalWorkflowService;
 import com.fyp.bloodinventory.service.ReportsAlertService;
+import com.fyp.bloodinventory.service.StaffService;
 import com.fyp.bloodinventory.service.StorageLocationService;
 import com.fyp.bloodinventory.service.SystemNotificationService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -47,16 +47,18 @@ public class DashboardController {
     private final MedicalWorkflowService medicalWorkflowService;
     private final LabWorkflowService labWorkflowService;
     private final ReportsAlertService reportsAlertService;
+    private final StaffService staffService;
     private final SystemNotificationService notificationService;
 
-    public DashboardController(@NonNull AdminDashboardService adminDashboardService,
-                               @NonNull DeferralRuleService deferralRuleService,
-                               @NonNull StorageLocationService storageLocationService,
-                               @NonNull InventoryMonitorService inventoryMonitorService,
-                               @NonNull MedicalWorkflowService medicalWorkflowService,
-                               @NonNull LabWorkflowService labWorkflowService,
-                               @NonNull ReportsAlertService reportsAlertService,
-                               @NonNull SystemNotificationService notificationService) {
+    public DashboardController(AdminDashboardService adminDashboardService,
+                               DeferralRuleService deferralRuleService,
+                               StorageLocationService storageLocationService,
+                               InventoryMonitorService inventoryMonitorService,
+                               MedicalWorkflowService medicalWorkflowService,
+                               LabWorkflowService labWorkflowService,
+                               ReportsAlertService reportsAlertService,
+                               StaffService staffService,
+                               SystemNotificationService notificationService) {
         this.adminDashboardService = adminDashboardService;
         this.deferralRuleService = deferralRuleService;
         this.storageLocationService = storageLocationService;
@@ -64,6 +66,7 @@ public class DashboardController {
         this.medicalWorkflowService = medicalWorkflowService;
         this.labWorkflowService = labWorkflowService;
         this.reportsAlertService = reportsAlertService;
+        this.staffService = staffService;
         this.notificationService = notificationService;
     }
 
@@ -92,17 +95,82 @@ public class DashboardController {
                                      Principal principal,
                                      RedirectAttributes redirectAttributes) {
         try {
+            String actor = actorName(principal);
+            request.setStaffId(staffService.getStaffIdByUsername(actor));
             storageLocationService.addLocation(request);
             notificationService.record(
                     "Storage Configuration",
                     "INSERT",
                     "Created storage location: " + safeLabel(request.getDescription(), "new location"),
-                    actorName(principal)
+                    actor
             );
             redirectAttributes.addFlashAttribute("successMessage", "Storage location created successfully.");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
             redirectAttributes.addFlashAttribute("locationRequest", request);
+        }
+
+        return "redirect:/admin/storage";
+    }
+
+    @PostMapping("/admin/storage/{id}/update")
+    public String updateStorageLocation(@org.springframework.web.bind.annotation.PathVariable("id") Long id,
+                                        @ModelAttribute("locationRequest") StorageLocationRequest request,
+                                        Principal principal,
+                                        RedirectAttributes redirectAttributes) {
+        try {
+            String actor = actorName(principal);
+            request.setStaffId(staffService.getStaffIdByUsername(actor));
+            storageLocationService.updateLocation(id, request);
+            notificationService.record(
+                    "Storage Configuration",
+                    "UPDATE",
+                    "Updated storage location ID " + id,
+                    actor
+            );
+            redirectAttributes.addFlashAttribute("successMessage", "Storage location updated successfully.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
+
+        return "redirect:/admin/storage";
+    }
+
+    @PostMapping("/admin/storage/{id}/delete")
+    public String archiveStorageLocation(@org.springframework.web.bind.annotation.PathVariable("id") Long id,
+                                         Principal principal,
+                                         RedirectAttributes redirectAttributes) {
+        try {
+            storageLocationService.archiveLocation(id);
+            notificationService.record(
+                    "Storage Configuration",
+                    "ARCHIVE",
+                    "Archived storage location ID " + id,
+                    actorName(principal)
+            );
+            redirectAttributes.addFlashAttribute("successMessage", "Storage location archived successfully.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
+
+        return "redirect:/admin/storage";
+    }
+
+    @PostMapping("/admin/storage/{id}/restore")
+    public String restoreStorageLocation(@org.springframework.web.bind.annotation.PathVariable("id") Long id,
+                                         Principal principal,
+                                         RedirectAttributes redirectAttributes) {
+        try {
+            storageLocationService.restoreLocation(id);
+            notificationService.record(
+                    "Storage Configuration",
+                    "RESTORE",
+                    "Restored storage location ID " + id,
+                    actorName(principal)
+            );
+            redirectAttributes.addFlashAttribute("successMessage", "Storage location restored successfully.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
         }
 
         return "redirect:/admin/storage";
@@ -137,11 +205,12 @@ public class DashboardController {
         String normalizedFormat = normalizeReportFormat(format);
         ReportExport report = buildReportExport(normalizedType);
         byte[] body = renderReport(report, normalizedFormat);
+        MediaType responseType = MediaType.parseMediaType(contentType(normalizedFormat));
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         "attachment; filename=\"" + normalizedType + "-report." + fileExtension(normalizedFormat) + "\"")
-                .contentType(MediaType.parseMediaType(contentType(normalizedFormat)))
+                .contentType(responseType)
                 .body(body);
     }
 
@@ -162,17 +231,82 @@ public class DashboardController {
                                   Principal principal,
                                   RedirectAttributes redirectAttributes) {
         try {
+            String actor = actorName(principal);
+            request.setStaffId(staffService.getStaffIdByUsername(actor));
             deferralRuleService.addRule(request);
             notificationService.record(
                     "Deferral Rules",
                     "INSERT",
                     "Created deferral rule: " + safeLabel(request.getDescription(), "new rule"),
-                    actorName(principal)
+                    actor
             );
             redirectAttributes.addFlashAttribute("successMessage", "Deferral rule created successfully.");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
             redirectAttributes.addFlashAttribute("ruleRequest", request);
+        }
+
+        return "redirect:/admin/deferral-rules";
+    }
+
+    @PostMapping("/admin/deferral-rules/{id}/update")
+    public String updateDeferralRule(@org.springframework.web.bind.annotation.PathVariable("id") Long id,
+                                     @ModelAttribute("ruleRequest") DeferralRuleRequest request,
+                                     Principal principal,
+                                     RedirectAttributes redirectAttributes) {
+        try {
+            String actor = actorName(principal);
+            request.setStaffId(staffService.getStaffIdByUsername(actor));
+            deferralRuleService.updateRule(id, request);
+            notificationService.record(
+                    "Deferral Rules",
+                    "UPDATE",
+                    "Updated deferral rule ID " + id,
+                    actor
+            );
+            redirectAttributes.addFlashAttribute("successMessage", "Deferral rule updated successfully.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
+
+        return "redirect:/admin/deferral-rules";
+    }
+
+    @PostMapping("/admin/deferral-rules/{id}/delete")
+    public String archiveDeferralRule(@org.springframework.web.bind.annotation.PathVariable("id") Long id,
+                                      Principal principal,
+                                      RedirectAttributes redirectAttributes) {
+        try {
+            deferralRuleService.archiveRule(id);
+            notificationService.record(
+                    "Deferral Rules",
+                    "ARCHIVE",
+                    "Archived deferral rule ID " + id,
+                    actorName(principal)
+            );
+            redirectAttributes.addFlashAttribute("successMessage", "Deferral rule archived successfully.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
+
+        return "redirect:/admin/deferral-rules";
+    }
+
+    @PostMapping("/admin/deferral-rules/{id}/restore")
+    public String restoreDeferralRule(@org.springframework.web.bind.annotation.PathVariable("id") Long id,
+                                      Principal principal,
+                                      RedirectAttributes redirectAttributes) {
+        try {
+            deferralRuleService.restoreRule(id);
+            notificationService.record(
+                    "Deferral Rules",
+                    "RESTORE",
+                    "Restored deferral rule ID " + id,
+                    actorName(principal)
+            );
+            redirectAttributes.addFlashAttribute("successMessage", "Deferral rule restored successfully.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
         }
 
         return "redirect:/admin/deferral-rules";
@@ -228,10 +362,10 @@ public class DashboardController {
 
     private byte[] renderReport(ReportExport report, String format) {
         return switch (format) {
-            case "html" -> reportHtml(report).getBytes(StandardCharsets.UTF_8);
+            case "html" -> utf8Bytes(reportHtml(report));
             case "pdf" -> reportPdf(report);
-            case "excel" -> reportExcel(report).getBytes(StandardCharsets.UTF_8);
-            default -> reportCsv(report).getBytes(StandardCharsets.UTF_8);
+            case "excel" -> utf8Bytes(reportExcel(report));
+            default -> utf8Bytes(reportCsv(report));
         };
     }
 
@@ -398,6 +532,10 @@ public class DashboardController {
         return output.toByteArray();
     }
 
+    private byte[] utf8Bytes(String value) {
+        return value.getBytes(StandardCharsets.UTF_8);
+    }
+
     private void writePdf(ByteArrayOutputStream output, String value) {
         output.writeBytes(value.getBytes(StandardCharsets.ISO_8859_1));
     }
@@ -492,7 +630,12 @@ public class DashboardController {
     }
 
     private String actorName(Principal principal) {
-        return principal == null ? null : principal.getName();
+        if (principal == null) {
+            return "system";
+        }
+
+        String name = principal.getName();
+        return name == null || name.isBlank() ? "system" : name;
     }
 
     private String safeLabel(String preferred, String fallback) {

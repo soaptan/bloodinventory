@@ -1,6 +1,7 @@
 package com.fyp.bloodinventory.controller;
 
 import com.fyp.bloodinventory.dto.StaffManagementRequest;
+import com.fyp.bloodinventory.dto.StaffPasswordChangeRequest;
 import com.fyp.bloodinventory.dto.StaffProfileDto;
 import com.fyp.bloodinventory.dto.StaffProfileUpdateRequest;
 import com.fyp.bloodinventory.dto.StaffRegistrationRequest;
@@ -8,6 +9,9 @@ import com.fyp.bloodinventory.entity.StaffRole;
 import com.fyp.bloodinventory.service.StaffService;
 import com.fyp.bloodinventory.service.SystemNotificationService;
 import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -16,11 +20,13 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @Controller
@@ -48,7 +54,7 @@ public class AdminStaffController {
 
     @GetMapping("/profile")
     public String showOwnStaffProfilePage(Principal principal, Model model) {
-        populateOwnProfilePage(principal.getName(), model, null);
+        populateOwnProfilePage(actorName(principal), model, null);
         return "staff-profile";
     }
 
@@ -59,7 +65,7 @@ public class AdminStaffController {
 
     @GetMapping("/admin/staff/management")
     public String showStaffManagementPage(Model model, Principal principal) {
-        populateStaffManagementPage(model, principal.getName());
+        populateStaffManagementPage(model, actorName(principal));
         return "staff-profiles";
     }
 
@@ -109,7 +115,7 @@ public class AdminStaffController {
 
         try {
             Long staffId = Objects.requireNonNull(id, "Staff ID must not be null.");
-            staffService.updateStaff(staffId, request, principal.getName());
+            staffService.updateStaff(staffId, request, actorName(principal));
             notificationService.record(
                     "Staff Management",
                     "UPDATE",
@@ -133,7 +139,7 @@ public class AdminStaffController {
                               RedirectAttributes redirectAttributes) {
         try {
             Long staffId = Objects.requireNonNull(id, "Staff ID must not be null.");
-            staffService.deleteStaff(staffId, principal.getName());
+            staffService.deleteStaff(staffId, actorName(principal));
             notificationService.record(
                     "Staff Management",
                     "DELETE",
@@ -153,7 +159,7 @@ public class AdminStaffController {
                                       Principal principal,
                                       RedirectAttributes redirectAttributes) {
         try {
-            int deletedCount = staffService.deleteSelectedStaff(staffIds, principal.getName());
+            int deletedCount = staffService.deleteSelectedStaff(staffIds, actorName(principal));
             notificationService.record(
                     "Staff Management",
                     "DELETE",
@@ -172,26 +178,108 @@ public class AdminStaffController {
         return "redirect:/admin/staff/management";
     }
 
-    @PostMapping("/profile")
+    @PostMapping(value = "/profile", produces = MediaType.TEXT_HTML_VALUE)
     public String updateOwnProfile(Principal principal,
                                    @ModelAttribute("profileForm") StaffProfileUpdateRequest profileForm,
                                    Model model,
                                    RedirectAttributes redirectAttributes) {
 
         try {
-            staffService.updateOwnProfile(principal.getName(), profileForm);
+            String username = actorName(principal);
+            staffService.updateOwnProfile(username, profileForm);
             notificationService.record(
                     "Profile",
                     "UPDATE",
-                    "Updated personal profile for " + safeLabel(profileForm.getFullName(), principal.getName()),
-                    actorName(principal)
+                    "Updated personal profile for " + safeLabel(profileForm.getFullName(), username),
+                    username
             );
             redirectAttributes.addFlashAttribute("successMessage", "Profile details updated successfully.");
             return "redirect:/profile";
         } catch (Exception e) {
-            populateOwnProfilePage(principal.getName(), model, profileForm);
+            populateOwnProfilePage(actorName(principal), model, profileForm);
             model.addAttribute("errorMessage", e.getMessage());
             return "staff-profile";
+        }
+    }
+
+    @PostMapping(value = "/profile", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> updateOwnProfileAsync(
+            Principal principal,
+            @ModelAttribute("profileForm") StaffProfileUpdateRequest profileForm) {
+
+        try {
+            String username = actorName(principal);
+            staffService.updateOwnProfile(username, profileForm);
+            notificationService.record(
+                    "Profile",
+                    "UPDATE",
+                    "Updated personal profile for " + safeLabel(profileForm.getFullName(), username),
+                    username
+            );
+            return ResponseEntity.ok(successResponse(
+                    "Profile updated successfully.",
+                    Map.of(
+                            "fullName", safeLabel(profileForm.getFullName(), username),
+                            "email", safeLabel(profileForm.getEmail(), "Not provided"),
+                            "phoneNo", safeLabel(profileForm.getPhoneNo(), "Not provided")
+                    )
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(errorResponse(e.getMessage()));
+        }
+    }
+
+    @PostMapping(value = "/profile/password", produces = MediaType.TEXT_HTML_VALUE)
+    public String updateOwnPassword(Principal principal,
+                                    @ModelAttribute StaffPasswordChangeRequest passwordForm,
+                                    RedirectAttributes redirectAttributes) {
+
+        try {
+            String username = actorName(principal);
+            staffService.updateOwnPassword(
+                    username,
+                    passwordForm.getCurrentPassword(),
+                    passwordForm.getNewPassword(),
+                    passwordForm.getConfirmPassword()
+            );
+            notificationService.record(
+                    "Profile",
+                    "UPDATE",
+                    "Changed personal account password for " + username,
+                    username
+            );
+            redirectAttributes.addFlashAttribute("successMessage", "Password updated successfully.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
+
+        return "redirect:/profile";
+    }
+
+    @PostMapping(value = "/profile/password", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> updateOwnPasswordAsync(
+            Principal principal,
+            @ModelAttribute StaffPasswordChangeRequest passwordForm) {
+
+        try {
+            String username = actorName(principal);
+            staffService.updateOwnPassword(
+                    username,
+                    passwordForm.getCurrentPassword(),
+                    passwordForm.getNewPassword(),
+                    passwordForm.getConfirmPassword()
+            );
+            notificationService.record(
+                    "Profile",
+                    "UPDATE",
+                    "Changed personal account password for " + username,
+                    username
+            );
+            return ResponseEntity.ok(successResponse("Password updated successfully.", Map.of()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(errorResponse(e.getMessage()));
         }
     }
 
@@ -201,12 +289,13 @@ public class AdminStaffController {
                                       RedirectAttributes redirectAttributes) {
 
         try {
-            staffService.updateStaffPhotoByUsername(principal.getName(), photoFile);
+            String username = actorName(principal);
+            staffService.updateStaffPhotoByUsername(username, photoFile);
             notificationService.record(
                     "Profile",
                     "UPDATE",
-                    "Updated profile photo for " + principal.getName(),
-                    actorName(principal)
+                    "Updated profile photo for " + username,
+                    username
             );
             redirectAttributes.addFlashAttribute("successMessage", "Profile photo updated successfully.");
         } catch (Exception e) {
@@ -266,7 +355,7 @@ public class AdminStaffController {
                 .count());
     }
 
-    private void populateOwnProfilePage(String username, Model model, StaffProfileUpdateRequest profileForm) {
+    private void populateOwnProfilePage(@NonNull String username, Model model, StaffProfileUpdateRequest profileForm) {
         StaffProfileDto profile = staffService.getStaffProfileByUsername(username);
         model.addAttribute("profile", profile);
         model.addAttribute("profileForm",
@@ -299,8 +388,8 @@ public class AdminStaffController {
         model.addAttribute("sidebarActiveMenu", "");
     }
 
-    private String actorName(Principal principal) {
-        return principal == null ? null : principal.getName();
+    private @NonNull String actorName(Principal principal) {
+        return principal == null ? "system" : Objects.requireNonNull(principal.getName(), "Principal name must not be null.");
     }
 
     private String safeLabel(String preferred, String fallback) {
@@ -309,5 +398,20 @@ public class AdminStaffController {
         }
 
         return fallback == null || fallback.isBlank() ? "record" : fallback.trim();
+    }
+
+    private Map<String, Object> successResponse(String message, Map<String, Object> extraValues) {
+        Map<String, Object> response = new java.util.LinkedHashMap<>();
+        response.put("success", true);
+        response.put("message", message);
+        response.putAll(extraValues);
+        return response;
+    }
+
+    private Map<String, Object> errorResponse(String message) {
+        return Map.of(
+                "success", false,
+                "message", safeLabel(message, "Request failed.")
+        );
     }
 }

@@ -1,16 +1,20 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
-      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      th:attr="lang=${currentLanguage != null ? currentLanguage : 'en'}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="_csrf" th:content="${_csrf != null ? _csrf.token : ''}">
     <meta name="_csrf_header" th:content="${_csrf != null ? _csrf.headerName : ''}">
     <title layout:title-pattern="$CONTENT_TITLE - Blood Inventory System">Blood Inventory System</title>
+    <link rel="stylesheet" th:href="@{/css/design-system.css}">
     <link rel="stylesheet" th:href="@{/css/dashboard-layout.css}">
+    <link rel="stylesheet" th:href="@{/css/components.css}">
+    <link rel="stylesheet" th:href="@{/css/chatbot.css}">
     <th:block layout:fragment="custom-css"></th:block>
 </head>
-<body>
+<body th:attr="data-language=${currentLanguage != null ? currentLanguage : 'en'}">
 <div class="dashboard-scene">
     <div class="dashboard-app">
         <header class="app-header">
@@ -36,11 +40,14 @@
                 <div class="app-search-shell">
                     <label class="sr-only" for="dashboard-search-input">Search dashboard</label>
                     <input id="dashboard-search-input" class="app-search-input" type="search"
-                           placeholder="Search dashboard or menu" data-dashboard-search-input>
+                           placeholder="Search dashboard or menu" autocomplete="off"
+                           aria-controls="smart-search-results" aria-expanded="false"
+                           data-dashboard-search-input>
                     <button type="submit" class="app-search-button" aria-label="Search dashboard">
                         <span class="search-icon" aria-hidden="true"></span>
                     </button>
                 </div>
+                <div id="smart-search-results" class="app-search-results" data-smart-search-results hidden></div>
             </form>
 
             <div th:replace="~{fragments/header-actions :: adminProfileMenu}"></div>
@@ -57,7 +64,129 @@
     </div>
 </div>
 
+<div class="chatbot-widget" data-chatbot-widget>
+    <button type="button"
+            class="chatbot-toggle"
+            data-chatbot-toggle
+            aria-controls="chatbot-panel"
+            aria-expanded="false"
+            aria-label="Open assistant"
+            title="Assistant">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path>
+            <path d="M8 9h8"></path>
+            <path d="M8 13h5"></path>
+        </svg>
+        <span class="sr-only">Assistant</span>
+    </button>
+
+    <section id="chatbot-panel"
+             class="chatbot-panel"
+             data-chatbot-panel
+             aria-label="Assistant"
+             hidden>
+        <div class="chatbot-header">
+            <div class="chatbot-title">
+                <span class="chatbot-avatar" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 2v4"></path>
+                        <path d="M12 18v4"></path>
+                        <path d="M4.93 4.93 7.76 7.76"></path>
+                        <path d="m16.24 16.24 2.83 2.83"></path>
+                        <path d="M2 12h4"></path>
+                        <path d="M18 12h4"></path>
+                        <path d="m4.93 19.07 2.83-2.83"></path>
+                        <path d="m16.24 7.76 2.83-2.83"></path>
+                    </svg>
+                </span>
+                <span>
+                    <strong>Assistant</strong>
+                    <span>Ready</span>
+                </span>
+            </div>
+            <div class="chatbot-header-actions">
+                <button type="button" class="chatbot-icon-button" data-chatbot-new-chat aria-label="Start new chat" title="New chat">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 5v14"></path>
+                        <path d="M5 12h14"></path>
+                    </svg>
+                </button>
+                <button type="button" class="chatbot-icon-button" data-chatbot-history-toggle aria-label="Open chat history" title="Chat history">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M3 12a9 9 0 1 0 3-6.7"></path>
+                        <path d="M3 4v6h6"></path>
+                        <path d="M12 7v5l3 2"></path>
+                    </svg>
+                </button>
+                <button type="button" class="chatbot-close chatbot-icon-button" data-chatbot-close aria-label="Close assistant" title="Close">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M18 6 6 18"></path>
+                        <path d="m6 6 12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="chatbot-history-panel" data-chatbot-history-panel hidden>
+            <div class="chatbot-history-header">
+                <strong>Chat history</strong>
+                <button type="button" class="chatbot-icon-button" data-chatbot-history-clear aria-label="Clear chat history" title="Clear history">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M3 6h18"></path>
+                        <path d="M8 6V4h8v2"></path>
+                        <path d="m19 6-1 14H6L5 6"></path>
+                        <path d="M10 11v5"></path>
+                        <path d="M14 11v5"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="chatbot-history-list" data-chatbot-history-list></div>
+        </div>
+
+        <div class="chatbot-messages" data-chatbot-messages aria-live="polite"></div>
+
+        <form class="chatbot-composer" data-chatbot-form>
+            <div class="chatbot-status" data-chatbot-status aria-live="polite"></div>
+            <div class="chatbot-image-preview" data-chatbot-image-preview hidden>
+                <img alt="" data-chatbot-image-thumbnail>
+                <span data-chatbot-image-name></span>
+                <button type="button" data-chatbot-image-remove aria-label="Remove image">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M18 6 6 18"></path>
+                        <path d="m6 6 12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="chatbot-input-row">
+                <button type="button" class="chatbot-attach" data-chatbot-attach aria-label="Upload image" title="Upload image">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.82-2.83l8.48-8.48"></path>
+                    </svg>
+                </button>
+                <input type="file"
+                       class="sr-only"
+                       data-chatbot-image-input
+                       accept="image/png,image/jpeg">
+                <label class="sr-only" for="chatbot-input">Ask a question</label>
+                <textarea id="chatbot-input"
+                          class="chatbot-input"
+                          data-chatbot-input
+                          rows="1"
+                          maxlength="2000"
+                          placeholder="Ask a question"></textarea>
+                <button type="submit" class="chatbot-send" data-chatbot-send aria-label="Send message">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="m22 2-7 20-4-9-9-4Z"></path>
+                        <path d="M22 2 11 13"></path>
+                    </svg>
+                </button>
+            </div>
+        </form>
+    </section>
+</div>
+
 <script th:src="@{/js/dashboard-layout.js}"></script>
+<script th:src="@{/js/chatbot.js}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script th:inline="javascript">
     (() => {
@@ -89,7 +218,9 @@
             .filter((message) => message.title)
             .forEach((message) => toast.fire({
                 icon: message.icon,
-                title: String(message.title)
+                title: window.BloodInventoryTranslate
+                    ? window.BloodInventoryTranslate(String(message.title))
+                    : String(message.title)
             }));
     })();
 </script>

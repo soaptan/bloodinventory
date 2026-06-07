@@ -25,55 +25,94 @@
                                 </span>
                             </a>
                         </li>
-                        <li th:if="${#lists.contains(accessibleModules, 'staff_management')}">
-                            <a th:href="@{/admin/staff/management}"
-                               th:classappend="${activeMenu == 'staff-management'} ? ' active'">
-                                <span class="nav-icon" aria-hidden="true">
-                                    <svg viewBox="0 0 24 24">
-                                        <path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                        <circle cx="10" cy="7" r="3"></circle>
-                                        <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-                                        <path d="M16 3.13a3 3 0 0 1 0 5.74"></path>
-                                    </svg>
-                                </span>
-                                <span class="nav-copy">
-                                    <span class="nav-title">Staff Management</span>
-                                    <span class="nav-hint">View all staff</span>
-                                </span>
-                            </a>
+                        <li class="nav-dropdown" th:if="${#lists.contains(accessibleModules, 'staff_management')}">
+                            <details th:attr="open=${activeMenu == 'staff-management' ? 'open' : null}">
+                                <summary th:classappend="${activeMenu == 'staff-management'} ? ' active'">
+                                    <span class="nav-icon" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24">
+                                            <path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                            <circle cx="10" cy="7" r="3"></circle>
+                                            <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                                            <path d="M16 3.13a3 3 0 0 1 0 5.74"></path>
+                                        </svg>
+                                    </span>
+                                    <span class="nav-copy">
+                                        <span class="nav-title">Staff Management</span>
+                                        <span class="nav-hint">View all staff</span>
+                                    </span>
+                                    <span class="nav-chevron" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24">
+                                            <path d="m6 9 6 6 6-6"></path>
+                                        </svg>
+                                    </span>
+                                </summary>
+
+                                <ul class="nav-submenu">
+                                    <li><a th:href="@{/admin/staff/management}" th:classappend="${activeMenu == 'staff-management'} ? ' active'"><span class="nav-sub-dot" aria-hidden="true"></span><span class="nav-copy"><span class="nav-title">Staff Overview</span><span class="nav-hint">View all staff</span></span></a></li>
+                                    <li><a th:href="@{/admin/staff/register}" data-register-open><span class="nav-sub-dot" aria-hidden="true"></span><span class="nav-copy"><span class="nav-title">Add Staff</span><span class="nav-hint">Create account</span></span></a></li>
+                                    <li><a th:href="@{/admin/staff/management#update}"><span class="nav-sub-dot" aria-hidden="true"></span><span class="nav-copy"><span class="nav-title">Update Staff</span><span class="nav-hint">Edit account</span></span></a></li>
+                                    <li><a th:href="@{/admin/staff/management#delete}"><span class="nav-sub-dot" aria-hidden="true"></span><span class="nav-copy"><span class="nav-title">Delete Staff</span><span class="nav-hint">Remove account</span></span></a></li>
+                                </ul>
+                            </details>
                         </li>
-                        <li th:if="${#lists.contains(accessibleModules, 'storage_config')}">
-                            <a th:href="@{/admin/storage}"
-                               th:classappend="${activeMenu == 'storage-config'} ? ' active'">
-                                <span class="nav-icon" aria-hidden="true">
-                                    <svg viewBox="0 0 24 24">
-                                        <path d="M3 7h18"></path>
-                                        <path d="m5 7 1 12h12l1-12"></path>
-                                        <path d="M9 11h6"></path>
-                                        <path d="M10 7V4h4v3"></path>
-                                    </svg>
-                                </span>
-                                <span class="nav-copy">
-                                    <span class="nav-title">Storage Configuration</span>
-                                    <span class="nav-hint">Locations and capacity</span>
-                                </span>
-                            </a>
+                        <li class="nav-dropdown" th:if="${#lists.contains(accessibleModules, 'storage_config')}">
+                            <details th:attr="open=${activeMenu == 'storage-config' ? 'open' : null}">
+                                <summary th:classappend="${activeMenu == 'storage-config'} ? ' active'">
+                                    <span class="nav-icon" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24">
+                                            <path d="M3 7h18"></path>
+                                            <path d="m5 7 1 12h12l1-12"></path>
+                                            <path d="M9 11h6"></path>
+                                            <path d="M10 7V4h4v3"></path>
+                                        </svg>
+                                    </span>
+                                    <span class="nav-copy">
+                                        <span class="nav-title">Storage Configuration</span>
+                                        <span class="nav-hint">Locations and capacity</span>
+                                    </span>
+                                    <span class="nav-chevron" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24">
+                                            <path d="m6 9 6 6 6-6"></path>
+                                        </svg>
+                                    </span>
+                                </summary>
+
+                                <ul class="nav-submenu">
+                                    <li><a th:href="@{/admin/storage}" th:classappend="${activeMenu == 'storage-config'} ? ' active'"><span class="nav-sub-dot" aria-hidden="true"></span><span class="nav-copy"><span class="nav-title">Storage Overview</span><span class="nav-hint">View locations</span></span></a></li>
+                                    <li><a th:href="@{/admin/storage#add}"><span class="nav-sub-dot" aria-hidden="true"></span><span class="nav-copy"><span class="nav-title">Add Location</span><span class="nav-hint">Create storage</span></span></a></li>
+                                    <li><a th:href="@{/admin/storage#update}"><span class="nav-sub-dot" aria-hidden="true"></span><span class="nav-copy"><span class="nav-title">Update Location</span><span class="nav-hint">Edit storage</span></span></a></li>
+                                    <li><a th:href="@{/admin/storage#delete}"><span class="nav-sub-dot" aria-hidden="true"></span><span class="nav-copy"><span class="nav-title">Archive Location</span><span class="nav-hint">Deactivate storage</span></span></a></li>
+                                </ul>
+                            </details>
                         </li>
-                        <li th:if="${#lists.contains(accessibleModules, 'deferral_rules')}">
-                            <a th:href="@{/admin/deferral-rules}"
-                               th:classappend="${activeMenu == 'deferral-rules'} ? ' active'">
-                                <span class="nav-icon" aria-hidden="true">
-                                    <svg viewBox="0 0 24 24">
-                                        <path d="m12 3 7 3v6c0 5-3.5 8-7 9-3.5-1-7-4-7-9V6l7-3z"></path>
-                                        <path d="M12 8v4"></path>
-                                        <path d="M12 16h.01"></path>
-                                    </svg>
-                                </span>
-                                <span class="nav-copy">
-                                    <span class="nav-title">Deferral Rules</span>
-                                    <span class="nav-hint">Eligibility controls</span>
-                                </span>
-                            </a>
+                        <li class="nav-dropdown" th:if="${#lists.contains(accessibleModules, 'deferral_rules')}">
+                            <details th:attr="open=${activeMenu == 'deferral-rules' ? 'open' : null}">
+                                <summary th:classappend="${activeMenu == 'deferral-rules'} ? ' active'">
+                                    <span class="nav-icon" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24">
+                                            <path d="m12 3 7 3v6c0 5-3.5 8-7 9-3.5-1-7-4-7-9V6l7-3z"></path>
+                                            <path d="M12 8v4"></path>
+                                            <path d="M12 16h.01"></path>
+                                        </svg>
+                                    </span>
+                                    <span class="nav-copy">
+                                        <span class="nav-title">Deferral Rules</span>
+                                        <span class="nav-hint">Eligibility controls</span>
+                                    </span>
+                                    <span class="nav-chevron" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24">
+                                            <path d="m6 9 6 6 6-6"></path>
+                                        </svg>
+                                    </span>
+                                </summary>
+
+                                <ul class="nav-submenu">
+                                    <li><a th:href="@{/admin/deferral-rules}" th:classappend="${activeMenu == 'deferral-rules'} ? ' active'"><span class="nav-sub-dot" aria-hidden="true"></span><span class="nav-copy"><span class="nav-title">Rule Overview</span><span class="nav-hint">View rules</span></span></a></li>
+                                    <li><a th:href="@{/admin/deferral-rules#add}"><span class="nav-sub-dot" aria-hidden="true"></span><span class="nav-copy"><span class="nav-title">Add Rule</span><span class="nav-hint">Create rule</span></span></a></li>
+                                    <li><a th:href="@{/admin/deferral-rules#update}"><span class="nav-sub-dot" aria-hidden="true"></span><span class="nav-copy"><span class="nav-title">Update Rule</span><span class="nav-hint">Edit rule</span></span></a></li>
+                                    <li><a th:href="@{/admin/deferral-rules#delete}"><span class="nav-sub-dot" aria-hidden="true"></span><span class="nav-copy"><span class="nav-title">Archive Rule</span><span class="nav-hint">Deactivate rule</span></span></a></li>
+                                </ul>
+                            </details>
                         </li>
                         <li class="nav-dropdown"
                             th:if="${#lists.contains(accessibleModules, 'inventory_monitoring') or #lists.contains(accessibleModules, 'reports_alerts')}">
@@ -159,67 +198,119 @@
                                 </span>
                             </a>
                         </li>
-                        <li th:if="${#lists.contains(accessibleModules, 'donor_eligibility')}">
-                            <a th:href="@{/medical/donor-eligibility}"
-                               th:classappend="${activeMenu == 'donor-eligibility'} ? ' active'">
-                                <span class="nav-icon" aria-hidden="true">
-                                    <svg viewBox="0 0 24 24">
-                                        <rect x="5" y="4" width="14" height="16" rx="2"></rect>
-                                        <path d="M9 4V2h6v2"></path>
-                                        <path d="m9 11 2 2 4-4"></path>
-                                    </svg>
-                                </span>
-                                <span class="nav-copy">
-                                    <span class="nav-title">Donor Eligibility</span>
-                                    <span class="nav-hint">Assessment workflow</span>
-                                </span>
-                            </a>
+                        <li class="nav-dropdown" th:if="${#lists.contains(accessibleModules, 'donor_eligibility')}">
+                            <details th:attr="open=${activeMenu == 'donor-eligibility' ? 'open' : null}">
+                                <summary th:classappend="${activeMenu == 'donor-eligibility'} ? ' active'">
+                                    <span class="nav-icon" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24">
+                                            <rect x="5" y="4" width="14" height="16" rx="2"></rect>
+                                            <path d="M9 4V2h6v2"></path>
+                                            <path d="m9 11 2 2 4-4"></path>
+                                        </svg>
+                                    </span>
+                                    <span class="nav-copy">
+                                        <span class="nav-title">Donor Eligibility</span>
+                                        <span class="nav-hint">Assessment workflow</span>
+                                    </span>
+                                    <span class="nav-chevron" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24">
+                                            <path d="m6 9 6 6 6-6"></path>
+                                        </svg>
+                                    </span>
+                                </summary>
+
+                                <ul class="nav-submenu">
+                                    <li><a th:href="@{/medical/donor-eligibility}" th:classappend="${activeMenu == 'donor-eligibility'} ? ' active'"><span class="nav-sub-dot" aria-hidden="true"></span><span class="nav-copy"><span class="nav-title">Donor Overview</span><span class="nav-hint">View records</span></span></a></li>
+                                    <li><a th:href="@{/medical/donor-eligibility#add}"><span class="nav-sub-dot" aria-hidden="true"></span><span class="nav-copy"><span class="nav-title">Add Donor</span><span class="nav-hint">Create record</span></span></a></li>
+                                    <li><a th:href="@{/medical/donor-eligibility#update}"><span class="nav-sub-dot" aria-hidden="true"></span><span class="nav-copy"><span class="nav-title">Update Donor</span><span class="nav-hint">Edit record</span></span></a></li>
+                                    <li><a th:href="@{/medical/donor-eligibility#delete}"><span class="nav-sub-dot" aria-hidden="true"></span><span class="nav-copy"><span class="nav-title">Delete Donor</span><span class="nav-hint">Remove record</span></span></a></li>
+                                </ul>
+                            </details>
                         </li>
-                        <li th:if="${#lists.contains(accessibleModules, 'blood_collection')}">
-                            <a th:href="@{/medical/donations}"
-                               th:classappend="${activeMenu == 'blood-collection'} ? ' active'">
-                                <span class="nav-icon" aria-hidden="true">
-                                    <svg viewBox="0 0 24 24">
-                                        <path d="M12 2s6 6 6 11a6 6 0 0 1-12 0c0-5 6-11 6-11z"></path>
-                                    </svg>
-                                </span>
-                                <span class="nav-copy">
-                                    <span class="nav-title">Blood Collection</span>
-                                    <span class="nav-hint">Donation sessions</span>
-                                </span>
-                            </a>
+                        <li class="nav-dropdown" th:if="${#lists.contains(accessibleModules, 'blood_collection')}">
+                            <details th:attr="open=${activeMenu == 'blood-collection' ? 'open' : null}">
+                                <summary th:classappend="${activeMenu == 'blood-collection'} ? ' active'">
+                                    <span class="nav-icon" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24">
+                                            <path d="M12 2s6 6 6 11a6 6 0 0 1-12 0c0-5 6-11 6-11z"></path>
+                                        </svg>
+                                    </span>
+                                    <span class="nav-copy">
+                                        <span class="nav-title">Blood Collection</span>
+                                        <span class="nav-hint">Donation sessions</span>
+                                    </span>
+                                    <span class="nav-chevron" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24">
+                                            <path d="m6 9 6 6 6-6"></path>
+                                        </svg>
+                                    </span>
+                                </summary>
+
+                                <ul class="nav-submenu">
+                                    <li><a th:href="@{/medical/donations}" th:classappend="${activeMenu == 'blood-collection'} ? ' active'"><span class="nav-sub-dot" aria-hidden="true"></span><span class="nav-copy"><span class="nav-title">Collection Overview</span><span class="nav-hint">View sessions</span></span></a></li>
+                                    <li><a th:href="@{/medical/donations#add}"><span class="nav-sub-dot" aria-hidden="true"></span><span class="nav-copy"><span class="nav-title">Add Donation</span><span class="nav-hint">Create session</span></span></a></li>
+                                    <li><a th:href="@{/medical/donations#update}"><span class="nav-sub-dot" aria-hidden="true"></span><span class="nav-copy"><span class="nav-title">Update Donation</span><span class="nav-hint">Edit session</span></span></a></li>
+                                    <li><a th:href="@{/medical/donations#delete}"><span class="nav-sub-dot" aria-hidden="true"></span><span class="nav-copy"><span class="nav-title">Delete Donation</span><span class="nav-hint">Remove session</span></span></a></li>
+                                </ul>
+                            </details>
                         </li>
-                        <li th:if="${#lists.contains(accessibleModules, 'transfusion_request')}">
-                            <a th:href="@{/medical/transfusion}"
-                               th:classappend="${activeMenu == 'transfusion'} ? ' active'">
-                                <span class="nav-icon" aria-hidden="true">
-                                    <svg viewBox="0 0 24 24">
-                                        <path d="M14 3v4a1 1 0 0 0 1 1h4"></path>
-                                        <path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"></path>
-                                        <path d="M12 10v6"></path>
-                                        <path d="M9 13h6"></path>
-                                    </svg>
-                                </span>
-                                <span class="nav-copy">
-                                    <span class="nav-title">Transfusion Request</span>
-                                    <span class="nav-hint">Clinical requests</span>
-                                </span>
-                            </a>
+                        <li class="nav-dropdown" th:if="${#lists.contains(accessibleModules, 'transfusion_request')}">
+                            <details th:attr="open=${activeMenu == 'transfusion' ? 'open' : null}">
+                                <summary th:classappend="${activeMenu == 'transfusion'} ? ' active'">
+                                    <span class="nav-icon" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24">
+                                            <path d="M14 3v4a1 1 0 0 0 1 1h4"></path>
+                                            <path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"></path>
+                                            <path d="M12 10v6"></path>
+                                            <path d="M9 13h6"></path>
+                                        </svg>
+                                    </span>
+                                    <span class="nav-copy">
+                                        <span class="nav-title">Transfusion Request</span>
+                                        <span class="nav-hint">Clinical requests</span>
+                                    </span>
+                                    <span class="nav-chevron" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24">
+                                            <path d="m6 9 6 6 6-6"></path>
+                                        </svg>
+                                    </span>
+                                </summary>
+
+                                <ul class="nav-submenu">
+                                    <li><a th:href="@{/medical/transfusion}" th:classappend="${activeMenu == 'transfusion'} ? ' active'"><span class="nav-sub-dot" aria-hidden="true"></span><span class="nav-copy"><span class="nav-title">Request Overview</span><span class="nav-hint">View events</span></span></a></li>
+                                    <li><a th:href="@{/medical/transfusion#add}"><span class="nav-sub-dot" aria-hidden="true"></span><span class="nav-copy"><span class="nav-title">Add Event</span><span class="nav-hint">Record use</span></span></a></li>
+                                    <li><a th:href="@{/medical/transfusion#update}"><span class="nav-sub-dot" aria-hidden="true"></span><span class="nav-copy"><span class="nav-title">Update Event</span><span class="nav-hint">Edit patient info</span></span></a></li>
+                                    <li><a th:href="@{/medical/transfusion#delete}"><span class="nav-sub-dot" aria-hidden="true"></span><span class="nav-copy"><span class="nav-title">Delete Event</span><span class="nav-hint">Reverse record</span></span></a></li>
+                                </ul>
+                            </details>
                         </li>
-                        <li th:if="${#lists.contains(accessibleModules, 'safe_blood_match')}">
-                            <a th:href="@{/medical/components}"
-                               th:classappend="${activeMenu == 'safe-match'} ? ' active'">
-                                <span class="nav-icon" aria-hidden="true">
-                                    <svg viewBox="0 0 24 24">
-                                        <path d="m12 21-1.4-1.3C5.4 14.4 2 11.3 2 7.5 2 5 4 3 6.5 3c1.8 0 3.1.9 4 2.1C11.4 3.9 12.7 3 14.5 3 17 3 19 5 19 7.5c0 3.8-3.4 6.9-8.6 12.2L12 21z"></path>
-                                        <path d="m9.5 11 1.7 1.7 3.3-3.3"></path>
-                                    </svg>
-                                </span>
-                                <span class="nav-copy">
-                                    <span class="nav-title">Safe Blood Match</span>
-                                    <span class="nav-hint">Compatibility review</span>
-                                </span>
-                            </a>
+                        <li class="nav-dropdown" th:if="${#lists.contains(accessibleModules, 'safe_blood_match')}">
+                            <details th:attr="open=${activeMenu == 'safe-match' ? 'open' : null}">
+                                <summary th:classappend="${activeMenu == 'safe-match'} ? ' active'">
+                                    <span class="nav-icon" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24">
+                                            <path d="m12 21-1.4-1.3C5.4 14.4 2 11.3 2 7.5 2 5 4 3 6.5 3c1.8 0 3.1.9 4 2.1C11.4 3.9 12.7 3 14.5 3 17 3 19 5 19 7.5c0 3.8-3.4 6.9-8.6 12.2L12 21z"></path>
+                                            <path d="m9.5 11 1.7 1.7 3.3-3.3"></path>
+                                        </svg>
+                                    </span>
+                                    <span class="nav-copy">
+                                        <span class="nav-title">Safe Blood Match</span>
+                                        <span class="nav-hint">Compatibility review</span>
+                                    </span>
+                                    <span class="nav-chevron" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24">
+                                            <path d="m6 9 6 6 6-6"></path>
+                                        </svg>
+                                    </span>
+                                </summary>
+
+                                <ul class="nav-submenu">
+                                    <li><a th:href="@{/medical/components}" th:classappend="${activeMenu == 'safe-match'} ? ' active'"><span class="nav-sub-dot" aria-hidden="true"></span><span class="nav-copy"><span class="nav-title">Match Overview</span><span class="nav-hint">View components</span></span></a></li>
+                                    <li><a th:href="@{/medical/components#match}"><span class="nav-sub-dot" aria-hidden="true"></span><span class="nav-copy"><span class="nav-title">Find Match</span><span class="nav-hint">Filter stock</span></span></a></li>
+                                    <li><a th:href="@{/medical/components#reserve}"><span class="nav-sub-dot" aria-hidden="true"></span><span class="nav-copy"><span class="nav-title">Reserve Unit</span><span class="nav-hint">Hold stock</span></span></a></li>
+                                    <li><a th:href="@{/medical/components#release}"><span class="nav-sub-dot" aria-hidden="true"></span><span class="nav-copy"><span class="nav-title">Release Unit</span><span class="nav-hint">Return stock</span></span></a></li>
+                                </ul>
+                            </details>
                         </li>
                     </ul>
                 </div>
@@ -245,55 +336,64 @@
                                 </span>
                             </a>
                         </li>
-                        <li th:if="${#lists.contains(accessibleModules, 'pending_tests')}">
-                            <a th:href="@{/lab/pending-tests}"
-                               th:classappend="${activeMenu == 'pending-tests'} ? ' active'">
-                                <span class="nav-icon" aria-hidden="true">
-                                    <svg viewBox="0 0 24 24">
-                                        <rect x="5" y="4" width="14" height="16" rx="2"></rect>
-                                        <path d="M9 4V2h6v2"></path>
-                                        <path d="M9 10h6"></path>
-                                        <path d="M9 14h6"></path>
-                                        <path d="M9 18h4"></path>
-                                    </svg>
-                                </span>
-                                <span class="nav-copy">
-                                    <span class="nav-title">Pending Test Queue</span>
-                                    <span class="nav-hint">Samples awaiting review</span>
-                                </span>
-                            </a>
+                        <li class="nav-dropdown"
+                            th:if="${#lists.contains(accessibleModules, 'pending_tests') or #lists.contains(accessibleModules, 'tti_screening')}">
+                            <details th:attr="open=${activeMenu == 'pending-tests' or activeMenu == 'tti-screening' ? 'open' : null}">
+                                <summary th:classappend="${activeMenu == 'pending-tests' or activeMenu == 'tti-screening'} ? ' active'">
+                                    <span class="nav-icon" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24">
+                                            <path d="M10 2v6l-5 8a4 4 0 0 0 3.4 6h7.2a4 4 0 0 0 3.4-6l-5-8V2"></path>
+                                            <path d="M8 10h8"></path>
+                                            <path d="M9 16h6"></path>
+                                        </svg>
+                                    </span>
+                                    <span class="nav-copy">
+                                        <span class="nav-title">TTI Screening Queue</span>
+                                        <span class="nav-hint">Queue and result entry</span>
+                                    </span>
+                                    <span class="nav-chevron" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24">
+                                            <path d="m6 9 6 6 6-6"></path>
+                                        </svg>
+                                    </span>
+                                </summary>
+
+                                <ul class="nav-submenu">
+                                    <li><a th:href="@{/lab/tti-screening#queue}" th:classappend="${activeMenu == 'pending-tests' or activeMenu == 'tti-screening'} ? ' active'"><span class="nav-sub-dot" aria-hidden="true"></span><span class="nav-copy"><span class="nav-title">Queue Overview</span><span class="nav-hint">View pending samples</span></span></a></li>
+                                    <li><a th:href="@{/lab/tti-screening#add}"><span class="nav-sub-dot" aria-hidden="true"></span><span class="nav-copy"><span class="nav-title">Add Result</span><span class="nav-hint">Record screening</span></span></a></li>
+                                    <li><a th:href="@{/lab/tti-screening#update}"><span class="nav-sub-dot" aria-hidden="true"></span><span class="nav-copy"><span class="nav-title">Update Result</span><span class="nav-hint">Edit screening</span></span></a></li>
+                                    <li><a th:href="@{/lab/tti-screening#delete}"><span class="nav-sub-dot" aria-hidden="true"></span><span class="nav-copy"><span class="nav-title">Delete Result</span><span class="nav-hint">Remove screening</span></span></a></li>
+                                </ul>
+                            </details>
                         </li>
-                        <li th:if="${#lists.contains(accessibleModules, 'tti_screening')}">
-                            <a th:href="@{/lab/tti-screening}"
-                               th:classappend="${activeMenu == 'tti-screening'} ? ' active'">
-                                <span class="nav-icon" aria-hidden="true">
-                                    <svg viewBox="0 0 24 24">
-                                        <path d="M10 2v6l-5 8a4 4 0 0 0 3.4 6h7.2a4 4 0 0 0 3.4-6l-5-8V2"></path>
-                                        <path d="M8 10h8"></path>
-                                        <path d="M9 16h6"></path>
-                                    </svg>
-                                </span>
-                                <span class="nav-copy">
-                                    <span class="nav-title">TTI Screening</span>
-                                    <span class="nav-hint">Infection screening</span>
-                                </span>
-                            </a>
-                        </li>
-                        <li th:if="${#lists.contains(accessibleModules, 'component_status')}">
-                            <a th:href="@{/lab/component-status}"
-                               th:classappend="${activeMenu == 'component-status'} ? ' active'">
-                                <span class="nav-icon" aria-hidden="true">
-                                    <svg viewBox="0 0 24 24">
-                                        <path d="m12 3 9 4.5-9 4.5-9-4.5L12 3z"></path>
-                                        <path d="m3 12 9 4.5 9-4.5"></path>
-                                        <path d="m3 16.5 9 4.5 9-4.5"></path>
-                                    </svg>
-                                </span>
-                                <span class="nav-copy">
-                                    <span class="nav-title">Component Status</span>
-                                    <span class="nav-hint">Validation progress</span>
-                                </span>
-                            </a>
+                        <li class="nav-dropdown" th:if="${#lists.contains(accessibleModules, 'component_status')}">
+                            <details th:attr="open=${activeMenu == 'component-status' ? 'open' : null}">
+                                <summary th:classappend="${activeMenu == 'component-status'} ? ' active'">
+                                    <span class="nav-icon" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24">
+                                            <path d="m12 3 9 4.5-9 4.5-9-4.5L12 3z"></path>
+                                            <path d="m3 12 9 4.5 9-4.5"></path>
+                                            <path d="m3 16.5 9 4.5 9-4.5"></path>
+                                        </svg>
+                                    </span>
+                                    <span class="nav-copy">
+                                        <span class="nav-title">Component Status</span>
+                                        <span class="nav-hint">Validation progress</span>
+                                    </span>
+                                    <span class="nav-chevron" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24">
+                                            <path d="m6 9 6 6 6-6"></path>
+                                        </svg>
+                                    </span>
+                                </summary>
+
+                                <ul class="nav-submenu">
+                                    <li><a th:href="@{/lab/component-status}" th:classappend="${activeMenu == 'component-status'} ? ' active'"><span class="nav-sub-dot" aria-hidden="true"></span><span class="nav-copy"><span class="nav-title">Status Overview</span><span class="nav-hint">View validation</span></span></a></li>
+                                    <li><a th:href="@{/lab/component-status#components}"><span class="nav-sub-dot" aria-hidden="true"></span><span class="nav-copy"><span class="nav-title">View Components</span><span class="nav-hint">Tracked units</span></span></a></li>
+                                    <li><a th:href="@{/lab/component-status#update}"><span class="nav-sub-dot" aria-hidden="true"></span><span class="nav-copy"><span class="nav-title">Update Status</span><span class="nav-hint">Release/discard</span></span></a></li>
+                                    <li><a th:href="@{/lab/traceability#records}"><span class="nav-sub-dot" aria-hidden="true"></span><span class="nav-copy"><span class="nav-title">Audit Trail</span><span class="nav-hint">Trace changes</span></span></a></li>
+                                </ul>
+                            </details>
                         </li>
                         <li th:if="${#lists.contains(accessibleModules, 'traceability')}">
                             <a th:href="@{/lab/traceability}"
