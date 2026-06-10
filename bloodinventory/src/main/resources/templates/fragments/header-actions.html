@@ -1,5 +1,10 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Header Actions Fragment</title>
+</head>
 <body>
 
 <div th:fragment="adminProfileMenu" class="app-actions">
@@ -34,7 +39,7 @@
         <button type="button"
                 class="notification-trigger header-icon-button"
                 data-notification-toggle
-                aria-haspopup="menu"
+                aria-haspopup="dialog"
                 aria-expanded="false"
                 aria-label="Open notifications"
                 title="Notifications">
@@ -47,7 +52,7 @@
                   th:text="${unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}">1</span>
         </button>
 
-        <div class="notification-dropdown" data-notification-panel role="menu" aria-label="Notifications">
+        <div class="notification-dropdown" data-notification-panel role="dialog" aria-label="Notifications">
             <div class="notification-header">
                 <div>
                     <strong>Notifications</strong>
@@ -73,8 +78,7 @@
             <div class="notification-list" th:if="${recentNotifications != null and !#lists.isEmpty(recentNotifications)}">
                 <div class="notification-item"
                      th:each="notification : ${recentNotifications}"
-                     th:classappend="${notification.read == false} ? ' unread'"
-                     role="menuitem">
+                     th:classappend="${notification.read == false} ? ' unread'">
                     <span class="notification-dot"
                           th:classappend="${#strings.toLowerCase(notification.actionType)}"></span>
                     <span class="notification-copy">
@@ -101,7 +105,7 @@
         <button type="button"
                 class="profile-trigger"
                 data-profile-toggle
-                aria-haspopup="menu"
+                aria-haspopup="dialog"
                 aria-expanded="false"
                 aria-label="Open profile menu">
             <span class="profile-trigger-avatar" aria-hidden="true">
@@ -118,8 +122,8 @@
             </span>
         </button>
 
-        <div class="profile-dropdown" data-profile-panel role="menu" aria-label="Profile menu">
-            <a th:href="@{/profile}" class="profile-dropdown-item" role="menuitem">
+        <div class="profile-dropdown" data-profile-panel role="dialog" aria-label="Profile menu">
+            <a th:href="@{/profile}" class="profile-dropdown-item">
                 <span class="profile-dropdown-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24">
                         <circle cx="12" cy="8" r="4"></circle>
@@ -130,7 +134,7 @@
             </a>
 
             <form th:action="@{/logout}" method="post" class="profile-dropdown-form">
-                <button type="submit" class="profile-dropdown-item profile-dropdown-button" role="menuitem">
+                <button type="submit" class="profile-dropdown-item profile-dropdown-button">
                     <span class="profile-dropdown-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24">
                             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>

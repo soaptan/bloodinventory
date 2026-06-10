@@ -377,6 +377,12 @@
     font-size: 14px;
 }
 
+.form-separator {
+    border: none;
+    border-top: 1px solid #e9f1fb;
+    margin: 18px 0;
+}
+
 body.theme-dark .page-intro h1,
 body.theme-dark .section-title h2,
 body.theme-dark .medical-stat-value {

@@ -1,8 +1,10 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org"
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layout/master-layout}">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Staff Management</title>
 </head>
 <body>
@@ -234,6 +236,8 @@
                                         <label class="row-select">
                                             <input type="checkbox"
                                                    data-staff-row-check
+                                                   aria-label="Select staff row"
+                                                   title="Select staff row"
                                                    th:attr="aria-label=${'Select ' + profile.fullName}">
                                         </label>
                                     </td>
@@ -256,9 +260,9 @@
                                                 <img th:if="${profile.photoUrl != null}"
                                                      th:src="${profile.photoUrl}"
                                                      alt="Staff profile photo"
-                                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                                     onerror="this.hidden=true; this.nextElementSibling.hidden=false;">
                                                 <div class="staff-avatar-fallback"
-                                                     th:style="${profile.photoUrl != null ? 'display:none;' : ''}"
+                                                     th:hidden="${profile.photoUrl != null}"
                                                      aria-label="No profile photo"></div>
                                             </div>
 

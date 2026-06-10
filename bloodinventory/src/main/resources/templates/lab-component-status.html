@@ -1,8 +1,10 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org"
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layout/master-layout}">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Component Status</title>
     <th:block layout:fragment="custom-css">
     <link rel="stylesheet" th:href="@{/css/medical-workflow.css}">
@@ -81,7 +83,8 @@
                                         <form class="button-row" th:action="@{/lab/component-status/update}" method="post">
                                             <input type="hidden" name="componentId" th:value="${component.componentId}">
                                             <label class="sr-only" th:for="${'component-status-' + component.componentId}">Status</label>
-                                            <select th:id="${'component-status-' + component.componentId}" name="status" required>
+                                            <select th:id="${'component-status-' + component.componentId}" name="status" required
+                                                    aria-label="Component status" title="Component status">
                                                 <option th:each="status : ${componentStatuses}"
                                                         th:value="${status}"
                                                         th:text="${status}"

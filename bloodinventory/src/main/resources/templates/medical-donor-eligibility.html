@@ -1,8 +1,10 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org"
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layout/master-layout}">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Donor Eligibility</title>
     <th:block layout:fragment="custom-css">
     <link rel="stylesheet" th:href="@{/css/medical-workflow.css}">
@@ -130,7 +132,7 @@
                                 </div>
                             </form>
 
-                            <hr style="border:none;border-top:1px solid #e9f1fb;margin:18px 0;">
+                            <hr class="form-separator">
 
                             <form th:action="@{/medical/donor-eligibility/deferrals}"
                                   th:object="${deferralRequest}" method="post">

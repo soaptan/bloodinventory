@@ -1,8 +1,10 @@
 ﻿<!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org"
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layout/master-layout}">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inventory Monitor</title>
 </head>
 <body>
@@ -20,40 +22,17 @@
     </th:block>
 
     <th:block layout:fragment="content">
-                <div class="section flex-col gap-md inventory-dashboard">
-                    <section class="section gap-sm">
-                        <div class="section-subtitle">Inventory Monitor</div>
+                <div class="flex flex-col gap-lg">
+                    <section class="card p-lg">
+                        <div class="section-subtitle mb-2">Inventory Monitor</div>
                         <h1 class="section-title">Inventory Monitoring</h1>
                         <p>
                             Review live blood component status, availability, and near-expiry items using PostgreSQL functions.
                         </p>
                     </section>
 
-                    <section class="stat-grid inventory-summary-grid">
-                        <article class="stat-card inventory-summary-card inventory-summary-total">
-                            <div class="stat-card-label">Total Components</div>
-                            <div class="stat-card-value" th:text="${inventorySummary.totalComponents}">0</div>
-                            <div class="form-help">Blood components currently tracked.</div>
-                        </article>
-                        <article class="stat-card inventory-summary-card inventory-summary-available">
-                            <div class="stat-card-label">Available Stock</div>
-                            <div class="stat-card-value" th:text="${inventorySummary.availableComponents}">0</div>
-                            <div class="form-help">Units ready for controlled release.</div>
-                        </article>
-                        <article class="stat-card inventory-summary-card inventory-summary-expiry">
-                            <div class="stat-card-label">Near Expiry</div>
-                            <div class="stat-card-value" th:text="${inventorySummary.nearExpiryComponents}">0</div>
-                            <div class="form-help">Components requiring attention soon.</div>
-                        </article>
-                        <article class="stat-card inventory-summary-card inventory-summary-donations">
-                            <div class="stat-card-label">Total Donations</div>
-                            <div class="stat-card-value" th:text="${inventorySummary.totalDonations}">0</div>
-                            <div class="form-help">Donation records feeding inventory.</div>
-                        </article>
-                    </section>
-
-                    <section class="section gap-md" data-search-item>
-                        <div class="flex flex-between flex-col-mobile gap-lg">
+                    <section class="card p-lg" data-search-item>
+                        <div class="flex flex-between flex-col-mobile gap-lg mb-lg">
                             <div>
                                 <div class="section-subtitle mb-2">Inventory Overview</div>
                                 <h2 class="section-title">Blood Component Charts</h2>
@@ -63,9 +42,9 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-2 gap-md inventory-chart-grid">
-                            <article class="card p-lg inventory-chart-card">
-                                <div class="inventory-chart-header">
+                        <div class="grid grid-2 gap-md">
+                            <article class="card p-lg">
+                                <div class="flex flex-between mb-md gap-sm">
                                     <div>
                                         <h3 class="text-lg font-bold mb-1">Status Data</h3>
                                         <p class="text-sm text-muted">Blood component units grouped by current status.</p>
@@ -73,7 +52,7 @@
                                     <span class="badge badge-primary" th:text="|${inventorySummary.totalComponents} units|">0 units</span>
                                 </div>
 
-                                <div class="inventory-control-bar">
+                                <div class="form-grid form-grid-3 gap-sm mb-md">
                                     <div class="form-group">
                                         <label for="status-component-filter" class="form-label">Filter</label>
                                         <select id="status-component-filter" class="form-select" data-status-component-filter>
@@ -97,14 +76,12 @@
                                     </div>
                                 </div>
 
-                                <div class="inventory-chart-frame">
-                                    <svg class="blood-component-chart" data-status-chart role="img" aria-label="Blood component status chart"></svg>
-                                </div>
+                                <svg class="blood-component-chart" data-status-chart role="img" aria-label="Blood component status chart"></svg>
                                 <div class="chart-legend gap-sm mt-md flex flex-wrap" data-status-legend></div>
                             </article>
 
-                            <article class="card p-lg inventory-chart-card">
-                                <div class="inventory-chart-header">
+                            <article class="card p-lg">
+                                <div class="flex flex-between mb-md gap-sm">
                                     <div>
                                         <h3 class="text-lg font-bold mb-1">Expiry Data</h3>
                                         <p class="text-sm text-muted">Blood component units grouped by expiry date and status.</p>
@@ -112,7 +89,7 @@
                                     <span class="badge badge-primary" th:text="|${inventorySummary.nearExpiryComponents} near|">0 near</span>
                                 </div>
 
-                                <div class="inventory-control-bar">
+                                <div class="form-grid form-grid-3 gap-sm mb-md">
                                     <div class="form-group">
                                         <label for="expiry-status-filter" class="form-label">Filter</label>
                                         <select id="expiry-status-filter" class="form-select" data-expiry-status-filter>
@@ -139,9 +116,7 @@
                                     </div>
                                 </div>
 
-                                <div class="inventory-chart-frame">
-                                    <svg class="blood-component-chart" data-expiry-chart role="img" aria-label="Blood component expiry chart"></svg>
-                                </div>
+                                <svg class="blood-component-chart" data-expiry-chart role="img" aria-label="Blood component expiry chart"></svg>
                                 <div class="chart-legend gap-sm mt-md flex flex-wrap" data-expiry-legend></div>
                             </article>
                         </div>

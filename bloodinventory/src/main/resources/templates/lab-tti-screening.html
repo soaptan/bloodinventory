@@ -1,8 +1,10 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org"
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layout/master-layout}">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TTI Screening</title>
     <th:block layout:fragment="custom-css">
     <link rel="stylesheet" th:href="@{/css/medical-workflow.css}">
@@ -176,19 +178,22 @@
                                     <td>
                                         <form class="button-row" th:action="@{/lab/tti-screening}" method="post">
                                             <input type="hidden" name="donationId" th:value="${test.donationId}">
-                                            <select name="ttiScreening" required>
+                                            <select name="ttiScreening" required
+                                                    aria-label="TTI screening result" title="TTI screening result">
                                                 <option th:each="result : ${ttiResults}"
                                                         th:value="${result}"
                                                         th:selected="${#strings.equalsIgnoreCase(result, test.ttiScreening)}"
                                                         th:text="${result}">NEGATIVE</option>
                                             </select>
-                                            <select name="bloodTypeMatch" required>
+                                            <select name="bloodTypeMatch" required
+                                                    aria-label="Blood type match result" title="Blood type match result">
                                                 <option th:each="result : ${bloodTypeResults}"
                                                         th:value="${result}"
                                                         th:selected="${#strings.equalsIgnoreCase(result, test.bloodTypeMatch)}"
                                                         th:text="${result}">MATCHED</option>
                                             </select>
-                                            <select name="finalStatus" required>
+                                            <select name="finalStatus" required
+                                                    aria-label="Final lab status" title="Final lab status">
                                                 <option th:each="status : ${finalStatuses}"
                                                         th:value="${status}"
                                                         th:selected="${#strings.equalsIgnoreCase(status, test.finalStatus)}"

@@ -1,0 +1,444 @@
+.main-stack { display:grid; gap:14px; }
+        .page-intro { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:18px 20px; }
+        .page-kicker { font-size:11px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:#7f94ae; margin-bottom:6px; }
+        .page-intro h1 { font-size:34px; color:#1f3f67; margin-bottom:6px; }
+        .page-intro p { color:#5f7796; font-size:14px; line-height:1.5; max-width:760px; }
+
+        .summary-grid {
+            display:grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap:14px;
+        }
+
+        .summary-card {
+            background:white;
+            border-radius:20px;
+            padding:18px;
+            box-shadow:0 10px 24px rgba(52,114,184,.08);
+            border:1px solid #e5eef8;
+        }
+
+        .summary-card .label {
+            font-size:13px;
+            color:#6b85a3;
+            margin-bottom:8px;
+        }
+
+        .summary-card .value {
+            font-size:30px;
+            font-weight:800;
+            color:#1f4c82;
+        }
+
+        .reports-grid {
+            display:grid;
+            grid-template-columns: 1fr 1fr;
+            gap:14px;
+        }
+
+        .module-card {
+            background:white;
+            border-radius:22px;
+            padding:20px;
+            box-shadow:0 10px 24px rgba(52,114,184,.08);
+            border:1px solid #e5eef8;
+        }
+
+        .module-card h2 {
+            font-size:22px;
+            color:#204a7a;
+            margin-bottom:8px;
+        }
+
+        .report-card-header {
+            display:flex;
+            justify-content:space-between;
+            align-items:flex-start;
+            gap:12px;
+            margin-bottom:10px;
+        }
+
+        .report-card-header h2 {
+            margin-bottom:6px;
+        }
+
+        .report-actions {
+            position:relative;
+            display:flex;
+            justify-content:flex-end;
+        }
+
+        .report-actions-button,
+        .report-download-btn {
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            min-height:36px;
+            padding:8px 12px;
+            border-radius:999px;
+            border:1px solid #cfe0f3;
+            background:#f3f8ff;
+            color:#1f5f9f;
+            text-decoration:none;
+            font-size:12px;
+            font-weight:800;
+            white-space:nowrap;
+        }
+
+        .report-actions-button {
+            cursor:pointer;
+            min-width:104px;
+        }
+
+        .report-actions-button svg {
+            width:16px;
+            height:16px;
+            margin-left:8px;
+            stroke:currentColor;
+            stroke-width:2;
+            fill:none;
+            stroke-linecap:round;
+            stroke-linejoin:round;
+        }
+
+        .report-download-btn:hover {
+            background:#e8f2ff;
+            border-color:#aac7ea;
+        }
+
+        .report-actions-menu {
+            position:absolute;
+            top:calc(100% + 8px);
+            right:0;
+            width:220px;
+            display:none;
+            padding:8px;
+            border-radius:14px;
+            border:1px solid #d9e6f2;
+            background:#fff;
+            box-shadow:0 18px 36px rgba(15,23,42,.14);
+            z-index:10;
+        }
+
+        .report-actions.open .report-actions-menu {
+            display:grid;
+        }
+
+        .report-action-item {
+            width:100%;
+            border:0;
+            background:transparent;
+            color:#294565;
+            display:flex;
+            align-items:center;
+            gap:10px;
+            padding:10px;
+            border-radius:10px;
+            font-size:13px;
+            font-weight:700;
+            cursor:pointer;
+            text-align:left;
+        }
+
+        .report-action-item:hover {
+            background:#eef5fd;
+            color:#1f5f9f;
+        }
+
+        .report-action-item svg {
+            width:18px;
+            height:18px;
+            stroke:currentColor;
+            stroke-width:2;
+            fill:none;
+            stroke-linecap:round;
+            stroke-linejoin:round;
+        }
+
+        .report-download-backdrop {
+            position:fixed;
+            inset:0;
+            z-index:80;
+            display:none;
+            align-items:center;
+            justify-content:center;
+            padding:24px;
+            background:rgba(8,15,27,.52);
+        }
+
+        .report-download-backdrop.open {
+            display:flex;
+        }
+
+        .report-download-dialog {
+            width:min(760px, 94vw);
+            min-height:420px;
+            border-radius:6px;
+            background:#fff;
+            box-shadow:0 28px 70px rgba(0,0,0,.24);
+            overflow:hidden;
+        }
+
+        .download-dialog-header,
+        .download-dialog-footer {
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:12px;
+            padding:16px 20px;
+            border-bottom:1px solid #e3e8ef;
+        }
+
+        .download-dialog-header h2 {
+            font-size:20px;
+            color:#172033;
+            margin:0;
+        }
+
+        .download-close {
+            width:32px;
+            height:32px;
+            border:1px solid #d9e1ea;
+            border-radius:4px;
+            background:#fff;
+            color:#172033;
+            cursor:pointer;
+            font-size:22px;
+            line-height:1;
+        }
+
+        .download-dialog-body {
+            padding:20px;
+            display:grid;
+            gap:18px;
+        }
+
+        .download-field {
+            display:grid;
+            gap:8px;
+        }
+
+        .download-field label,
+        .download-format-title {
+            color:#344760;
+            font-size:13px;
+            font-weight:700;
+        }
+
+        .download-field select {
+            width:100%;
+            min-height:42px;
+            border:1px solid #ccd8e6;
+            border-radius:6px;
+            padding:8px 10px;
+            background:#fff;
+            color:#172033;
+        }
+
+        .download-format-grid {
+            display:grid;
+            grid-template-columns:repeat(4, minmax(96px, 1fr));
+            gap:14px;
+            max-width:560px;
+        }
+
+        .download-format-option input {
+            position:absolute;
+            opacity:0;
+            pointer-events:none;
+        }
+
+        .download-format-card {
+            min-height:106px;
+            border:2px solid transparent;
+            border-radius:5px;
+            display:grid;
+            place-items:center;
+            gap:8px;
+            padding:12px;
+            color:#36475b;
+            cursor:pointer;
+        }
+
+        .download-format-card svg {
+            width:34px;
+            height:34px;
+            stroke:currentColor;
+            stroke-width:1.8;
+            fill:none;
+            stroke-linecap:round;
+            stroke-linejoin:round;
+        }
+
+        .download-format-option input:checked + .download-format-card {
+            border-color:#1476d4;
+            background:#e8f3ff;
+            color:#173d67;
+        }
+
+        .download-checks {
+            display:grid;
+            gap:12px;
+            color:#334155;
+            font-size:13px;
+        }
+
+        .download-checks label {
+            display:flex;
+            align-items:center;
+            gap:8px;
+        }
+
+        .download-dialog-footer {
+            justify-content:flex-end;
+            border-top:1px solid #e3e8ef;
+            border-bottom:0;
+            background:#f8fafc;
+        }
+
+        .download-footer-btn {
+            min-height:38px;
+            border:1px solid #d9e1ea;
+            border-radius:5px;
+            background:#fff;
+            color:#334155;
+            padding:8px 14px;
+            cursor:pointer;
+            font-weight:700;
+        }
+
+        .download-footer-btn.primary {
+            border-color:#1476d4;
+            background:#1476d4;
+            color:#fff;
+        }
+
+        .module-card p {
+            color:#6b85a3;
+            font-size:14px;
+            line-height:1.6;
+            margin-bottom:16px;
+        }
+
+        .report-table {
+            width:100%;
+            border-collapse:collapse;
+        }
+
+        .report-table th,
+        .report-table td {
+            padding:12px 10px;
+            border-bottom:1px solid #e9f1fb;
+            text-align:left;
+            font-size:13px;
+            vertical-align:top;
+        }
+
+        .report-table th {
+            color:#67809f;
+            font-weight:700;
+        }
+
+        .action-pill {
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            padding:4px 8px;
+            border-radius:999px;
+            background:#edf5ff;
+            color:#1f5f9f;
+            font-size:11px;
+            font-weight:800;
+        }
+
+        .action-pill.insert { background:#e9f9ef; color:#16803a; }
+        .action-pill.update { background:#edf5ff; color:#1f5f9f; }
+        .action-pill.delete { background:#fff0f0; color:#c52f3f; }
+        .action-pill.login { background:#f1ecff; color:#6846b8; }
+        .action-pill.logout { background:#fff6e8; color:#b66b04; }
+
+        body.theme-dark .report-actions-button,
+        body.theme-dark .report-download-btn {
+            background:#132334;
+            border-color:#2b465f;
+            color:#8ec6ff;
+        }
+
+        body.theme-dark .report-download-btn:hover {
+            background:#18314a;
+            border-color:#3e5f7c;
+        }
+
+        body.theme-dark .report-actions-menu,
+        body.theme-dark .report-download-dialog {
+            background:#0f1d2c;
+            border-color:#22384d;
+        }
+
+        body.theme-dark .report-action-item,
+        body.theme-dark .download-dialog-header h2,
+        body.theme-dark .download-field label,
+        body.theme-dark .download-format-title,
+        body.theme-dark .download-checks,
+        body.theme-dark .download-field select {
+            color:#e8f1fb;
+        }
+
+        body.theme-dark .report-action-item:hover,
+        body.theme-dark .download-format-option input:checked + .download-format-card {
+            background:#132334;
+        }
+
+        body.theme-dark .download-field select,
+        body.theme-dark .download-close,
+        body.theme-dark .download-footer-btn {
+            background:#132334;
+            border-color:#2b465f;
+            color:#e8f1fb;
+        }
+
+        body.theme-dark .download-dialog-header,
+        body.theme-dark .download-dialog-footer {
+            border-color:#22384d;
+        }
+
+        body.theme-dark .download-dialog-footer {
+            background:#0b1622;
+        }
+
+        body.theme-dark .action-pill {
+            background:#132334;
+            color:#8ec6ff;
+        }
+
+        body.theme-dark .action-pill.insert { background:rgba(34,197,94,.16); color:#7be39e; }
+        body.theme-dark .action-pill.update { background:rgba(47,128,237,.16); color:#8ec6ff; }
+        body.theme-dark .action-pill.delete { background:rgba(239,68,68,.16); color:#ff9aa2; }
+        body.theme-dark .action-pill.login { background:rgba(139,92,246,.18); color:#c4b5fd; }
+        body.theme-dark .action-pill.logout { background:rgba(245,158,11,.18); color:#facc6b; }
+
+        @media (max-width: 1100px) {
+            .summary-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .reports-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 680px) {
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .page-intro,
+            .report-card-header {
+                align-items:stretch;
+                flex-direction:column;
+            }
+
+            .download-format-grid {
+                grid-template-columns:repeat(2, minmax(0, 1fr));
+            }
+        }

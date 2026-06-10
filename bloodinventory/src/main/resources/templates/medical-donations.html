@@ -1,8 +1,10 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org"
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layout/master-layout}">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Blood Collection</title>
     <th:block layout:fragment="custom-css">
     <link rel="stylesheet" th:href="@{/css/medical-workflow.css}">
@@ -70,8 +72,10 @@
                                                 <input type="datetime-local"
                                                        name="collectionTimestamp"
                                                        th:value="${#dates.format(donation.collectionTimestamp, 'yyyy-MM-dd''T''HH:mm')}"
-                                                       required>
-                                                <select name="locationId" required>
+                                                       required
+                                                       aria-label="Donation collection date and time" title="Donation collection date and time">
+                                                <select name="locationId" required
+                                                        aria-label="Donation storage location" title="Donation storage location">
                                                     <option th:each="location : ${storageLocations}"
                                                             th:value="${location.locationId}"
                                                             th:selected="${location.locationId == donation.locationId}"
@@ -165,7 +169,8 @@
                                              data-required-message="Please select at least one component type."
                                              th:classappend="${#fields.hasErrors('componentTypes')} ? ' is-invalid' : ''">
                                             <label class="check-chip" th:each="type : ${componentTypes}">
-                                                <input type="checkbox" th:field="*{componentTypes}" th:value="${type}">
+                                                <input type="checkbox" th:field="*{componentTypes}" th:value="${type}"
+                                                       aria-label="Component type" title="Component type">
                                                 <span th:text="${type}">RBC</span>
                                             </label>
                                         </div>

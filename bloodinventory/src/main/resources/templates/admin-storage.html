@@ -1,8 +1,10 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org"
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layout/master-layout}">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Storage Setup</title>
 </head>
 <body>
@@ -52,7 +54,8 @@
                                         <td th:text="${location.locationId}">1</td>
                                         <td>
                                             <form class="button-row" th:action="@{/admin/storage/{id}/update(id=${location.locationId})}" method="post">
-                                                <input type="text" name="description" th:value="${location.description}" required>
+                                                <input type="text" name="description" th:value="${location.description}" required
+                                                       aria-label="Storage location description" title="Storage location description">
                                                 <button type="submit" class="secondary-btn">Update</button>
                                             </form>
                                         </td>

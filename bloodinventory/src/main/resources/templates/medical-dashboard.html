@@ -1,91 +1,15 @@
-﻿<!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org"
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layout/master-layout}">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Medical Staff Dashboard</title>
     <th:block layout:fragment="custom-css">
     <link rel="stylesheet" th:href="@{/css/medical-workflow.css}">
-    <style>
-        .main-stack {
-            display: grid;
-            gap: 18px;
-        }
-
-        .hero-card,
-        .module-card {
-            padding: 22px 24px;
-        }
-
-        .eyebrow {
-            font-size: 11px;
-            font-weight: 800;
-            letter-spacing: 0.14em;
-            text-transform: uppercase;
-            color: #7f94ae;
-            margin-bottom: 8px;
-        }
-
-        .hero-card h1 {
-            font-size: 34px;
-            color: #1f3f67;
-            margin-bottom: 8px;
-        }
-
-        .hero-card p,
-        .module-card p {
-            color: #5f7796;
-            font-size: 14px;
-            line-height: 1.65;
-        }
-
-        .module-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 16px;
-        }
-
-        .module-card h2 {
-            color: #24476f;
-            font-size: 22px;
-            margin-bottom: 8px;
-        }
-
-        .module-card a {
-            display: inline-block;
-            margin-top: 12px;
-            color: #2f80ed;
-            text-decoration: none;
-            font-size: 13px;
-            font-weight: 700;
-        }
-
-        body.theme-dark .hero-card h1,
-        body.theme-dark .module-card h2 {
-            color: #e8f1fb;
-        }
-
-        body.theme-dark .hero-card p,
-        body.theme-dark .module-card p,
-        body.theme-dark .eyebrow {
-            color: #93a7c1;
-        }
-
-        body.theme-dark .module-card a {
-            color: #6bb6ff;
-        }
-
-        @media (max-width: 720px) {
-            .module-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .hero-card,
-            .module-card {
-                padding: 18px 16px;
-            }
-        }
-    </style>
+    <link rel="stylesheet" th:href="@{/css/medical-dashboard.css}">
     </th:block>
 </head>
 <body>

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org"
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       th:attr="lang=${currentLanguage != null ? currentLanguage : 'en'}">
 <head>
@@ -166,7 +166,8 @@
                 <input type="file"
                        class="sr-only"
                        data-chatbot-image-input
-                       accept="image/png,image/jpeg">
+                       accept="image/png,image/jpeg"
+                       aria-label="Chatbot image upload" title="Chatbot image upload">
                 <label class="sr-only" for="chatbot-input">Ask a question</label>
                 <textarea id="chatbot-input"
                           class="chatbot-input"
