@@ -31,6 +31,15 @@
     const imageRemoveButton = widget.querySelector("[data-chatbot-image-remove]");
     const messages = widget.querySelector("[data-chatbot-messages]");
     const status = widget.querySelector("[data-chatbot-status]");
+    const chatTab = widget.querySelector("[data-chatbot-chat-tab]");
+    const feedbackTab = widget.querySelector("[data-chatbot-feedback-tab]");
+    const feedbackPanel = widget.querySelector("[data-chatbot-feedback-panel]");
+    const feedbackForm = widget.querySelector("[data-chatbot-feedback-form]");
+    const feedbackName = widget.querySelector("[data-chatbot-feedback-name]");
+    const feedbackEmail = widget.querySelector("[data-chatbot-feedback-email]");
+    const feedbackMessage = widget.querySelector("[data-chatbot-feedback-message]");
+    const feedbackStatus = widget.querySelector("[data-chatbot-feedback-status]");
+    const feedbackSubmitButton = widget.querySelector("[data-chatbot-feedback-submit]");
     const translate = window.BloodInventoryTranslate || ((value) => value);
     let selectedImage = null;
     let conversations = loadConversations();
@@ -53,7 +62,16 @@
             || !(imageThumbnail instanceof HTMLImageElement)
             || !(imageName instanceof HTMLElement)
             || !(imageRemoveButton instanceof HTMLButtonElement)
-            || !(messages instanceof HTMLElement)) {
+            || !(messages instanceof HTMLElement)
+            || !(chatTab instanceof HTMLButtonElement)
+            || !(feedbackTab instanceof HTMLButtonElement)
+            || !(feedbackPanel instanceof HTMLElement)
+            || !(feedbackForm instanceof HTMLFormElement)
+            || !(feedbackName instanceof HTMLInputElement)
+            || !(feedbackEmail instanceof HTMLInputElement)
+            || !(feedbackMessage instanceof HTMLTextAreaElement)
+            || !(feedbackStatus instanceof HTMLElement)
+            || !(feedbackSubmitButton instanceof HTMLButtonElement)) {
         return;
     }
 
@@ -211,17 +229,54 @@
         return { [header]: token };
     }
 
+    function feedbackOpen() {
+        return !feedbackPanel.hidden;
+    }
+
     function setOpen(open) {
         widget.classList.toggle("open", open);
         panel.hidden = !open;
         toggle.setAttribute("aria-expanded", String(open));
 
         if (open) {
-            input.focus();
+            if (feedbackOpen()) {
+                feedbackName.focus();
+            } else {
+                input.focus();
+            }
         }
     }
 
+    function setFeedbackOpen(open, focus = true) {
+        if (open) {
+            setHistoryOpen(false);
+        }
+
+        feedbackPanel.hidden = !open;
+        messages.hidden = open;
+        form.hidden = open;
+        chatTab.classList.toggle("is-active", !open);
+        feedbackTab.classList.toggle("is-active", open);
+        chatTab.setAttribute("aria-selected", String(!open));
+        feedbackTab.setAttribute("aria-selected", String(open));
+
+        if (!focus || !widget.classList.contains("open")) {
+            return;
+        }
+
+        if (open) {
+            feedbackName.focus();
+            return;
+        }
+
+        input.focus();
+    }
+
     function setHistoryOpen(open) {
+        if (open) {
+            setFeedbackOpen(false, false);
+        }
+
         historyPanel.hidden = !open;
         historyToggleButton.setAttribute("aria-expanded", String(open));
         historyToggleButton.setAttribute("aria-label", open ? "Close chat history" : "Open chat history");
@@ -229,6 +284,25 @@
         if (open) {
             renderHistoryList();
         }
+    }
+
+    function setFeedbackStatus(message, state = "") {
+        feedbackStatus.textContent = message ? translate(message) : "";
+
+        if (state) {
+            feedbackStatus.dataset.state = state;
+            return;
+        }
+
+        delete feedbackStatus.dataset.state;
+    }
+
+    function setFeedbackBusy(busy) {
+        feedbackName.disabled = busy;
+        feedbackEmail.disabled = busy;
+        feedbackMessage.disabled = busy;
+        feedbackSubmitButton.disabled = busy;
+        feedbackSubmitButton.setAttribute("aria-busy", String(busy));
     }
 
     function setBusy(busy) {
@@ -419,6 +493,7 @@
     }
 
     function startNewChat() {
+        setFeedbackOpen(false);
         const current = activeConversation();
         if (!current.messages.length) {
             setHistoryOpen(false);
@@ -461,6 +536,7 @@
     }
 
     function clearHistory() {
+        setFeedbackOpen(false);
         conversations = [createConversation()];
         activeConversationId = conversations[0].id;
         saveConversations();
@@ -615,6 +691,31 @@
         return body.reply;
     }
 
+    async function submitFeedback(payload) {
+        const response = await fetch("/api/chatbot/feedback", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                ...csrfHeaders()
+            },
+            body: JSON.stringify(payload)
+        });
+
+        let body = null;
+        try {
+            body = await response.json();
+        } catch (error) {
+            body = null;
+        }
+
+        if (!response.ok || !body?.success) {
+            throw new Error(body?.message || translate("Unable to send feedback right now."));
+        }
+
+        return body.reply || body.message || "Feedback received. Thank you.";
+    }
+
     function truncate(value, maxLength) {
         if (!value || value.length <= maxLength) {
             return value;
@@ -628,6 +729,16 @@
     });
 
     closeButton.addEventListener("click", () => setOpen(false));
+
+    chatTab.addEventListener("click", () => {
+        setOpen(true);
+        setFeedbackOpen(false);
+    });
+
+    feedbackTab.addEventListener("click", () => {
+        setOpen(true);
+        setFeedbackOpen(true);
+    });
 
     newChatButton.addEventListener("click", startNewChat);
 
@@ -660,6 +771,36 @@
     });
 
     imageRemoveButton.addEventListener("click", clearSelectedImage);
+
+    feedbackForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        feedbackForm.classList.add("was-submitted");
+
+        if (!feedbackForm.checkValidity()) {
+            setFeedbackStatus("Please complete the feedback fields.", "error");
+            return;
+        }
+
+        setFeedbackBusy(true);
+        setFeedbackStatus("Sending feedback...");
+
+        try {
+            const reply = await submitFeedback({
+                name: feedbackName.value.trim(),
+                email: feedbackEmail.value.trim(),
+                message: feedbackMessage.value.trim(),
+                pageTitle: document.title,
+                pagePath: window.location.pathname
+            });
+            feedbackForm.reset();
+            feedbackForm.classList.remove("was-submitted");
+            setFeedbackStatus(reply, "success");
+        } catch (error) {
+            setFeedbackStatus(error.message || "Unable to send feedback right now.", "error");
+        } finally {
+            setFeedbackBusy(false);
+        }
+    });
 
     input.addEventListener("keydown", (event) => {
         if (event.key === "Enter" && !event.shiftKey) {

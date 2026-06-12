@@ -38,6 +38,51 @@
                             <h2>Configured Storage Locations</h2>
                             <p>Live data from the <code>storage_location</code> table using PostgreSQL function.</p>
 
+                            <div th:if="${!#lists.isEmpty(locations)}" class="table-controls" data-storage-controls>
+                                <div class="form-group table-search-col">
+                                    <label for="storage-search" class="form-label">Search Storage</label>
+                                    <input id="storage-search"
+                                           class="form-input"
+                                           type="search"
+                                           placeholder="Search by ID, description, or staff ID"
+                                           data-storage-search>
+                                </div>
+
+                                <div class="form-group table-filter-col">
+                                    <label for="storage-status-filter" class="form-label">Status Filter</label>
+                                    <select id="storage-status-filter" class="form-select" data-storage-status-filter>
+                                        <option value="all">All statuses</option>
+                                        <option value="active">Active</option>
+                                        <option value="archived">Archived</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group table-filter-col">
+                                    <label for="storage-sort" class="form-label">Sort By</label>
+                                    <select id="storage-sort" class="form-select" data-storage-sort>
+                                        <option value="id-asc">ID Low-High</option>
+                                        <option value="id-desc">ID High-Low</option>
+                                        <option value="description-asc">Description A-Z</option>
+                                        <option value="description-desc">Description Z-A</option>
+                                        <option value="staff-asc">Updated By Low-High</option>
+                                        <option value="staff-desc">Updated By High-Low</option>
+                                        <option value="status-asc">Status</option>
+                                    </select>
+                                </div>
+
+                                <button type="button" class="btn btn-tertiary table-filter-reset" data-clear-storage-filters>
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M3 12a9 9 0 1 0 3-6.7"></path>
+                                        <path d="M3 4v6h6"></path>
+                                    </svg>
+                                    Reset Filters
+                                </button>
+                            </div>
+
+                            <div th:if="${!#lists.isEmpty(locations)}" class="form-help table-results-summary" data-storage-results-summary>
+                                Showing all storage locations.
+                            </div>
+
                             <div class="table-wrap">
                                 <table class="data-table">
                                     <thead>
@@ -49,11 +94,19 @@
                                         <th id="delete">Operations</th>
                                     </tr>
                                     </thead>
-                                    <tbody>
-                                    <tr th:each="location : ${locations}">
+                                    <tbody data-storage-table-body>
+                                    <tr th:each="location : ${locations}"
+                                        data-storage-row
+                                        th:attr="data-id=${location.locationId},
+                                                 data-description=${location.description},
+                                                 data-staff-id=${location.staffId},
+                                                 data-status=${location.active ? 'active' : 'archived'}">
                                         <td th:text="${location.locationId}">1</td>
                                         <td>
-                                            <form class="button-row" th:action="@{/admin/storage/{id}/update(id=${location.locationId})}" method="post">
+                                            <form class="button-row" th:action="@{/admin/storage/{id}/update(id=${location.locationId})}" method="post"
+                                                  data-action-confirm
+                                                  data-action-label="update storage location"
+                                                  data-action-confirm-text="Confirm Update">
                                                 <input type="text" name="description" th:value="${location.description}" required
                                                        aria-label="Storage location description" title="Storage location description">
                                                 <button type="submit" class="secondary-btn">Update</button>
@@ -66,13 +119,23 @@
                                                   th:text="${location.active} ? 'Active' : 'Archived'">Active</span>
                                         </td>
                                         <td>
-                                            <form th:if="${location.active}" class="compact-form" th:action="@{/admin/storage/{id}/delete(id=${location.locationId})}" method="post">
+                                            <form th:if="${location.active}" class="compact-form" th:action="@{/admin/storage/{id}/delete(id=${location.locationId})}" method="post"
+                                                  data-action-confirm
+                                                  data-action-label="archive storage location"
+                                                  data-action-variant="danger"
+                                                  data-action-confirm-text="Confirm Archive">
                                                 <button type="submit" class="danger-btn btn-sm">Archive</button>
                                             </form>
-                                            <form th:unless="${location.active}" class="compact-form" th:action="@{/admin/storage/{id}/restore(id=${location.locationId})}" method="post">
+                                            <form th:unless="${location.active}" class="compact-form" th:action="@{/admin/storage/{id}/restore(id=${location.locationId})}" method="post"
+                                                  data-action-confirm
+                                                  data-action-label="restore storage location"
+                                                  data-action-confirm-text="Confirm Restore">
                                                 <button type="submit" class="secondary-btn btn-sm">Restore</button>
                                             </form>
                                         </td>
+                                    </tr>
+                                    <tr data-storage-empty hidden>
+                                        <td colspan="5">No storage locations match the selected filters.</td>
                                     </tr>
                                     </tbody>
                                 </table>
@@ -100,7 +163,10 @@
                                 </div>
                             </div>
 
-                            <form class="needs-validation" th:action="@{/admin/storage/add}" th:object="${locationRequest}" method="post" novalidate>
+                            <form class="needs-validation" th:action="@{/admin/storage/add}" th:object="${locationRequest}" method="post" novalidate
+                                  data-action-confirm
+                                  data-action-label="create storage location"
+                                  data-action-confirm-text="Confirm Create">
                                 <div class="form-grid single">
                                     <div class="form-group full">
                                         <label>Description</label>
@@ -114,6 +180,127 @@
                         </article>
                     </section>
                 </div>
+    </th:block>
+
+    <th:block layout:fragment="custom-js">
+        <script>
+            (() => {
+                const tableBody = document.querySelector("[data-storage-table-body]");
+                if (!tableBody) {
+                    return;
+                }
+
+                const rows = Array.from(tableBody.querySelectorAll("[data-storage-row]"));
+                if (!rows.length) {
+                    return;
+                }
+
+                const searchInput = document.querySelector("[data-storage-search]");
+                const statusFilter = document.querySelector("[data-storage-status-filter]");
+                const sortSelect = document.querySelector("[data-storage-sort]");
+                const clearButton = document.querySelector("[data-clear-storage-filters]");
+                const emptyRow = document.querySelector("[data-storage-empty]");
+                const resultsSummary = document.querySelector("[data-storage-results-summary]");
+                const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+                const statusOrder = { active: 0, archived: 1 };
+
+                const rowData = (row) => ({
+                    element: row,
+                    id: Number(row.getAttribute("data-id") || "0"),
+                    description: row.getAttribute("data-description") || "",
+                    staffId: Number(row.getAttribute("data-staff-id") || "0"),
+                    status: row.getAttribute("data-status") || "active"
+                });
+
+                const sortComparators = {
+                    "id-asc": (left, right) => left.id - right.id,
+                    "id-desc": (left, right) => right.id - left.id,
+                    "description-asc": (left, right) =>
+                        collator.compare(left.description, right.description) || left.id - right.id,
+                    "description-desc": (left, right) =>
+                        collator.compare(right.description, left.description) || left.id - right.id,
+                    "staff-asc": (left, right) => left.staffId - right.staffId || left.id - right.id,
+                    "staff-desc": (left, right) => right.staffId - left.staffId || left.id - right.id,
+                    "status-asc": (left, right) =>
+                        (statusOrder[left.status] ?? 99) - (statusOrder[right.status] ?? 99) || left.id - right.id
+                };
+
+                const applyStorageControls = () => {
+                    const query = (searchInput?.value || "").trim().toLowerCase();
+                    const statusValue = statusFilter?.value || "all";
+                    const sortValue = sortSelect?.value || "id-asc";
+
+                    const visibleRows = rows
+                        .filter((row) => {
+                            const details = rowData(row);
+                            const searchHaystack = [
+                                details.id,
+                                details.description,
+                                details.staffId,
+                                details.status
+                            ].join(" ").toLowerCase();
+
+                            const matchesQuery = !query || searchHaystack.includes(query);
+                            const matchesStatus = statusValue === "all" || details.status === statusValue;
+
+                            return matchesQuery && matchesStatus;
+                        })
+                        .map(rowData)
+                        .sort(sortComparators[sortValue] || sortComparators["id-asc"]);
+
+                    const visibleElements = new Set(visibleRows.map((item) => item.element));
+                    const fragment = document.createDocumentFragment();
+
+                    visibleRows.forEach((item) => {
+                        item.element.hidden = false;
+                        fragment.appendChild(item.element);
+                    });
+
+                    rows.forEach((row) => {
+                        if (visibleElements.has(row)) {
+                            return;
+                        }
+
+                        row.hidden = true;
+                        fragment.appendChild(row);
+                    });
+
+                    if (emptyRow) {
+                        emptyRow.hidden = visibleRows.length !== 0;
+                        fragment.appendChild(emptyRow);
+                    }
+
+                    tableBody.appendChild(fragment);
+
+                    if (resultsSummary) {
+                        resultsSummary.textContent = visibleRows.length === rows.length
+                            ? `Showing all ${rows.length} storage locations.`
+                            : `Showing ${visibleRows.length} of ${rows.length} storage locations.`;
+                    }
+                };
+
+                searchInput?.addEventListener("input", applyStorageControls);
+                statusFilter?.addEventListener("change", applyStorageControls);
+                sortSelect?.addEventListener("change", applyStorageControls);
+                clearButton?.addEventListener("click", () => {
+                    if (searchInput) {
+                        searchInput.value = "";
+                    }
+
+                    if (statusFilter) {
+                        statusFilter.value = "all";
+                    }
+
+                    if (sortSelect) {
+                        sortSelect.value = "id-asc";
+                    }
+
+                    applyStorageControls();
+                });
+
+                applyStorageControls();
+            })();
+        </script>
     </th:block>
 
 </body>

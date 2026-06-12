@@ -50,6 +50,14 @@
                                     </svg>
                                     Download
                                 </button>
+                                <button type="button" class="report-action-item" data-report-print>
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M6 9V2h12v7"></path>
+                                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                                        <path d="M6 14h12v8H6z"></path>
+                                    </svg>
+                                    Print
+                                </button>
                             </div>
                         </div>
                     </section>
@@ -299,59 +307,7 @@
     </th:block>
 
     <th:block layout:fragment="custom-js">
-<script>
-    (() => {
-        const actions = document.querySelector("[data-report-actions]");
-        const toggle = document.querySelector("[data-report-actions-toggle]");
-        const downloadOpen = document.querySelector("[data-report-download-open]");
-        const modal = document.querySelector("[data-report-download-modal]");
-        const closeButtons = document.querySelectorAll("[data-report-download-close]");
-
-        const closeActions = () => {
-            actions?.classList.remove("open");
-            toggle?.setAttribute("aria-expanded", "false");
-        };
-
-        const openModal = () => {
-            closeActions();
-            modal?.classList.add("open");
-            modal?.setAttribute("aria-hidden", "false");
-            modal?.querySelector("select")?.focus();
-        };
-
-        const closeModal = () => {
-            modal?.classList.remove("open");
-            modal?.setAttribute("aria-hidden", "true");
-            toggle?.focus();
-        };
-
-        toggle?.addEventListener("click", (event) => {
-            event.stopPropagation();
-            const isOpen = actions?.classList.toggle("open");
-            toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
-        });
-
-        downloadOpen?.addEventListener("click", (event) => {
-            event.stopPropagation();
-            openModal();
-        });
-        closeButtons.forEach((button) => button.addEventListener("click", closeModal));
-
-        modal?.addEventListener("click", (event) => {
-            if (event.target === modal) {
-                closeModal();
-            }
-        });
-
-        document.addEventListener("click", closeActions);
-        document.addEventListener("keydown", (event) => {
-            if (event.key === "Escape") {
-                closeActions();
-                closeModal();
-            }
-        });
-    })();
-</script>
+<script th:src="@{/js/admin-report-actions.js}"></script>
     </th:block>
 
 </body>

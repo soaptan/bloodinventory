@@ -1130,6 +1130,188 @@
         });
     }
 
+    function actionSubmitter(form, submitter) {
+        if (submitter instanceof HTMLButtonElement || submitter instanceof HTMLInputElement) {
+            return submitter;
+        }
+
+        return form.querySelector("button[type='submit'], input[type='submit']");
+    }
+
+    function actionText(form, submitter) {
+        const explicit = submitter?.dataset?.actionLabel || form.dataset.actionLabel;
+        if (explicit && explicit.trim()) {
+            return explicit.trim();
+        }
+
+        const buttonText = submitter?.textContent || submitter?.value || "";
+        return buttonText.trim() || "this action";
+    }
+
+    function actionVariant(form, submitter, label) {
+        const explicit = submitter?.dataset?.actionVariant || form.dataset.actionVariant;
+        if (explicit) {
+            return explicit;
+        }
+
+        const normalizedLabel = label.toLowerCase();
+        if (submitter?.classList?.contains("danger-btn") || normalizedLabel.includes("delete")) {
+            return "danger";
+        }
+
+        return "primary";
+    }
+
+    function nativeDoubleConfirm(action) {
+        const first = window.confirm(action.message);
+        if (!first) {
+            return Promise.resolve(false);
+        }
+
+        return Promise.resolve(window.confirm(action.finalMessage));
+    }
+
+    function swalConfirm(options) {
+        if (!window.Swal) {
+            return Promise.resolve(window.confirm(options.text));
+        }
+
+        return window.Swal.fire({
+            title: translateText(options.title),
+            text: translateText(options.text),
+            icon: options.icon,
+            showCancelButton: true,
+            confirmButtonText: translateText(options.confirmButtonText),
+            cancelButtonText: translateText("Cancel"),
+            reverseButtons: true,
+            focusCancel: options.focusCancel
+        }).then((result) => result.isConfirmed);
+    }
+
+    async function confirmActionTwice(action) {
+        if (!window.Swal) {
+            return nativeDoubleConfirm(action);
+        }
+
+        const firstConfirmed = await swalConfirm({
+            title: "Confirm action",
+            text: action.message,
+            icon: action.variant === "danger" ? "warning" : "question",
+            confirmButtonText: "Continue",
+            focusCancel: true
+        });
+
+        if (!firstConfirmed) {
+            return false;
+        }
+
+        return swalConfirm({
+            title: "Final confirmation",
+            text: action.finalMessage,
+            icon: action.variant === "danger" ? "warning" : "info",
+            confirmButtonText: action.confirmButtonText,
+            focusCancel: true
+        });
+    }
+
+    function requestConfirmedSubmit(form, submitter) {
+        form.dataset.actionConfirmed = "true";
+
+        if (submitter instanceof HTMLButtonElement || submitter instanceof HTMLInputElement) {
+            form.requestSubmit(submitter);
+            return;
+        }
+
+        form.requestSubmit();
+    }
+
+    function showRedoAction(action) {
+        if (!action.form.isConnected) {
+            return;
+        }
+
+        if (!window.Swal) {
+            return;
+        }
+
+        window.Swal.fire({
+            toast: true,
+            position: "top-end",
+            icon: "info",
+            title: translateText("Action cancelled"),
+            text: translateText("Use Redo to start the confirmation again."),
+            showConfirmButton: true,
+            confirmButtonText: translateText("Redo"),
+            showCancelButton: true,
+            cancelButtonText: translateText("Dismiss"),
+            timer: 7000,
+            timerProgressBar: true,
+            didOpen: (element) => {
+                element.addEventListener("mouseenter", window.Swal.stopTimer);
+                element.addEventListener("mouseleave", window.Swal.resumeTimer);
+            }
+        }).then((result) => {
+            if (result.isConfirmed && action.form.isConnected) {
+                action.form.requestSubmit(action.submitter || undefined);
+            }
+        });
+    }
+
+    function initActionConfirmations(app) {
+        app.addEventListener("submit", (event) => {
+            const form = event.target;
+            if (!(form instanceof HTMLFormElement) || !form.matches("[data-action-confirm]")) {
+                return;
+            }
+
+            if (event.defaultPrevented) {
+                return;
+            }
+
+            if (form.dataset.actionConfirmed === "true") {
+                delete form.dataset.actionConfirmed;
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            if (form.dataset.actionConfirming === "true") {
+                return;
+            }
+
+            const submitter = actionSubmitter(form, event.submitter);
+            const label = actionText(form, submitter);
+            const variant = actionVariant(form, submitter, label);
+            const action = {
+                form,
+                submitter,
+                label,
+                variant,
+                message: form.dataset.actionMessage
+                    || `Please confirm before you ${label}.`,
+                finalMessage: form.dataset.actionFinalMessage
+                    || `This will ${label} and update system records. Continue?`,
+                confirmButtonText: form.dataset.actionConfirmText
+                    || (variant === "danger" ? "Confirm Delete" : "Confirm Action")
+            };
+
+            form.dataset.actionConfirming = "true";
+            confirmActionTwice(action).then((confirmed) => {
+                delete form.dataset.actionConfirming;
+
+                if (!confirmed) {
+                    showRedoAction(action);
+                    return;
+                }
+
+                if (form.isConnected) {
+                    requestConfirmedSubmit(form, submitter);
+                }
+            });
+        });
+    }
+
     function initDashboardApp(app) {
         if (!(app instanceof HTMLElement)) {
             return;
@@ -1144,6 +1326,7 @@
         initProfileMenu(app);
         initNotificationMenu(app);
         initFrontendValidation(app);
+        initActionConfirmations(app);
 
         app.querySelectorAll("[data-sidebar-toggle]").forEach((button) => {
             button.addEventListener("click", () => {

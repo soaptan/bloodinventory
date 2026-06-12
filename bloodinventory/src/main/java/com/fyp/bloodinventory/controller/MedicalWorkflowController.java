@@ -327,6 +327,7 @@ public class MedicalWorkflowController {
         model.addAttribute("donations", medicalWorkflowService.getDonationSessions());
         model.addAttribute("eligibleDonors", medicalWorkflowService.getEligibleDonors());
         model.addAttribute("storageLocations", medicalWorkflowService.getStorageLocations());
+        model.addAttribute("bloodGroups", MedicalWorkflowService.BLOOD_GROUPS);
         model.addAttribute("componentTypes", MedicalWorkflowService.COMPONENT_TYPES);
         if (!model.containsAttribute("donationRequest")) {
             model.addAttribute("donationRequest", new MedicalDonationRequest());
@@ -337,13 +338,24 @@ public class MedicalWorkflowController {
         model.addAttribute("patients", medicalWorkflowService.getPatients());
         model.addAttribute("components", medicalWorkflowService.getTransfusionReadyComponents());
         model.addAttribute("transfusionRecords", medicalWorkflowService.getTransfusionRecords());
+        model.addAttribute("bloodGroups", MedicalWorkflowService.BLOOD_GROUPS);
+        model.addAttribute("componentTypes", MedicalWorkflowService.COMPONENT_TYPES);
         if (!model.containsAttribute("transfusionRequest")) {
             model.addAttribute("transfusionRequest", new MedicalTransfusionRequest());
         }
     }
 
     private void populateComponents(Model model, MedicalSafeMatchRequest request) {
-        model.addAttribute("safeComponents", medicalWorkflowService.getSafeComponents(request));
+        var safeComponents = medicalWorkflowService.getSafeComponents(request);
+        model.addAttribute("safeComponents", safeComponents);
+        model.addAttribute("safeMatchLocations", safeComponents.stream()
+                .map(component -> component.getLocationDescription())
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(location -> !location.isBlank())
+                .distinct()
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .toList());
         model.addAttribute("bloodGroups", MedicalWorkflowService.BLOOD_GROUPS);
         model.addAttribute("componentTypes", MedicalWorkflowService.COMPONENT_TYPES);
         model.addAttribute("safeMatchRequest", request);

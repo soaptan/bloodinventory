@@ -32,25 +32,20 @@
                             </p>
                         </div>
 
-                        <div class="stat-card">
-                            <span class="stat-card-label">Total Staff</span>
-                            <strong class="stat-card-value" th:text="${staffCount}">0</strong>
+                        <div class="stat-grid">
+                            <article class="stat-card">
+                                <div class="stat-card-label">Blood Administrators</div>
+                                <div class="stat-card-value" th:text="${administratorCount}">0</div>
+                            </article>
+                            <article class="stat-card">
+                                <div class="stat-card-label">Medical Staff</div>
+                                <div class="stat-card-value" th:text="${medicalCount}">0</div>
+                            </article>
+                            <article class="stat-card">
+                                <div class="stat-card-label">Lab Technicians</div>
+                                <div class="stat-card-value" th:text="${labCount}">0</div>
+                            </article>
                         </div>
-                    </section>
-
-                    <section class="stat-grid">
-                        <article class="stat-card">
-                            <div class="stat-card-label">Blood Administrators</div>
-                            <div class="stat-card-value" th:text="${administratorCount}">0</div>
-                        </article>
-                        <article class="stat-card">
-                            <div class="stat-card-label">Medical Staff</div>
-                            <div class="stat-card-value" th:text="${medicalCount}">0</div>
-                        </article>
-                        <article class="stat-card">
-                            <div class="stat-card-label">Lab Technicians</div>
-                            <div class="stat-card-value" th:text="${labCount}">0</div>
-                        </article>
                     </section>
 
                     <section id="add" class="card card-lg gap-md">
@@ -76,16 +71,6 @@
                             </div>
                         </div>
 
-                        <div class="staff-add-controls">
-                            <a th:href="@{/admin/staff/register}" class="btn btn-primary staff-add-button" data-register-open>
-                                <svg viewBox="0 0 24 24" aria-hidden="true">
-                                    <path d="M12 5v14"></path>
-                                    <path d="M5 12h14"></path>
-                                </svg>
-                                Add Staff Member
-                            </a>
-                            <div class="badge badge-primary">Admin controlled</div>
-                        </div>
                     </section>
 
                     <section id="update" class="card card-lg gap-md">
@@ -108,7 +93,7 @@
                                            data-staff-search>
                                 </div>
 
-                                <div class="flex gap-md">
+                                <div class="flex gap-md staff-filter-toolbar">
                                     <div class="form-group staff-filter-col">
                                         <label for="staff-role-filter" class="form-label">Role Filter</label>
                                         <select id="staff-role-filter" class="form-select" data-staff-role-filter>
@@ -152,6 +137,9 @@
                                           id="delete"
                                           th:action="@{/admin/staff/delete-selected}"
                                           class="staff-toolbar-delete-form"
+                                          data-action-confirm
+                                          data-action-label="delete selected staff records"
+                                          data-action-variant="danger"
                                           data-selected-staff-delete-form>
                                         <input type="hidden"
                                                th:if="${_csrf != null}"
@@ -172,6 +160,13 @@
                                             Delete
                                         </button>
                                     </form>
+                                    <a th:href="@{/admin/staff/register}" class="btn btn-primary staff-add-button staff-toolbar-add-button" data-register-open>
+                                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                                            <path d="M12 5v14"></path>
+                                            <path d="M5 12h14"></path>
+                                        </svg>
+                                        Add Staff Member
+                                    </a>
                                 </div>
                             </div>
 
@@ -257,12 +252,12 @@
                                     <td>
                                         <div class="staff-identity">
                                             <div class="staff-avatar">
-                                                <img th:if="${profile.photoUrl != null}"
+                                                <img th:if="${!#strings.isEmpty(profile.photoUrl)}"
                                                      th:src="${profile.photoUrl}"
                                                      alt="Staff profile photo"
                                                      onerror="this.hidden=true; this.nextElementSibling.hidden=false;">
                                                 <div class="staff-avatar-fallback"
-                                                     th:hidden="${profile.photoUrl != null}"
+                                                     th:hidden="${!#strings.isEmpty(profile.photoUrl)}"
                                                      aria-label="No profile photo"></div>
                                             </div>
 
@@ -374,6 +369,9 @@
                                 <form id="staff-edit-form"
                                       method="post"
                                       class="section gap-md"
+                                      data-action-confirm
+                                      data-action-label="apply staff profile changes"
+                                      data-action-confirm-text="Confirm Changes"
                                       data-role-form
                                       data-staff-edit-form>
                                     <div class="form-grid form-grid-2">
@@ -493,6 +491,9 @@
                                       method="post"
                                       enctype="multipart/form-data"
                                       class="section gap-sm"
+                                      data-action-confirm
+                                      data-action-label="update staff profile photo"
+                                      data-action-confirm-text="Confirm Photo Update"
                                       data-staff-photo-form>
                                     <label for="modal-photo-file" class="form-label">Profile photo</label>
                                     <div class="flex gap-md">
@@ -558,6 +559,9 @@
                                       enctype="multipart/form-data"
                                       novalidate
                                       class="section gap-md"
+                                      data-action-confirm
+                                      data-action-label="create staff account"
+                                      data-action-confirm-text="Confirm Create"
                                       data-role-form>
                                     <div th:if="${#fields.hasAnyErrors()}"
                                          class="card card-sm staff-register-validation">
@@ -1146,10 +1150,8 @@
                 const deleteLabel = selectedDetails.length === 1
                     ? selectedDetails[0].name || "this staff profile"
                     : `${selectedDetails.length} selected staff profiles`;
-
-                if (!confirm(`Delete ${deleteLabel} permanently?`)) {
-                    event.preventDefault();
-                }
+                selectedDeleteForm.dataset.actionLabel = `delete ${deleteLabel}`;
+                selectedDeleteForm.dataset.actionFinalMessage = `This will delete ${deleteLabel} permanently. Continue?`;
             });
 
             document.querySelectorAll("[data-editor-toggle]").forEach((button) => {

@@ -1,0 +1,503 @@
+.traceability-intro {
+    align-items: flex-start;
+}
+
+.trace-report-actions {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.trace-actions-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 104px;
+    min-height: 36px;
+    padding: 8px 12px;
+    border: 1px solid #cfe0f3;
+    border-radius: 999px;
+    background: #f3f8ff;
+    color: #1f5f9f;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.trace-actions-button svg {
+    width: 16px;
+    height: 16px;
+    margin-left: 8px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.trace-actions-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 20;
+    display: none;
+    width: 220px;
+    padding: 8px;
+    border: 1px solid #d9e6f2;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 18px 36px rgba(15, 23, 42, 0.14);
+}
+
+.trace-report-actions.open .trace-actions-menu {
+    display: grid;
+}
+
+.trace-action-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 10px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: #294565;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+    gap: 10px;
+    text-align: left;
+}
+
+.trace-action-item:hover {
+    background: #eef5fd;
+    color: #1f5f9f;
+}
+
+.trace-action-item svg,
+.traceability-controls svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.traceability-controls svg {
+    margin-right: 6px;
+}
+
+.trace-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.trace-summary-card {
+    display: grid;
+    align-content: center;
+    gap: 8px;
+    min-height: 126px;
+    padding: 18px;
+}
+
+.trace-summary-label {
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 850;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.trace-summary-card strong {
+    color: var(--text-strong);
+    font-size: 34px;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.trace-summary-card span:last-child {
+    color: var(--text-body);
+    font-size: 12px;
+    font-weight: 750;
+    line-height: 1.45;
+}
+
+.trace-coverage-panel {
+    display: grid;
+    gap: 12px;
+    padding: 18px;
+}
+
+.trace-coverage-row {
+    display: grid;
+    grid-template-columns: minmax(180px, 260px) minmax(0, 1fr) 54px;
+    align-items: center;
+    gap: 14px;
+}
+
+.trace-coverage-row div {
+    display: grid;
+    gap: 4px;
+}
+
+.trace-coverage-row strong {
+    color: var(--text-strong);
+    font-size: 13px;
+    font-weight: 850;
+}
+
+.trace-coverage-row span,
+.trace-coverage-row b {
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.trace-coverage-row b {
+    color: #2f80ed;
+    text-align: right;
+}
+
+.trace-coverage-row meter {
+    width: 100%;
+    height: 13px;
+    border: 0;
+    border-radius: 999px;
+    overflow: hidden;
+    background: #dbe7f5;
+    appearance: none;
+}
+
+.trace-coverage-row meter::-webkit-meter-bar {
+    border: 0;
+    border-radius: 999px;
+    background: #dbe7f5;
+}
+
+.trace-coverage-row meter::-webkit-meter-optimum-value {
+    border-radius: 999px;
+    background: linear-gradient(90deg, #2f80ed, #22c55e);
+}
+
+.trace-coverage-row meter::-moz-meter-bar {
+    border-radius: 999px;
+    background: linear-gradient(90deg, #2f80ed, #22c55e);
+}
+
+.traceability-records-card {
+    display: grid;
+    gap: 14px;
+}
+
+.traceability-section-title {
+    margin-bottom: 0;
+}
+
+.trace-save-status {
+    align-self: flex-start;
+    padding: 7px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(34, 197, 94, 0.28);
+    background: rgba(34, 197, 94, 0.1);
+    color: #15803d;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.traceability-controls {
+    grid-template-columns: minmax(220px, 1.4fr) repeat(5, minmax(145px, 1fr)) auto auto;
+}
+
+.traceability-matrix {
+    display: grid;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+}
+
+.traceability-matrix-head,
+.traceability-row {
+    display: grid;
+    grid-template-columns: minmax(250px, 1.25fr) repeat(4, minmax(180px, 1fr));
+    min-width: 1120px;
+}
+
+.traceability-matrix-head {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    overflow: hidden;
+    border-radius: 12px;
+    background: #516278;
+}
+
+.traceability-matrix-head span {
+    padding: 13px 16px;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.traceability-row {
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+}
+
+.traceability-row[hidden] {
+    display: none;
+}
+
+.traceability-component-cell,
+.traceability-step-cell {
+    min-height: 132px;
+    padding: 16px;
+    border-right: 1px solid var(--border);
+}
+
+.traceability-component-cell {
+    display: grid;
+    align-content: start;
+    gap: 8px;
+    background: var(--surface-soft);
+}
+
+.traceability-component-cell strong {
+    color: var(--text-strong);
+    font-size: 15px;
+    font-weight: 900;
+}
+
+.traceability-component-cell span:not(.status-pill) {
+    color: var(--text-body);
+    font-size: 12px;
+    font-weight: 750;
+    line-height: 1.45;
+}
+
+.traceability-step-cell {
+    position: relative;
+    display: grid;
+    align-content: start;
+    gap: 8px;
+}
+
+.traceability-step-cell::before {
+    content: "";
+    position: absolute;
+    top: 28px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--border);
+}
+
+.trace-step-marker {
+    position: relative;
+    z-index: 1;
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    border: 2px solid #b9c9da;
+    background: var(--surface);
+    box-shadow: 0 0 0 5px var(--surface);
+}
+
+.trace-step-active .trace-step-marker {
+    border-color: #2f80ed;
+    background: #2f80ed;
+}
+
+.trace-step-active .trace-step-marker::after {
+    content: "";
+    position: absolute;
+    left: 7px;
+    top: 4px;
+    width: 6px;
+    height: 10px;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.trace-step-muted {
+    color: var(--text-muted);
+}
+
+.traceability-step-cell strong {
+    color: var(--text-strong);
+    font-size: 13px;
+    font-weight: 900;
+    line-height: 1.35;
+}
+
+.traceability-step-cell span:not(.status-pill):not(.trace-step-marker) {
+    color: var(--text-body);
+    font-size: 12px;
+    font-weight: 750;
+    line-height: 1.45;
+}
+
+.trace-step-muted strong,
+.trace-step-muted span:not(.status-pill):not(.trace-step-marker) {
+    color: var(--text-muted);
+}
+
+.traceability-empty-result {
+    min-width: 1120px;
+    padding: 24px;
+    border: 1px dashed var(--border-strong);
+    border-radius: 14px;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 800;
+    text-align: center;
+}
+
+body.theme-dark .traceability-matrix-head {
+    background: #4d5f76;
+}
+
+body.theme-dark .trace-save-status {
+    color: #7be39e;
+    background: rgba(34, 197, 94, 0.12);
+    border-color: rgba(34, 197, 94, 0.24);
+}
+
+body.theme-dark .trace-coverage-row meter,
+body.theme-dark .trace-coverage-row meter::-webkit-meter-bar {
+    background: #17263a;
+}
+
+body.theme-dark .trace-coverage-row b {
+    color: #6bb6ff;
+}
+
+body.theme-dark .traceability-row {
+    background: #0d1825;
+    border-color: #23364c;
+    box-shadow: none;
+}
+
+body.theme-dark .traceability-component-cell {
+    background: #111f2d;
+}
+
+body.theme-dark .traceability-step-cell::before {
+    background: #26384d;
+}
+
+body.theme-dark .trace-step-marker {
+    background: #0d1825;
+    box-shadow: 0 0 0 5px #0d1825;
+}
+
+body.theme-dark .trace-step-active .trace-step-marker {
+    background: #3b82f6;
+}
+
+body.theme-dark .trace-actions-button {
+    background: #132334;
+    border-color: #2b465f;
+    color: #8ec6ff;
+}
+
+body.theme-dark .trace-actions-menu {
+    background: #0f1d2c;
+    border-color: #22384d;
+}
+
+body.theme-dark .trace-action-item {
+    color: #e8f1fb;
+}
+
+body.theme-dark .trace-action-item:hover {
+    background: #132334;
+    color: #8ec6ff;
+}
+
+@media (max-width: 1280px) {
+    .trace-summary-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .traceability-controls {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 840px) {
+    .traceability-intro,
+    .trace-report-actions,
+    .trace-coverage-row {
+        grid-template-columns: 1fr;
+    }
+
+    .traceability-intro {
+        display: grid;
+    }
+
+    .trace-report-actions {
+        justify-content: stretch;
+        margin-left: 0;
+    }
+
+    .trace-actions-button {
+        width: 100%;
+    }
+
+    .trace-actions-menu {
+        left: 0;
+        right: auto;
+        width: 100%;
+    }
+
+    .trace-summary-grid,
+    .traceability-controls {
+        grid-template-columns: 1fr;
+    }
+
+    .trace-coverage-row b {
+        text-align: left;
+    }
+}
+
+@media print {
+    .app-header,
+    .sidebar,
+    .sidebar-overlay,
+    .trace-report-actions,
+    .traceability-controls,
+    .floating-chat-button,
+    .chatbot-panel {
+        display: none !important;
+    }
+
+    .dashboard-app,
+    .layout,
+    .main {
+        display: block !important;
+        overflow: visible !important;
+    }
+
+    .page-card,
+    .workflow-card {
+        box-shadow: none !important;
+        break-inside: avoid;
+    }
+
+    .traceability-matrix {
+        overflow: visible;
+    }
+}

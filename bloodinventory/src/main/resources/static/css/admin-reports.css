@@ -62,6 +62,19 @@
             margin-bottom:6px;
         }
 
+        .dashboard-action-header {
+            display:flex;
+            justify-content:space-between;
+            align-items:flex-start;
+            gap:16px;
+            width:100%;
+        }
+
+        .dashboard-action-header .report-actions {
+            flex-shrink:0;
+            margin-left:auto;
+        }
+
         .report-actions {
             position:relative;
             display:flex;
@@ -438,7 +451,100 @@
                 flex-direction:column;
             }
 
+            .dashboard-action-header {
+                flex-direction:column;
+            }
+
+            .dashboard-action-header .report-actions {
+                align-self:flex-end;
+            }
+
             .download-format-grid {
                 grid-template-columns:repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media print {
+            body,
+            body.theme-dark {
+                background:#fff !important;
+                color:#111827 !important;
+            }
+
+            .app-header,
+            .sidebar,
+            .sidebar-overlay,
+            .chatbot-widget,
+            .report-actions,
+            .report-download-backdrop {
+                display:none !important;
+            }
+
+            .dashboard-scene,
+            .dashboard-app,
+            .layout,
+            .main {
+                display:block !important;
+                min-height:auto !important;
+                background:#fff !important;
+                color:#111827 !important;
+                overflow:visible !important;
+            }
+
+            .main {
+                padding:0 !important;
+            }
+
+            .section,
+            .page-card,
+            .card,
+            .module-card,
+            .stat-card {
+                break-inside:avoid;
+                background:#fff !important;
+                border-color:#cbd5e1 !important;
+                box-shadow:none !important;
+                color:#111827 !important;
+            }
+
+            .section-title,
+            .section-subtitle,
+            .page-kicker,
+            .page-intro h1,
+            .page-intro p,
+            .card,
+            .module-card h2,
+            .module-card p,
+            .stat-card-label,
+            .stat-card-value,
+            .stat-card-description,
+            .text-muted,
+            .data-table th,
+            .data-table td {
+                color:#111827 !important;
+            }
+
+            .table-wrap {
+                overflow:visible !important;
+                border-color:#cbd5e1 !important;
+            }
+
+            .data-table {
+                min-width:0 !important;
+            }
+
+            .data-table th {
+                background:#e5e7eb !important;
+            }
+
+            .chart-source-data,
+            .inventory-apply-control,
+            .form-grid {
+                display:none !important;
+            }
+
+            a {
+                color:#111827 !important;
+                text-decoration:none !important;
             }
         }

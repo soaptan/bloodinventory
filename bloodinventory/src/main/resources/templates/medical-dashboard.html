@@ -9,6 +9,7 @@
     <title>Medical Staff Dashboard</title>
     <th:block layout:fragment="custom-css">
     <link rel="stylesheet" th:href="@{/css/medical-workflow.css}">
+    <link rel="stylesheet" th:href="@{/css/admin-reports.css}">
     <link rel="stylesheet" th:href="@{/css/medical-dashboard.css}">
     </th:block>
 </head>
@@ -28,107 +29,208 @@
 
     <th:block layout:fragment="content">
                 <div class="main-stack">
-                    <section class="hero-card page-card">
-                        <div class="eyebrow">Dashboard</div>
-                        <h1>Medical Staff Dashboard</h1>
-                        <p>Access donor review, collection workflows, compatibility checks, and transfusion support from one coordinated workspace.</p>
+                    <section class="medical-dashboard-header dashboard-action-header">
+                        <div>
+                            <div class="eyebrow">Dashboard</div>
+                            <h1>Medical Staff Dashboard</h1>
+                            <p>Access donor review, collection workflows, compatibility checks, and transfusion support from one coordinated workspace.</p>
+                        </div>
+                        <div class="report-actions" data-report-actions>
+                            <button type="button" class="report-actions-button" data-report-actions-toggle aria-expanded="false">
+                                Actions
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="m6 9 6 6 6-6"></path>
+                                </svg>
+                            </button>
+                            <div class="report-actions-menu" data-report-actions-menu>
+                                <button type="button" class="report-action-item" data-report-download-open>
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <path d="M7 10l5 5 5-5"></path>
+                                        <path d="M12 15V3"></path>
+                                    </svg>
+                                    Download
+                                </button>
+                                <button type="button" class="report-action-item" data-report-print>
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M6 9V2h12v7"></path>
+                                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                                        <path d="M6 14h12v8H6z"></path>
+                                    </svg>
+                                    Print
+                                </button>
+                            </div>
+                        </div>
                     </section>
 
                     <section class="medical-stat-grid">
-                        <article class="medical-stat-card page-card" data-search-item>
-                            <div class="medical-stat-label">Eligible Donors</div>
-                            <div class="medical-stat-value" th:text="${medicalSummary.eligibleDonors}">0</div>
+                        <article class="medical-stat-card medical-stat-card-eligible page-card" data-search-item>
+                            <div class="medical-stat-icon">
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="9" cy="7" r="4"></circle>
+                                    <path d="m16 11 2 2 4-4"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="medical-stat-value" th:text="${medicalSummary.eligibleDonors}">0</div>
+                                <div class="medical-stat-label">Eligible Donors</div>
+                            </div>
                         </article>
-                        <article class="medical-stat-card page-card" data-search-item>
-                            <div class="medical-stat-label">Deferred Donors</div>
-                            <div class="medical-stat-value" th:text="${medicalSummary.deferredDonors}">0</div>
+                        <article class="medical-stat-card medical-stat-card-deferred page-card" data-search-item>
+                            <div class="medical-stat-icon">
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M12 6v6l4 2"></path>
+                                    <circle cx="12" cy="12" r="9"></circle>
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="medical-stat-value" th:text="${medicalSummary.deferredDonors}">0</div>
+                                <div class="medical-stat-label">Deferred Donors</div>
+                            </div>
                         </article>
-                        <article class="medical-stat-card page-card" data-search-item>
-                            <div class="medical-stat-label">Available Components</div>
-                            <div class="medical-stat-value" th:text="${medicalSummary.availableComponents}">0</div>
+                        <article class="medical-stat-card medical-stat-card-today page-card" data-search-item>
+                            <div class="medical-stat-icon">
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M8 2v4"></path>
+                                    <path d="M16 2v4"></path>
+                                    <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                                    <path d="M3 10h18"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="medical-stat-value" th:text="${medicalSummary.todayDonations}">0</div>
+                                <div class="medical-stat-label">Today Donations</div>
+                            </div>
                         </article>
-                        <article class="medical-stat-card page-card" data-search-item>
-                            <div class="medical-stat-label">Transfusion Events</div>
-                            <div class="medical-stat-value" th:text="${medicalSummary.transfusionEvents}">0</div>
+                        <article class="medical-stat-card medical-stat-card-quarantine page-card" data-search-item>
+                            <div class="medical-stat-icon">
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path>
+                                    <path d="M12 22V12"></path>
+                                    <path d="m3.3 7 8.7 5 8.7-5"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="medical-stat-value" th:text="${medicalSummary.quarantinedComponents}">0</div>
+                                <div class="medical-stat-label">Quarantined Units</div>
+                            </div>
                         </article>
                     </section>
 
-                    <section class="module-grid">
-                        <article class="module-card page-card" data-search-item>
-                            <h2>Donor Eligibility</h2>
-                            <p>Review donor suitability, collect screening outcomes, and apply current eligibility rules.</p>
-                            <a th:href="@{/medical/donor-eligibility}">Open donor eligibility</a>
+                    <section class="medical-color-grid">
+                        <article class="medical-color-card medical-color-orange" data-search-item>
+                            <div>
+                                <strong th:text="${#lists.size(recentDonations)}">0</strong>
+                                <span>Recent Collections</span>
+                            </div>
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M12 2v20"></path>
+                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"></path>
+                            </svg>
                         </article>
-
-                        <article class="module-card page-card" data-search-item>
-                            <h2>Blood Collection</h2>
-                            <p>Manage donation sessions and coordinate collection status across current workflows.</p>
-                            <a th:href="@{/medical/donations}">Open blood collection</a>
+                        <article class="medical-color-card medical-color-cyan" data-search-item>
+                            <div>
+                                <strong th:text="${#lists.size(safeComponents)}">0</strong>
+                                <span>Ready Matches</span>
+                            </div>
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M20 6 9 17l-5-5"></path>
+                            </svg>
                         </article>
-
-                        <article class="module-card page-card" data-search-item>
-                            <h2>Transfusion Request</h2>
-                            <p>Review clinical requests, prioritize urgent demand, and prepare matching steps.</p>
-                            <a th:href="@{/medical/transfusion}">Open transfusion requests</a>
+                        <article class="medical-color-card medical-color-navy" data-search-item>
+                            <div>
+                                <strong th:text="${medicalSummary.availableComponents}">0</strong>
+                                <span>Available Components</span>
+                            </div>
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path>
+                                <path d="M3.3 7 12 12l8.7-5"></path>
+                                <path d="M12 22V12"></path>
+                            </svg>
                         </article>
-
-                        <article class="module-card page-card" data-search-item>
-                            <h2>Safe Blood Match</h2>
-                            <p>Support compatibility checks and safe recommendation of suitable blood components.</p>
-                            <a th:href="@{/medical/components}">Open safe blood match</a>
+                        <article class="medical-color-card medical-color-green" data-search-item>
+                            <div>
+                                <strong th:text="${medicalSummary.transfusionEvents}">0</strong>
+                                <span>Transfusion Events</span>
+                            </div>
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"></path>
+                                <path d="M14 2v6h6"></path>
+                                <path d="M12 18v-6"></path>
+                                <path d="m9 15 3 3 3-3"></path>
+                            </svg>
                         </article>
                     </section>
 
                     <section class="two-column-grid">
-                        <article class="workflow-card page-card" data-search-item>
-                            <div class="section-title">
+                        <article class="workflow-card medical-chart-card page-card" data-search-item>
+                            <div class="section-title medical-panel-title">
                                 <div>
-                                    <h2>Recent Collections</h2>
+                                    <h2>Collection Activity</h2>
                                     <p th:text="${#lists.size(recentDonations)} + ' latest sessions'">0 latest sessions</p>
                                 </div>
+                                <div class="medical-chart-legend">
+                                    <span><i class="legend-dot collection"></i> Components</span>
+                                    <span><i class="legend-dot ready"></i> Ready</span>
+                                </div>
                             </div>
-                            <div class="table-wrap">
-                                <table class="data-table">
-                                    <thead>
-                                    <tr>
-                                        <th>Donation</th>
-                                        <th>Donor</th>
-                                        <th>Group</th>
-                                        <th>Status</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-                                    <tr th:each="donation : ${recentDonations}">
-                                        <td th:text="${donation.donationId}">1</td>
-                                        <td th:text="${donation.donorName}">Donor</td>
-                                        <td th:text="${donation.bloodGroup}">A+</td>
-                                        <td><span class="status-pill neutral" th:text="${donation.componentStatuses}">AVAILABLE</span></td>
-                                    </tr>
-                                    </tbody>
-                                </table>
+
+                            <div class="medical-chart-shell" th:if="${!#lists.isEmpty(recentDonations)}">
+                                <div class="medical-axis-label medical-axis-y">Units</div>
+                                <div class="medical-axis-label medical-axis-x">Donation Sessions</div>
+                                <div class="medical-chart-grid" aria-hidden="true">
+                                    <span>6</span>
+                                    <span>4</span>
+                                    <span>2</span>
+                                    <span>0</span>
+                                </div>
+                                <div class="medical-bar-chart">
+                                    <div class="medical-chart-bar"
+                                         th:each="donation : ${recentDonations}"
+                                         th:style="|--value:${donation.componentCount > 6 ? 100 : donation.componentCount * 16}; --ready:${#lists.size(safeComponents) > 5 ? 100 : #lists.size(safeComponents) * 18};|">
+                                        <div class="medical-bar-group">
+                                            <span class="medical-bar medical-bar-collection">
+                                                <b th:text="${donation.componentCount}">0</b>
+                                            </span>
+                                            <span class="medical-bar medical-bar-ready">
+                                                <b th:text="${#lists.size(safeComponents)}">0</b>
+                                            </span>
+                                        </div>
+                                        <small th:text="${'D' + donation.donationId}">D1</small>
+                                    </div>
+                                </div>
                             </div>
+                            <div class="empty-state" th:if="${#lists.isEmpty(recentDonations)}">No recent collections found.</div>
                         </article>
 
                         <article class="workflow-card page-card" data-search-item>
-                            <div class="section-title">
+                            <div class="section-title medical-panel-title">
                                 <div>
-                                    <h2>Ready Components</h2>
+                                    <h2>Recently Ready Components</h2>
                                     <p th:text="${#lists.size(safeComponents)} + ' components'">0 components</p>
                                 </div>
                             </div>
-                            <div class="table-wrap">
+                            <div class="table-wrap medical-product-table">
                                 <table class="data-table">
                                     <thead>
                                     <tr>
-                                        <th>ID</th>
+                                        <th>No</th>
+                                        <th>Component</th>
                                         <th>Type</th>
                                         <th>Group</th>
                                         <th>Status</th>
                                     </tr>
                                     </thead>
                                     <tbody>
-                                    <tr th:each="component : ${safeComponents}">
-                                        <td th:text="${component.componentId}">1</td>
+                                    <tr th:each="component, iter : ${safeComponents}">
+                                        <td th:text="${iter.count}">1</td>
+                                        <td>
+                                            <div class="medical-component-name">
+                                                <span class="component-thumb" th:text="${#strings.substring(component.componentType, 0, 1)}">R</span>
+                                                <strong th:text="${'Component #' + component.componentId}">Component #1</strong>
+                                            </div>
+                                        </td>
                                         <td th:text="${component.componentType}">RBC</td>
                                         <td th:text="${component.donorBloodGroup}">A+</td>
                                         <td><span class="status-pill available" th:text="${component.status}">AVAILABLE</span></td>
@@ -138,7 +240,133 @@
                             </div>
                         </article>
                     </section>
+
+                    <section class="workflow-card page-card" data-search-item>
+                        <div class="section-title medical-panel-title">
+                            <div>
+                                <h2>Recent Collection Sessions</h2>
+                                <p th:text="${#lists.size(recentDonations)} + ' latest sessions'">0 latest sessions</p>
+                            </div>
+                        </div>
+                        <div class="table-wrap">
+                            <table class="data-table">
+                                <thead>
+                                <tr>
+                                    <th>Donation</th>
+                                    <th>Donor</th>
+                                    <th>Group</th>
+                                    <th>Components</th>
+                                    <th>Status</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="donation : ${recentDonations}">
+                                    <td th:text="${donation.donationId}">1</td>
+                                    <td th:text="${donation.donorName}">Donor</td>
+                                    <td th:text="${donation.bloodGroup}">A+</td>
+                                    <td th:text="${donation.componentCount}">0</td>
+                                    <td><span class="status-pill neutral" th:text="${donation.componentStatuses}">AVAILABLE</span></td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <div class="report-download-backdrop" data-report-download-modal aria-hidden="true">
+                        <form class="report-download-dialog"
+                              th:action="@{/medical/dashboard}"
+                              method="get"
+                              role="dialog"
+                              aria-modal="true"
+                              aria-labelledby="medical-dashboard-report-download-title">
+                            <input type="hidden" name="download" value="true">
+                            <div class="download-dialog-header">
+                                <h2 id="medical-dashboard-report-download-title">Download Medical Dashboard</h2>
+                                <button type="button" class="download-close" data-report-download-close aria-label="Close download dialog">&times;</button>
+                            </div>
+
+                            <div class="download-dialog-body">
+                                <div class="download-field">
+                                    <label for="medical-dashboard-report-download-type">Report</label>
+                                    <select id="medical-dashboard-report-download-type" name="type">
+                                        <option value="summary">Medical Dashboard Summary</option>
+                                        <option value="collections">Collection Sessions</option>
+                                        <option value="ready-components">Ready Components</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <div class="download-format-title">Format</div>
+                                    <div class="download-format-grid">
+                                        <label class="download-format-option">
+                                            <input type="radio" name="format" value="csv" checked
+                                                   aria-label="CSV format" title="CSV format">
+                                            <span class="download-format-card">
+                                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                                    <path d="M14 2v6h6"></path>
+                                                    <path d="M8 13h8"></path>
+                                                    <path d="M8 17h5"></path>
+                                                </svg>
+                                                CSV
+                                            </span>
+                                        </label>
+
+                                        <label class="download-format-option">
+                                            <input type="radio" name="format" value="excel"
+                                                   aria-label="Excel format" title="Excel format">
+                                            <span class="download-format-card">
+                                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                                    <path d="M3 3h18v18H3z"></path>
+                                                    <path d="M3 9h18"></path>
+                                                    <path d="M9 9v12"></path>
+                                                    <path d="m13 13 4 4"></path>
+                                                    <path d="m17 13-4 4"></path>
+                                                </svg>
+                                                Excel
+                                            </span>
+                                        </label>
+
+                                        <label class="download-format-option">
+                                            <input type="radio" name="format" value="pdf"
+                                                   aria-label="PDF format" title="PDF format">
+                                            <span class="download-format-card">
+                                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                                    <path d="M14 2v6h6"></path>
+                                                    <path d="M8 15h8"></path>
+                                                    <path d="M8 18h4"></path>
+                                                </svg>
+                                                PDF
+                                            </span>
+                                        </label>
+
+                                        <label class="download-format-option">
+                                            <input type="radio" name="format" value="html"
+                                                   aria-label="HTML format" title="HTML format">
+                                            <span class="download-format-card">
+                                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                                    <path d="M16 18l6-6-6-6"></path>
+                                                    <path d="M8 6l-6 6 6 6"></path>
+                                                </svg>
+                                                HTML
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="download-dialog-footer">
+                                <button type="button" class="download-footer-btn" data-report-download-close>Cancel</button>
+                                <button type="submit" class="download-footer-btn primary">Download</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
+    </th:block>
+
+    <th:block layout:fragment="custom-js">
+        <script th:src="@{/js/admin-report-actions.js}"></script>
     </th:block>
 
 </body>

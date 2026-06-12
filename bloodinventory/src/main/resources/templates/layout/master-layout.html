@@ -20,7 +20,7 @@
         <header class="app-header">
             <div class="app-brand">
                 <button type="button" class="icon-button sidebar-toggle"
-                        data-sidebar-toggle aria-controls="dashboard-sidebar" aria-expanded="true" aria-label="Collapse menu">
+                        data-sidebar-toggle aria-expanded="true" aria-label="Collapse menu">
                     <span class="hamburger-icon" aria-hidden="true"><span></span><span></span><span></span></span>
                     <span class="sr-only" data-sidebar-toggle-label>Collapse menu</span>
                 </button>
@@ -41,13 +41,15 @@
                     <label class="sr-only" for="dashboard-search-input">Search dashboard</label>
                     <input id="dashboard-search-input" class="app-search-input" type="search"
                            placeholder="Search dashboard or menu" autocomplete="off"
+                           role="combobox" aria-haspopup="dialog"
                            aria-controls="smart-search-results" aria-expanded="false"
                            data-dashboard-search-input>
                     <button type="submit" class="app-search-button" aria-label="Search dashboard">
                         <span class="search-icon" aria-hidden="true"></span>
                     </button>
                 </div>
-                <div id="smart-search-results" class="app-search-results" data-smart-search-results hidden></div>
+                <div id="smart-search-results" class="app-search-results" data-smart-search-results
+                     role="dialog" aria-label="Search suggestions" hidden></div>
             </form>
 
             <div th:replace="~{fragments/header-actions :: adminProfileMenu}"></div>
@@ -143,7 +145,75 @@
             <div class="chatbot-history-list" data-chatbot-history-list></div>
         </div>
 
-        <div class="chatbot-messages" data-chatbot-messages aria-live="polite"></div>
+        <div class="chatbot-tabs" role="tablist" aria-label="Assistant views">
+            <button type="button"
+                    id="chatbot-chat-tab"
+                    class="chatbot-tab is-active"
+                    data-chatbot-chat-tab
+                    role="tab"
+                    aria-selected="true"
+                    aria-controls="chatbot-chat-view">Chat</button>
+            <button type="button"
+                    id="chatbot-feedback-tab"
+                    class="chatbot-tab"
+                    data-chatbot-feedback-tab
+                    role="tab"
+                    aria-selected="false"
+                    aria-controls="chatbot-feedback-view">Feedback</button>
+        </div>
+
+        <div id="chatbot-chat-view"
+             class="chatbot-messages"
+             data-chatbot-messages
+             role="tabpanel"
+             aria-labelledby="chatbot-chat-tab"
+             aria-live="polite"></div>
+
+        <section id="chatbot-feedback-view"
+                 class="chatbot-feedback-panel"
+                 data-chatbot-feedback-panel
+                 role="tabpanel"
+                 aria-labelledby="chatbot-feedback-tab"
+                 hidden>
+            <form class="chatbot-feedback-form" data-chatbot-feedback-form novalidate>
+                <div class="chatbot-feedback-grid">
+                    <label class="chatbot-feedback-field" for="chatbot-feedback-name">
+                        <span>Name</span>
+                        <input id="chatbot-feedback-name"
+                               type="text"
+                               data-chatbot-feedback-name
+                               maxlength="100"
+                               autocomplete="name"
+                               required>
+                    </label>
+                    <label class="chatbot-feedback-field" for="chatbot-feedback-email">
+                        <span>Email</span>
+                        <input id="chatbot-feedback-email"
+                               type="email"
+                               data-chatbot-feedback-email
+                               maxlength="100"
+                               autocomplete="email"
+                               required>
+                    </label>
+                    <label class="chatbot-feedback-field" for="chatbot-feedback-message">
+                        <span>Feedback</span>
+                        <textarea id="chatbot-feedback-message"
+                                  data-chatbot-feedback-message
+                                  rows="5"
+                                  maxlength="700"
+                                  required></textarea>
+                    </label>
+                </div>
+                <div class="chatbot-feedback-status" data-chatbot-feedback-status aria-live="polite"></div>
+                <button type="submit" class="chatbot-feedback-submit" data-chatbot-feedback-submit>
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="m22 2-7 20-4-9-9-4Z"></path>
+                        <path d="M22 2 11 13"></path>
+                    </svg>
+                    Submit Feedback
+                </button>
+            </form>
+        </section>
 
         <form class="chatbot-composer" data-chatbot-form>
             <div class="chatbot-status" data-chatbot-status aria-live="polite"></div>

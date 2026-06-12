@@ -7,6 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
     <th:block layout:fragment="custom-css">
+    <link rel="stylesheet" th:href="@{/css/admin-reports.css}">
     </th:block>
 </head>
 <body>
@@ -25,12 +26,40 @@
 
     <th:block layout:fragment="content">
                 <div class="section flex-col gap-md">
-                    <section class="section gap-sm">
-                        <div class="section-subtitle">Dashboard</div>
-                        <h1 class="section-title">Administrator Dashboard</h1>
-                        <p>
-                            Review blood bank activity, monitor expiry-sensitive stock, and open core administration tools without leaving the screen.
-                        </p>
+                    <section class="dashboard-action-header">
+                        <div>
+                            <div class="section-subtitle">Dashboard</div>
+                            <h1 class="section-title">Administrator Dashboard</h1>
+                            <p>
+                                Review blood bank activity, monitor expiry-sensitive stock, and open core administration tools without leaving the screen.
+                            </p>
+                        </div>
+                        <div class="report-actions" data-report-actions>
+                            <button type="button" class="report-actions-button" data-report-actions-toggle aria-expanded="false">
+                                Actions
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="m6 9 6 6 6-6"></path>
+                                </svg>
+                            </button>
+                            <div class="report-actions-menu" data-report-actions-menu>
+                                <button type="button" class="report-action-item" data-report-download-open>
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <path d="M7 10l5 5 5-5"></path>
+                                        <path d="M12 15V3"></path>
+                                    </svg>
+                                    Download
+                                </button>
+                                <button type="button" class="report-action-item" data-report-print>
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M6 9V2h12v7"></path>
+                                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                                        <path d="M6 14h12v8H6z"></path>
+                                    </svg>
+                                    Print
+                                </button>
+                            </div>
+                        </div>
                     </section>
 
                     <section class="stat-grid">
@@ -152,95 +181,294 @@
                         </article>
                     </section>
 
-                    <section class="grid grid-2 gap-md">
-                        <article class="card flex-col gap-md">
-                            <div class="section-subtitle">Quick Actions</div>
-                            <h2 class="section-title dashboard-section-title">Administration Modules</h2>
-                            <p class="dashboard-muted-copy">
-                                Open the core management functions used most often in the administrator workflow.
-                            </p>
-
-                            <div class="grid grid-2 gap-sm flex-1">
-                                <div class="card gap-sm dashboard-tile" data-search-item>
-                                    <div class="dashboard-tile-mark">SA</div>
-                                    <div>
-                                        <h3 class="dashboard-tile-title">Staff Management</h3>
-                                        <p class="dashboard-tile-copy line-clamp-2">Review registered staff accounts and maintain secure role access.</p>
-                                        <a class="dashboard-link" th:href="@{/admin/staff/management}">Open staff management</a>
-                                    </div>
-                                </div>
-
-                                <div class="card gap-sm dashboard-tile" data-search-item>
-                                    <div class="dashboard-tile-mark">SC</div>
-                                    <div>
-                                        <h3 class="dashboard-tile-title">Storage Setup</h3>
-                                        <p class="dashboard-tile-copy line-clamp-2">Review locations, storage capacity, and component placement rules.</p>
-                                        <a class="dashboard-link" th:href="@{/admin/storage}">Open storage settings</a>
-                                    </div>
-                                </div>
-
-                                <div class="card gap-sm dashboard-tile" data-search-item>
-                                    <div class="dashboard-tile-mark">IM</div>
-                                    <div>
-                                        <h3 class="dashboard-tile-title">Inventory Monitor</h3>
-                                        <p class="dashboard-tile-copy line-clamp-2">Track component volume, availability, and operating changes.</p>
-                                        <a class="dashboard-link" th:href="@{/admin/inventory}">Open monitoring</a>
-                                    </div>
-                                </div>
-
-                                <div class="card gap-sm dashboard-tile" data-search-item>
-                                    <div class="dashboard-tile-mark">RA</div>
-                                    <div>
-                                        <h3 class="dashboard-tile-title">Reports and Alerts</h3>
-                                        <p class="dashboard-tile-copy line-clamp-2">View summaries, warnings, and routine system reports.</p>
-                                        <a class="dashboard-link" th:href="@{/admin/reports}">Open reports</a>
-                                    </div>
-                                </div>
+                    <section class="card p-lg" data-search-item>
+                        <div class="flex flex-between flex-col-mobile gap-lg mb-lg">
+                            <div>
+                                <div class="section-subtitle mb-2">Inventory Overview</div>
+                                <h2 class="section-title">Blood Component Charts</h2>
+                                <p class="text-muted text-sm">
+                                    Live chart data generated from <code class="inventory-code-chip">blood_component</code> status and expiry timestamp records.
+                                </p>
                             </div>
-                        </article>
+                        </div>
 
-                        <article class="card flex-col gap-md">
-                            <div class="section-subtitle">System Snapshot</div>
-                            <h2 class="section-title dashboard-section-title">Operational Highlights</h2>
-                            <p class="dashboard-muted-copy">
-                                Key figures that deserve attention in the current dashboard cycle.
-                            </p>
-
-                            <div class="grid grid-2 gap-sm flex-1">
-                                <div class="card flex-col gap-sm dashboard-snapshot-tile" data-search-item>
+                        <div class="grid grid-2 gap-md">
+                            <article class="card p-lg">
+                                <div class="flex flex-between mb-md gap-sm">
                                     <div>
-                                        <strong class="dashboard-snapshot-title">Staff Accounts</strong>
-                                        <span class="dashboard-snapshot-copy line-clamp-2">Total active personnel currently registered.</span>
+                                        <h3 class="text-lg font-bold mb-1">Status Data</h3>
+                                        <p class="text-sm text-muted">Blood component units grouped by current status.</p>
                                     </div>
-                                    <div class="dashboard-metric-badge dashboard-metric-badge-primary" th:text="${stats.totalStaff}">0</div>
+                                    <span class="badge badge-primary" th:text="|${inventorySummary.totalComponents} units|">0 units</span>
                                 </div>
 
-                                <div class="card flex-col gap-sm dashboard-snapshot-tile" data-search-item>
-                                    <div>
-                                        <strong class="dashboard-snapshot-title">Registered Donors</strong>
-                                        <span class="dashboard-snapshot-copy line-clamp-2">Donor records available for medical and collection workflows.</span>
+                                <div class="form-grid form-grid-3 gap-sm mb-md">
+                                    <div class="form-group">
+                                        <label for="dashboard-status-component-filter" class="form-label">Filter</label>
+                                        <select id="dashboard-status-component-filter" class="form-select" data-status-component-filter>
+                                            <option value="all">All component types</option>
+                                            <option value="RBC">RBC</option>
+                                            <option value="PLASMA">Plasma</option>
+                                            <option value="PLATELET">Platelet</option>
+                                        </select>
                                     </div>
-                                    <div class="dashboard-metric-badge dashboard-metric-badge-primary" th:text="${stats.totalDonors}">0</div>
+                                    <div class="form-group">
+                                        <label for="dashboard-status-sort" class="form-label">Sort</label>
+                                        <select id="dashboard-status-sort" class="form-select" data-status-sort>
+                                            <option value="value_desc">Highest units</option>
+                                            <option value="value_asc">Lowest units</option>
+                                            <option value="name_asc">Status A-Z</option>
+                                            <option value="name_desc">Status Z-A</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group inventory-apply-control">
+                                        <button type="button" class="btn btn-primary" data-status-apply>Apply</button>
+                                    </div>
                                 </div>
 
-                                <div class="card flex-col gap-sm dashboard-snapshot-tile" data-search-item>
+                                <svg class="blood-component-chart" data-status-chart role="img" aria-label="Blood component status chart"></svg>
+                                <div class="chart-legend gap-sm mt-md flex flex-wrap" data-status-legend></div>
+                            </article>
+
+                            <article class="card p-lg">
+                                <div class="flex flex-between mb-md gap-sm">
                                     <div>
-                                        <strong class="dashboard-snapshot-title">Available Stock</strong>
-                                        <span class="dashboard-snapshot-copy line-clamp-2">Components currently ready for release and use.</span>
+                                        <h3 class="text-lg font-bold mb-1">Expiry Data</h3>
+                                        <p class="text-sm text-muted">Blood component units grouped by expiry date and status.</p>
                                     </div>
-                                    <div class="dashboard-metric-badge dashboard-metric-badge-success" th:text="${stats.availableComponents}">0</div>
+                                    <span class="badge badge-primary" th:text="|${inventorySummary.nearExpiryComponents} near|">0 near</span>
                                 </div>
 
-                                <div class="card flex-col gap-sm dashboard-snapshot-tile" data-search-item>
-                                    <div>
-                                        <strong class="dashboard-snapshot-title">Near Expiry Alert</strong>
-                                        <span class="dashboard-snapshot-copy line-clamp-2">Units that need attention within the next three days.</span>
+                                <div class="form-grid form-grid-3 gap-sm mb-md">
+                                    <div class="form-group">
+                                        <label for="dashboard-expiry-status-filter" class="form-label">Filter</label>
+                                        <select id="dashboard-expiry-status-filter" class="form-select" data-expiry-status-filter>
+                                            <option value="all">All statuses</option>
+                                            <option value="AVAILABLE">Available</option>
+                                            <option value="USED">Used</option>
+                                            <option value="RESERVED">Reserved</option>
+                                            <option value="EXPIRED">Expired</option>
+                                            <option value="QUARANTINED">Quarantined</option>
+                                            <option value="DISCARDED">Discarded</option>
+                                        </select>
                                     </div>
-                                    <div class="dashboard-metric-badge dashboard-metric-badge-danger" th:text="${stats.nearExpiryComponents}">0</div>
+                                    <div class="form-group">
+                                        <label for="dashboard-expiry-sort" class="form-label">Sort</label>
+                                        <select id="dashboard-expiry-sort" class="form-select" data-expiry-sort>
+                                            <option value="date_asc">Earliest expiry</option>
+                                            <option value="date_desc">Latest expiry</option>
+                                            <option value="value_desc">Highest units</option>
+                                            <option value="value_asc">Lowest units</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group inventory-apply-control">
+                                        <button type="button" class="btn btn-primary" data-expiry-apply>Apply</button>
+                                    </div>
                                 </div>
-                            </div>
-                        </article>
+
+                                <svg class="blood-component-chart" data-expiry-chart role="img" aria-label="Blood component expiry chart"></svg>
+                                <div class="chart-legend gap-sm mt-md flex flex-wrap" data-expiry-legend></div>
+                            </article>
+                        </div>
+
+                        <div class="chart-source-data" hidden>
+                            <span th:each="item : ${componentStatusList}"
+                                  data-status-row
+                                  th:data-component-type="${item.componentType}"
+                                  th:data-status="${item.status}"
+                                  th:data-total-units="${item.totalUnits}"></span>
+                            <span th:each="item : ${expiryChartData}"
+                                  data-expiry-row
+                                  th:data-expiry-date="${item.expiryDate}"
+                                  th:data-status="${item.status}"
+                                  th:data-total-units="${item.totalUnits}"></span>
+                        </div>
                     </section>
+
+                    <section class="card p-lg" data-search-item>
+                        <div class="flex flex-between flex-col-mobile gap-lg mb-lg">
+                            <div>
+                                <div class="section-subtitle mb-2">Expiry Alerts</div>
+                                <h2 class="section-title">Near Expiry Alerts</h2>
+                                <p class="text-muted text-sm">
+                                    Live results from <code class="inventory-code-chip">fn_report_near_expiry_alerts()</code>.
+                                </p>
+                            </div>
+                            <span class="badge badge-primary"
+                                  th:text="${nearExpiryAlerts == null ? '0 alerts' : #lists.size(nearExpiryAlerts) + ' alerts'}">0 alerts</span>
+                        </div>
+
+                        <div class="table-wrap">
+                            <table class="data-table">
+                                <thead>
+                                <tr>
+                                    <th>Component ID</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Expiry Time</th>
+                                    <th>Location ID</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:if="${nearExpiryAlerts == null or #lists.isEmpty(nearExpiryAlerts)}">
+                                    <td colspan="5">No near expiry alerts found.</td>
+                                </tr>
+                                <tr th:each="item : ${nearExpiryAlerts}">
+                                    <td th:text="${item.componentId}">1</td>
+                                    <td th:text="${item.componentType}">PLATELET</td>
+                                    <td>
+                                        <span class="status-pill"
+                                              th:classappend="${#strings.equalsIgnoreCase(item.status, 'AVAILABLE')} ? ' good' : (${#strings.equalsIgnoreCase(item.status, 'RESERVED')} ? ' warn' : ' bad')"
+                                              th:text="${item.status}">AVAILABLE</span>
+                                    </td>
+                                    <td th:text="${#dates.format(item.expiryTimestamp, 'yyyy-MM-dd HH:mm')}">2026-04-19 14:31</td>
+                                    <td th:text="${item.locationId}">1</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <section class="card p-lg" data-search-item>
+                        <div class="flex flex-between flex-col-mobile gap-lg mb-lg">
+                            <div>
+                                <div class="section-subtitle mb-2">System Activity</div>
+                                <h2 class="section-title">System Activity Notifications</h2>
+                                <p class="text-muted text-sm">
+                                    Latest 5 login, logout, insert, update, and delete records from staff using the system.
+                                </p>
+                            </div>
+                            <span class="badge badge-primary">Latest 5</span>
+                        </div>
+
+                        <div class="table-wrap">
+                            <table class="data-table">
+                                <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Module</th>
+                                    <th>Action</th>
+                                    <th>Staff</th>
+                                    <th>Source IP</th>
+                                    <th>Message</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:if="${activityNotifications == null or #lists.isEmpty(activityNotifications)}">
+                                    <td colspan="6">No system activity notifications recorded yet.</td>
+                                </tr>
+                                <tr th:each="item : ${activityNotifications}">
+                                    <td th:text="${#dates.format(item.createdAt, 'yyyy-MM-dd HH:mm')}">2026-04-26 15:40</td>
+                                    <td th:text="${item.moduleName}">Authentication</td>
+                                    <td>
+                                        <span class="status-pill"
+                                              th:classappend="${#strings.equalsIgnoreCase(item.actionType, 'LOGIN')} ? ' neutral' : (${#strings.equalsIgnoreCase(item.actionType, 'LOGOUT')} ? ' warn' : (${#strings.equalsIgnoreCase(item.actionType, 'DELETE')} ? ' bad' : ' good'))"
+                                              th:text="${item.actionType}">LOGIN</span>
+                                    </td>
+                                    <td>
+                                        <span th:text="${item.actorFullName != null ? item.actorFullName : 'Unknown staff'}">Staff Name</span>
+                                        <br>
+                                        <small th:if="${item.actorUsername != null}" th:text="${item.actorUsername}">username</small>
+                                    </td>
+                                    <td th:text="${item.sourceIp != null ? item.sourceIp : '-'}">127.0.0.1</td>
+                                    <td th:text="${item.message}">Logged in to the system.</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <div class="report-download-backdrop" data-report-download-modal aria-hidden="true">
+                        <form class="report-download-dialog"
+                              th:action="@{/admin/reports/download}"
+                              method="get"
+                              role="dialog"
+                              aria-modal="true"
+                              aria-labelledby="dashboard-report-download-title">
+                            <div class="download-dialog-header">
+                                <h2 id="dashboard-report-download-title">Download Report</h2>
+                                <button type="button" class="download-close" data-report-download-close aria-label="Close download dialog">&times;</button>
+                            </div>
+
+                            <div class="download-dialog-body">
+                                <div class="download-field">
+                                    <label for="dashboard-report-download-type">Report</label>
+                                    <select id="dashboard-report-download-type" name="type">
+                                        <option value="summary">Reports Summary</option>
+                                        <option value="available-stock">Available Stock by Type</option>
+                                        <option value="staff-roles">Staff Totals by Role</option>
+                                        <option value="near-expiry">Near Expiry Alerts</option>
+                                        <option value="activity">System Activity Notifications</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <div class="download-format-title">Format</div>
+                                    <div class="download-format-grid">
+                                        <label class="download-format-option">
+                                            <input type="radio" name="format" value="csv" checked
+                                                   aria-label="CSV format" title="CSV format">
+                                            <span class="download-format-card">
+                                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                                    <path d="M14 2v6h6"></path>
+                                                    <path d="M8 13h8"></path>
+                                                    <path d="M8 17h5"></path>
+                                                </svg>
+                                                CSV
+                                            </span>
+                                        </label>
+
+                                        <label class="download-format-option">
+                                            <input type="radio" name="format" value="excel"
+                                                   aria-label="Excel format" title="Excel format">
+                                            <span class="download-format-card">
+                                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                                    <path d="M3 3h18v18H3z"></path>
+                                                    <path d="M3 9h18"></path>
+                                                    <path d="M9 9v12"></path>
+                                                    <path d="m13 13 4 4"></path>
+                                                    <path d="m17 13-4 4"></path>
+                                                </svg>
+                                                Excel
+                                            </span>
+                                        </label>
+
+                                        <label class="download-format-option">
+                                            <input type="radio" name="format" value="pdf"
+                                                   aria-label="PDF format" title="PDF format">
+                                            <span class="download-format-card">
+                                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                                    <path d="M14 2v6h6"></path>
+                                                    <path d="M8 15h8"></path>
+                                                    <path d="M8 18h4"></path>
+                                                </svg>
+                                                PDF
+                                            </span>
+                                        </label>
+
+                                        <label class="download-format-option">
+                                            <input type="radio" name="format" value="html"
+                                                   aria-label="HTML format" title="HTML format">
+                                            <span class="download-format-card">
+                                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                                    <path d="M16 18l6-6-6-6"></path>
+                                                    <path d="M8 6l-6 6 6 6"></path>
+                                                </svg>
+                                                HTML
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="download-dialog-footer">
+                                <button type="button" class="download-footer-btn" data-report-download-close>Cancel</button>
+                                <button type="submit" class="download-footer-btn primary">Download</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
     </th:block>
 
@@ -343,6 +571,8 @@
     })();
 
 </script>
+<script th:src="@{/js/admin-report-actions.js}"></script>
+<script th:src="@{/js/inventory-component-charts.js}"></script>
     </th:block>
 
 </body>

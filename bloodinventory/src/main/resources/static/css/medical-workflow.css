@@ -274,7 +274,7 @@
     border: 1px solid #ef4444;
     border-radius: 12px;
     padding: 8px;
-    background: #fff5f6;
+    background: rgba(239, 68, 68, 0.08);
 }
 
 .check-chip {
@@ -424,6 +424,18 @@ body.theme-dark .empty-state {
     background: #122132;
     border-color: var(--border-strong);
     color: var(--text-strong);
+}
+
+body.theme-dark .choice-row.is-invalid,
+body.theme-dark .needs-validation.was-validated .choice-row.is-invalid {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(248, 113, 113, 0.9);
+}
+
+body.theme-dark .check-chip:has(input:checked) {
+    background: #163459;
+    border-color: #4f9cff;
+    color: #f8fbff;
 }
 
 body.theme-dark .secondary-btn {

@@ -2,7 +2,12 @@ package com.fyp.bloodinventory.controller;
 
 import com.fyp.bloodinventory.dto.AdminDashboardStats;
 import com.fyp.bloodinventory.dto.AvailableStockDto;
+import com.fyp.bloodinventory.dto.DashboardChartSegmentDto;
 import com.fyp.bloodinventory.dto.DeferralRuleRequest;
+import com.fyp.bloodinventory.dto.LabTestQueueDto;
+import com.fyp.bloodinventory.dto.MedicalComponentDto;
+import com.fyp.bloodinventory.dto.MedicalDashboardSummaryDto;
+import com.fyp.bloodinventory.dto.MedicalDonationDto;
 import com.fyp.bloodinventory.dto.NearExpiryComponentDto;
 import com.fyp.bloodinventory.dto.ReportsSummaryDto;
 import com.fyp.bloodinventory.dto.StaffRoleTotalDto;
@@ -35,10 +40,38 @@ import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.function.Function;
 
 @Controller
 public class DashboardController {
+
+    private static final Map<String, String> LAB_CHART_TONES = Map.ofEntries(
+            Map.entry("PASSED", "good"),
+            Map.entry("SAFE", "good"),
+            Map.entry("NEGATIVE", "good"),
+            Map.entry("MATCHED", "good"),
+            Map.entry("AVAILABLE", "good"),
+            Map.entry("FAILED", "bad"),
+            Map.entry("POSITIVE", "bad"),
+            Map.entry("NOT MATCHED", "bad"),
+            Map.entry("MISMATCHED", "bad"),
+            Map.entry("DISCARDED", "bad"),
+            Map.entry("QUARANTINED", "warn"),
+            Map.entry("PENDING", "warn"),
+            Map.entry("PENDING SCREENING", "warn"),
+            Map.entry("O+", "info"),
+            Map.entry("O-", "info"),
+            Map.entry("A+", "accent"),
+            Map.entry("A-", "accent"),
+            Map.entry("B+", "purple"),
+            Map.entry("B-", "purple"),
+            Map.entry("AB+", "good"),
+            Map.entry("AB-", "good")
+    );
 
     private final AdminDashboardService adminDashboardService;
     private final DeferralRuleService deferralRuleService;
@@ -75,6 +108,11 @@ public class DashboardController {
         AdminDashboardStats stats = adminDashboardService.getDashboardStats();
         model.addAttribute("stats", stats);
         model.addAttribute("summaryMetrics", adminDashboardService.getSummaryMetrics());
+        model.addAttribute("inventorySummary", inventoryMonitorService.getInventorySummary());
+        model.addAttribute("componentStatusList", inventoryMonitorService.getComponentStatusSummary());
+        model.addAttribute("expiryChartData", inventoryMonitorService.getExpiryChartData());
+        model.addAttribute("nearExpiryAlerts", reportsAlertService.getNearExpiryAlerts());
+        model.addAttribute("activityNotifications", notificationService.getRecentNotifications(5));
         return "admin-dashboard";
     }
 
@@ -320,12 +358,106 @@ public class DashboardController {
         return "medical-dashboard";
     }
 
+    @GetMapping(value = "/medical/dashboard", params = "download")
+    public ResponseEntity<byte[]> downloadMedicalDashboardReport(@RequestParam(value = "type", required = false) String type,
+                                                                 @RequestParam(value = "format", required = false) String format) {
+        String normalizedType = normalizeMedicalReportType(type);
+        String normalizedFormat = normalizeReportFormat(format);
+        ReportExport report = buildMedicalReportExport(normalizedType);
+        byte[] body = renderReport(report, normalizedFormat);
+        MediaType responseType = MediaType.parseMediaType(contentType(normalizedFormat));
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"medical-dashboard-" + normalizedType + "." + fileExtension(normalizedFormat) + "\"")
+                .contentType(responseType)
+                .body(body);
+    }
+
     @GetMapping("/lab/dashboard")
     public String labDashboard(Model model) {
+        List<LabTestQueueDto> pendingTests = labWorkflowService.getPendingTests();
+        List<LabTestQueueDto> labTests = labWorkflowService.getTestRecords();
+        List<LabTestQueueDto> recentLabTests = labTests.stream().limit(5).toList();
+        List<LabTestQueueDto> recentGraphSample = labTests.stream().limit(12).toList();
+        List<DashboardChartSegmentDto> pendingQueueGraph = buildLabDashboardSegments(
+                pendingTests,
+                LabTestQueueDto::getBloodGroup,
+                "Unknown group"
+        );
+        List<DashboardChartSegmentDto> recentTtiGraph = buildLabDashboardSegments(
+                recentGraphSample,
+                LabTestQueueDto::getTtiScreening,
+                "Unknown"
+        );
+        List<DashboardChartSegmentDto> recentMatchGraph = buildLabDashboardSegments(
+                recentGraphSample,
+                LabTestQueueDto::getBloodTypeMatch,
+                "Unknown"
+        );
+        List<DashboardChartSegmentDto> recentFinalGraph = buildLabDashboardSegments(
+                recentGraphSample,
+                LabTestQueueDto::getFinalStatus,
+                "Unknown"
+        );
+
         model.addAttribute("labSummary", labWorkflowService.getDashboardSummary());
-        model.addAttribute("pendingTests", labWorkflowService.getPendingTests().stream().limit(5).toList());
-        model.addAttribute("recentLabTests", labWorkflowService.getTestRecords().stream().limit(5).toList());
+        model.addAttribute("pendingTests", pendingTests.stream().limit(5).toList());
+        model.addAttribute("pendingTrendTests", pendingTests);
+        model.addAttribute("recentLabTests", recentLabTests);
+        model.addAttribute("recentLabTrendTests", recentGraphSample);
+        model.addAttribute("pendingQueueTotal", pendingTests.size());
+        model.addAttribute("pendingQueueGraph", pendingQueueGraph);
+        model.addAttribute("pendingQueueGraphMax", maxChartSegmentValue(pendingQueueGraph));
+        model.addAttribute("recentLabGraphTotal", recentGraphSample.size());
+        model.addAttribute("recentLabGraphMax", Math.max(1, recentGraphSample.size()));
+        model.addAttribute("recentTtiGraph", recentTtiGraph);
+        model.addAttribute("recentMatchGraph", recentMatchGraph);
+        model.addAttribute("recentFinalGraph", recentFinalGraph);
         return "lab-dashboard";
+    }
+
+    private List<DashboardChartSegmentDto> buildLabDashboardSegments(
+            List<LabTestQueueDto> rows,
+            Function<LabTestQueueDto, String> labelExtractor,
+            String fallbackLabel) {
+        Map<String, Long> counts = new LinkedHashMap<>();
+
+        for (LabTestQueueDto row : rows) {
+            String label = chartLabel(labelExtractor.apply(row), fallbackLabel);
+            counts.merge(label, 1L, Long::sum);
+        }
+
+        return counts.entrySet().stream()
+                .sorted((left, right) -> {
+                    int byValue = Long.compare(right.getValue(), left.getValue());
+                    return byValue != 0 ? byValue : left.getKey().compareToIgnoreCase(right.getKey());
+                })
+                .map(entry -> new DashboardChartSegmentDto(
+                        entry.getKey(),
+                        entry.getValue(),
+                        chartTone(entry.getKey())
+                ))
+                .toList();
+    }
+
+    private long maxChartSegmentValue(List<DashboardChartSegmentDto> segments) {
+        return segments.stream()
+                .mapToLong(DashboardChartSegmentDto::getValue)
+                .max()
+                .orElse(1L);
+    }
+
+    private String chartLabel(String value, String fallbackLabel) {
+        if (value == null || value.isBlank()) {
+            return fallbackLabel;
+        }
+
+        return value.trim().replace('_', ' ');
+    }
+
+    private String chartTone(String label) {
+        return LAB_CHART_TONES.getOrDefault(label.toUpperCase(Locale.ROOT), "neutral");
     }
 
     private String normalizeReportType(String type) {
@@ -335,6 +467,17 @@ public class DashboardController {
 
         return switch (type) {
             case "summary", "available-stock", "staff-roles", "near-expiry", "activity" -> type;
+            default -> "summary";
+        };
+    }
+
+    private String normalizeMedicalReportType(String type) {
+        if (type == null) {
+            return "summary";
+        }
+
+        return switch (type) {
+            case "summary", "collections", "ready-components" -> type;
             default -> "summary";
         };
     }
@@ -360,6 +503,18 @@ public class DashboardController {
         };
     }
 
+    private ReportExport buildMedicalReportExport(String type) {
+        return switch (type) {
+            case "collections" -> medicalCollectionsExport(medicalWorkflowService.getDonationSessions());
+            case "ready-components" -> medicalReadyComponentsExport(medicalWorkflowService.getTransfusionReadyComponents());
+            default -> medicalSummaryExport(
+                    medicalWorkflowService.getDashboardSummary(),
+                    medicalWorkflowService.getDonationSessions().size(),
+                    medicalWorkflowService.getTransfusionReadyComponents().size()
+            );
+        };
+    }
+
     private byte[] renderReport(ReportExport report, String format) {
         return switch (format) {
             case "html" -> utf8Bytes(reportHtml(report));
@@ -378,6 +533,21 @@ public class DashboardController {
         rows.add(row("Available Components", summary.getAvailableComponents()));
         rows.add(row("Near Expiry Components", summary.getNearExpiryComponents()));
         return new ReportExport("Reports Summary", List.of("Metric", "Value"), rows);
+    }
+
+    private ReportExport medicalSummaryExport(MedicalDashboardSummaryDto summary,
+                                              int collectionSessions,
+                                              int readyComponents) {
+        List<List<String>> rows = new ArrayList<>();
+        rows.add(row("Eligible Donors", summary.getEligibleDonors()));
+        rows.add(row("Deferred Donors", summary.getDeferredDonors()));
+        rows.add(row("Today Donations", summary.getTodayDonations()));
+        rows.add(row("Quarantined Units", summary.getQuarantinedComponents()));
+        rows.add(row("Collection Sessions", collectionSessions));
+        rows.add(row("Ready Matches", readyComponents));
+        rows.add(row("Available Components", summary.getAvailableComponents()));
+        rows.add(row("Transfusion Events", summary.getTransfusionEvents()));
+        return new ReportExport("Medical Dashboard Summary", List.of("Metric", "Value"), rows);
     }
 
     private ReportExport availableStockExport(List<AvailableStockDto> rows) {
@@ -429,6 +599,44 @@ public class DashboardController {
                                 row.getActorUsername(),
                                 row.getSourceIp(),
                                 row.getMessage()
+                        ))
+                        .toList()
+        );
+    }
+
+    private ReportExport medicalCollectionsExport(List<MedicalDonationDto> rows) {
+        return new ReportExport(
+                "Medical Collection Sessions",
+                List.of("Donation ID", "Collection Time", "Donor", "Blood Group", "Components", "Status", "Storage", "Staff"),
+                rows.stream()
+                        .map(row -> row(
+                                row.getDonationId(),
+                                formatTimestamp(row.getCollectionTimestamp()),
+                                row.getDonorName(),
+                                row.getBloodGroup(),
+                                row.getComponentCount(),
+                                row.getComponentStatuses(),
+                                row.getLocationDescription(),
+                                row.getStaffName()
+                        ))
+                        .toList()
+        );
+    }
+
+    private ReportExport medicalReadyComponentsExport(List<MedicalComponentDto> rows) {
+        return new ReportExport(
+                "Medical Ready Components",
+                List.of("Component ID", "Type", "Donor", "Blood Group", "Status", "Expiry Time", "Storage", "Match"),
+                rows.stream()
+                        .map(row -> row(
+                                row.getComponentId(),
+                                row.getComponentType(),
+                                row.getDonorName(),
+                                row.getDonorBloodGroup(),
+                                row.getStatus(),
+                                formatTimestamp(row.getExpiryTimestamp()),
+                                row.getLocationDescription(),
+                                row.getCompatibilityNote()
                         ))
                         .toList()
         );

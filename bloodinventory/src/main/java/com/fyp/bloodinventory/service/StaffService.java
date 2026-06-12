@@ -36,6 +36,7 @@ import java.util.Objects;
 public class StaffService {
 
     private static final String DEFAULT_PHOTO = "staff/default.png";
+    private static final String LEGACY_DEFAULT_PHOTO = "default.png";
     private static final DateTimeFormatter SESSION_TIMESTAMP_FORMAT =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -316,11 +317,7 @@ public class StaffService {
             profile.setStatusAccentClass("active");
         }
 
-        if (staff.getProfilePhoto() != null
-                && !staff.getProfilePhoto().isBlank()
-                && !DEFAULT_PHOTO.equals(staff.getProfilePhoto())) {
-            profile.setPhotoUrl("/" + staff.getProfilePhoto().replace("\\", "/"));
-        }
+        profile.setPhotoUrl(resolveProfilePhotoUrl(staff.getProfilePhoto()));
 
         if (staff.getStaffType() == StaffRole.BLOOD_ADMINISTRATOR) {
             profile.setStaffTypeLabel("Blood Administrator");
@@ -593,12 +590,35 @@ public class StaffService {
         return newFileName;
     }
 
+    private String resolveProfilePhotoUrl(String photoPath) {
+        String normalizedPhotoPath = trimToNull(photoPath);
+        if (normalizedPhotoPath == null || isDefaultProfilePhoto(normalizedPhotoPath)) {
+            return null;
+        }
+
+        String publicPath = normalizedPhotoPath.replace("\\", "/");
+        Path uploadRoot = Paths.get("uploads").toAbsolutePath().normalize();
+        Path uploadedPhoto = uploadRoot.resolve(publicPath).normalize();
+
+        if (!uploadedPhoto.startsWith(uploadRoot) || !Files.isRegularFile(uploadedPhoto)) {
+            return null;
+        }
+
+        return "/" + publicPath;
+    }
+
+    private boolean isDefaultProfilePhoto(String photoPath) {
+        String normalizedPhotoPath = photoPath.replace("\\", "/");
+        return DEFAULT_PHOTO.equals(normalizedPhotoPath) || LEGACY_DEFAULT_PHOTO.equals(normalizedPhotoPath);
+    }
+
     private void deleteProfilePhotoFile(String photoPath) {
-        if (photoPath == null || photoPath.isBlank() || DEFAULT_PHOTO.equals(photoPath)) {
+        String normalizedPhotoPath = trimToNull(photoPath);
+        if (normalizedPhotoPath == null || isDefaultProfilePhoto(normalizedPhotoPath)) {
             return;
         }
 
-        File oldFile = Paths.get("uploads").resolve(photoPath).toAbsolutePath().normalize().toFile();
+        File oldFile = Paths.get("uploads").resolve(normalizedPhotoPath).toAbsolutePath().normalize().toFile();
         if (oldFile.exists()) {
             oldFile.delete();
         }

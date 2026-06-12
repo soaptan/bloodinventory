@@ -8,6 +8,7 @@
     <title>Traceability</title>
     <th:block layout:fragment="custom-css">
     <link rel="stylesheet" th:href="@{/css/medical-workflow.css}">
+    <link rel="stylesheet" th:href="@{/css/lab-traceability.css}">
     </th:block>
 </head>
 <body>
@@ -26,66 +27,602 @@
 
     <th:block layout:fragment="content">
                 <div class="main-stack">
-                    <section class="page-intro page-card">
+                    <section class="page-intro page-card traceability-intro">
                         <div>
                             <div class="page-kicker">Traceability</div>
                             <h1>Component Movement Tracking</h1>
                             <p>Follow each blood unit from donation collection to lab review, storage, release, discard, or transfusion.</p>
                         </div>
+                        <div class="trace-report-actions" data-trace-report-actions th:if="${!#lists.isEmpty(traceabilityRecords)}">
+                            <button type="button"
+                                    class="trace-actions-button"
+                                    data-trace-report-actions-toggle
+                                    aria-haspopup="menu"
+                                    aria-expanded="false">
+                                Actions
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="m6 9 6 6 6-6"></path>
+                                </svg>
+                            </button>
+                            <div class="trace-actions-menu" data-trace-report-actions-menu role="menu">
+                                <button type="button" class="trace-action-item" data-save-traceability-report role="menuitem">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"></path>
+                                        <path d="M17 21v-8H7v8"></path>
+                                        <path d="M7 3v5h8"></path>
+                                    </svg>
+                                    Save Report
+                                </button>
+                                <button type="button" class="trace-action-item" data-download-traceability-report="csv" role="menuitem">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <path d="M7 10l5 5 5-5"></path>
+                                        <path d="M12 15V3"></path>
+                                    </svg>
+                                    Download CSV
+                                </button>
+                                <button type="button" class="trace-action-item" data-download-traceability-report="html" role="menuitem">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"></path>
+                                        <path d="M14 2v6h6"></path>
+                                        <path d="M16 13H8"></path>
+                                        <path d="M16 17H8"></path>
+                                        <path d="M10 9H8"></path>
+                                    </svg>
+                                    Download HTML
+                                </button>
+                                <button type="button" class="trace-action-item" data-print-traceability-report role="menuitem">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M6 9V2h12v7"></path>
+                                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                                        <path d="M6 14h12v8H6z"></path>
+                                    </svg>
+                                    Print
+                                </button>
+                            </div>
+                        </div>
                     </section>
 
-                    <section id="records" class="workflow-card page-card">
-                        <div class="section-title">
+                    <section class="trace-summary-grid" th:if="${!#lists.isEmpty(traceabilityRecords)}" aria-label="Traceability summary">
+                        <article class="trace-summary-card page-card">
+                            <span class="trace-summary-label">All Components</span>
+                            <strong th:text="${traceabilityTotal}">0</strong>
+                            <span th:text="${traceabilityTotal} + ' tracked unit records'">0 tracked unit records</span>
+                        </article>
+                        <article class="trace-summary-card page-card">
+                            <span class="trace-summary-label">Lab Linked</span>
+                            <strong th:text="${traceabilityLinkedLabTests}">0</strong>
+                            <span th:text="${'linked ' + traceabilityLabCoveragePercent + '% | unlinked ' + traceabilityUnlinkedLabTests}">linked 0%</span>
+                        </article>
+                        <article class="trace-summary-card page-card">
+                            <span class="trace-summary-label">Stored</span>
+                            <strong th:text="${traceabilityStoredRecords}">0</strong>
+                            <span th:text="${traceabilityStorageCoveragePercent} + '% have storage location'">0% have storage location</span>
+                        </article>
+                        <article class="trace-summary-card page-card">
+                            <span class="trace-summary-label">Final Movement</span>
+                            <strong th:text="${traceabilityFinalMovements}">0</strong>
+                            <span th:text="${traceabilityFinalCoveragePercent} + '% transfused or discarded'">0% transfused or discarded</span>
+                        </article>
+                        <article class="trace-summary-card page-card">
+                            <span class="trace-summary-label">Pending Screening</span>
+                            <strong th:text="${traceabilityPendingRecords}">0</strong>
+                            <span>needs lab review</span>
+                        </article>
+                    </section>
+
+                    <section class="trace-coverage-panel page-card" th:if="${!#lists.isEmpty(traceabilityRecords)}" aria-label="Traceability coverage">
+                        <div class="trace-coverage-row">
+                            <div>
+                                <strong>Lab test coverage</strong>
+                                <span th:text="${traceabilityLinkedLabTests + ' linked / ' + traceabilityUnlinkedLabTests + ' unlinked'}">0 linked</span>
+                            </div>
+                            <meter min="0" max="100" th:value="${traceabilityLabCoveragePercent}" aria-label="Lab test coverage percent">0</meter>
+                            <b th:text="${traceabilityLabCoveragePercent} + '%'">0%</b>
+                        </div>
+                        <div class="trace-coverage-row">
+                            <div>
+                                <strong>Storage coverage</strong>
+                                <span th:text="${traceabilityStoredRecords + ' located / ' + traceabilityMissingStorageRecords + ' missing location'}">0 located</span>
+                            </div>
+                            <meter min="0" max="100" th:value="${traceabilityStorageCoveragePercent}" aria-label="Storage coverage percent">0</meter>
+                            <b th:text="${traceabilityStorageCoveragePercent} + '%'">0%</b>
+                        </div>
+                        <div class="trace-coverage-row">
+                            <div>
+                                <strong>Final movement coverage</strong>
+                                <span th:text="${traceabilityFinalMovements + ' finalized / ' + traceabilityInProgressMovements + ' in progress'}">0 finalized</span>
+                            </div>
+                            <meter min="0" max="100" th:value="${traceabilityFinalCoveragePercent}" aria-label="Final movement coverage percent">0</meter>
+                            <b th:text="${traceabilityFinalCoveragePercent} + '%'">0%</b>
+                        </div>
+                    </section>
+
+                    <section id="records" class="workflow-card page-card traceability-records-card">
+                        <div class="section-title traceability-section-title">
                             <div>
                                 <h2>Traceability Records</h2>
                                 <p th:text="${#lists.size(traceabilityRecords)} + ' component lifecycle records'">0 component lifecycle records</p>
                             </div>
+                            <span class="trace-save-status" data-traceability-save-status hidden></span>
                         </div>
 
                         <div class="empty-state" th:if="${#lists.isEmpty(traceabilityRecords)}">No traceability records were found.</div>
 
-                        <div class="table-wrap" th:if="${!#lists.isEmpty(traceabilityRecords)}">
-                            <table class="data-table">
-                                <thead>
-                                <tr>
-                                    <th>Stage</th>
-                                    <th>Component</th>
-                                    <th>Type</th>
-                                    <th>Donation</th>
-                                    <th>Collection</th>
-                                    <th>Donor</th>
-                                    <th>Group</th>
-                                    <th>Lab Test</th>
-                                    <th>Lab Status</th>
-                                    <th>Storage</th>
-                                    <th>Patient</th>
-                                    <th>Transfusion</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                <tr th:each="record : ${traceabilityRecords}" data-search-item>
-                                    <td><span class="status-pill neutral" th:text="${record.lifecycleStage}">Pending screening</span></td>
-                                    <td th:text="${record.componentId}">1</td>
-                                    <td th:text="${record.componentType}">RBC</td>
-                                    <td th:text="${record.donationId}">1</td>
-                                    <td th:text="${record.collectionTimestamp != null ? #dates.format(record.collectionTimestamp, 'yyyy-MM-dd HH:mm') : '-'}">2026-07-01 08:00</td>
-                                    <td th:text="${record.donorName}">Donor Name</td>
-                                    <td th:text="${record.donorBloodGroup}">A+</td>
-                                    <td th:text="${record.testId != null ? record.testId : '-'}">1</td>
-                                    <td>
-                                        <span class="status-pill"
-                                              th:classappend="${#strings.equalsIgnoreCase(record.labFinalStatus, 'PASSED') or #strings.equalsIgnoreCase(record.labFinalStatus, 'SAFE')} ? ' good' : (${#strings.equalsIgnoreCase(record.labFinalStatus, 'FAILED') or #strings.equalsIgnoreCase(record.labFinalStatus, 'DISCARDED')} ? ' bad' : ' warn')"
-                                              th:text="${record.labFinalStatus != null ? record.labFinalStatus : 'QUARANTINED'}">QUARANTINED</span>
-                                    </td>
-                                    <td th:text="${record.locationDescription}">Storage</td>
-                                    <td th:text="${record.patientName != null ? record.patientName : '-'}">Patient</td>
-                                    <td th:text="${record.transfusionTimestamp != null ? #dates.format(record.transfusionTimestamp, 'yyyy-MM-dd HH:mm') : '-'}">2026-07-01 08:00</td>
-                                </tr>
-                                </tbody>
-                            </table>
+                        <div th:if="${!#lists.isEmpty(traceabilityRecords)}" class="table-controls traceability-controls" data-traceability-controls>
+                            <div class="form-group table-search-col">
+                                <label for="traceability-search" class="form-label">Search Records</label>
+                                <input id="traceability-search"
+                                       class="form-input"
+                                       type="search"
+                                       placeholder="Search component, donor, donation, storage, patient, or staff"
+                                       data-traceability-search>
+                            </div>
+
+                            <div class="form-group table-filter-col">
+                                <label for="traceability-stage-filter" class="form-label">Stage Filter</label>
+                                <select id="traceability-stage-filter" class="form-select" data-traceability-stage-filter>
+                                    <option value="all">All stages</option>
+                                    <option th:each="stage : ${traceabilityStages}" th:value="${stage}" th:text="${stage}">Released</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group table-filter-col">
+                                <label for="traceability-type-filter" class="form-label">Type Filter</label>
+                                <select id="traceability-type-filter" class="form-select" data-traceability-type-filter>
+                                    <option value="all">All types</option>
+                                    <option th:each="type : ${traceabilityTypes}" th:value="${type}" th:text="${type}">RBC</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group table-filter-col">
+                                <label for="traceability-lab-filter" class="form-label">Lab Filter</label>
+                                <select id="traceability-lab-filter" class="form-select" data-traceability-lab-filter>
+                                    <option value="all">All lab statuses</option>
+                                    <option value="QUARANTINED">QUARANTINED</option>
+                                    <option th:each="status : ${traceabilityLabStatuses}" th:value="${status}" th:text="${status}">PASSED</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group table-filter-col">
+                                <label for="traceability-group-filter" class="form-label">Blood Group</label>
+                                <select id="traceability-group-filter" class="form-select" data-traceability-group-filter>
+                                    <option value="all">All groups</option>
+                                    <option th:each="group : ${traceabilityBloodGroups}" th:value="${group}" th:text="${group}">A+</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group table-filter-col">
+                                <label for="traceability-sort" class="form-label">Sort By</label>
+                                <select id="traceability-sort" class="form-select" data-traceability-sort>
+                                    <option value="collection-desc">Newest Collection</option>
+                                    <option value="collection-asc">Oldest Collection</option>
+                                    <option value="component-desc">Component ID High-Low</option>
+                                    <option value="component-asc">Component ID Low-High</option>
+                                    <option value="donation-desc">Donation ID High-Low</option>
+                                    <option value="stage-asc">Stage A-Z</option>
+                                    <option value="type-asc">Type A-Z</option>
+                                    <option value="donor-asc">Donor A-Z</option>
+                                </select>
+                            </div>
+
+                            <button type="button" class="btn btn-secondary table-filter-reset" data-apply-traceability-filters>
+                                Apply Filters
+                            </button>
+
+                            <button type="button" class="btn btn-tertiary table-filter-reset" data-clear-traceability-filters>
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M3 12a9 9 0 1 0 3-6.7"></path>
+                                    <path d="M3 4v6h6"></path>
+                                </svg>
+                                Reset Filters
+                            </button>
+                        </div>
+
+                        <div th:if="${!#lists.isEmpty(traceabilityRecords)}" class="form-help table-results-summary" data-traceability-results-summary>
+                            Showing all traceability records.
+                        </div>
+
+                        <div class="traceability-matrix" th:if="${!#lists.isEmpty(traceabilityRecords)}" data-traceability-matrix>
+                            <div class="traceability-matrix-head" role="row">
+                                <span>Component</span>
+                                <span>Collection</span>
+                                <span>Lab Review</span>
+                                <span>Storage</span>
+                                <span>Final Event</span>
+                            </div>
+
+                            <article class="traceability-row"
+                                     th:each="record : ${traceabilityRecords}"
+                                     data-search-item
+                                     data-traceability-row
+                                     th:attr="data-component-id=${record.componentId},
+                                              data-donation-id=${record.donationId},
+                                              data-stage=${record.lifecycleStage},
+                                              data-type=${record.componentType},
+                                              data-component-status=${record.componentStatus},
+                                              data-lab-status=${record.labFinalStatus != null ? record.labFinalStatus : 'QUARANTINED'},
+                                              data-group=${record.donorBloodGroup},
+                                              data-collection=${record.collectionTimestamp != null ? #dates.format(record.collectionTimestamp, 'yyyyMMddHHmm') : '0'},
+                                              data-collection-label=${record.collectionTimestamp != null ? #dates.format(record.collectionTimestamp, 'yyyy-MM-dd HH:mm') : '-'},
+                                              data-test-id=${record.testId != null ? record.testId : '-'},
+                                              data-test-date=${record.testDate != null ? #dates.format(record.testDate, 'yyyyMMddHHmm') : '0'},
+                                              data-test-label=${record.testDate != null ? #dates.format(record.testDate, 'yyyy-MM-dd HH:mm') : '-'},
+                                              data-donor=${record.donorName},
+                                              data-storage=${record.locationDescription != null ? record.locationDescription : '-'},
+                                              data-patient=${record.patientName != null ? record.patientName : '-'},
+                                              data-transfusion-label=${record.transfusionTimestamp != null ? #dates.format(record.transfusionTimestamp, 'yyyy-MM-dd HH:mm') : '-'}">
+                                <div class="traceability-component-cell">
+                                    <span class="status-pill"
+                                          th:classappend="${#strings.equalsIgnoreCase(record.lifecycleStage, 'Discarded')} ? ' bad' : (${#strings.equalsIgnoreCase(record.lifecycleStage, 'Pending screening') or #strings.equalsIgnoreCase(record.lifecycleStage, 'Lab reviewed')} ? ' warn' : ' good')"
+                                          th:text="${record.lifecycleStage}">Released</span>
+                                    <strong th:text="${'Component #' + record.componentId}">Component #1</strong>
+                                    <span th:text="${record.componentType + ' | Donation #' + record.donationId + ' | ' + record.donorBloodGroup}">RBC | Donation #1 | A+</span>
+                                    <span th:text="${record.donorName}">Donor Name</span>
+                                </div>
+
+                                <div class="traceability-step-cell trace-step-active">
+                                    <span class="trace-step-marker" aria-hidden="true"></span>
+                                    <strong th:text="${'Donation #' + record.donationId}">Donation #1</strong>
+                                    <span th:text="${record.collectionTimestamp != null ? #dates.format(record.collectionTimestamp, 'yyyy-MM-dd HH:mm') : '-'}">2026-07-01 08:00</span>
+                                </div>
+
+                                <div class="traceability-step-cell"
+                                     th:classappend="${record.testId != null} ? ' trace-step-active' : ' trace-step-muted'">
+                                    <span class="trace-step-marker" aria-hidden="true"></span>
+                                    <strong th:text="${record.testId != null ? 'Lab test #' + record.testId : 'No lab test'}">Lab test #1</strong>
+                                    <span th:text="${record.testDate != null ? #dates.format(record.testDate, 'yyyy-MM-dd HH:mm') : 'Awaiting screening'}">Awaiting screening</span>
+                                    <span class="status-pill"
+                                          th:classappend="${#strings.equalsIgnoreCase(record.labFinalStatus, 'PASSED') or #strings.equalsIgnoreCase(record.labFinalStatus, 'SAFE')} ? ' good' : (${#strings.equalsIgnoreCase(record.labFinalStatus, 'FAILED') or #strings.equalsIgnoreCase(record.labFinalStatus, 'DISCARDED')} ? ' bad' : ' warn')"
+                                          th:text="${record.labFinalStatus != null ? record.labFinalStatus : 'QUARANTINED'}">QUARANTINED</span>
+                                </div>
+
+                                <div class="traceability-step-cell"
+                                     th:classappend="${record.locationDescription != null} ? ' trace-step-active' : ' trace-step-muted'">
+                                    <span class="trace-step-marker" aria-hidden="true"></span>
+                                    <strong th:text="${record.locationDescription != null ? record.locationDescription : 'No storage location'}">Storage</strong>
+                                    <span th:text="${record.componentStatus != null ? record.componentStatus : 'PENDING'}">AVAILABLE</span>
+                                </div>
+
+                                <div class="traceability-step-cell"
+                                     th:classappend="${record.transfusionTimestamp != null or #strings.equalsIgnoreCase(record.lifecycleStage, 'Discarded') or #strings.equalsIgnoreCase(record.lifecycleStage, 'Released') or #strings.equalsIgnoreCase(record.lifecycleStage, 'Transfused')} ? ' trace-step-active' : ' trace-step-muted'">
+                                    <span class="trace-step-marker" aria-hidden="true"></span>
+                                    <strong th:text="${record.patientName != null ? record.patientName : record.lifecycleStage}">Final Event</strong>
+                                    <span th:text="${record.transfusionTimestamp != null ? #dates.format(record.transfusionTimestamp, 'yyyy-MM-dd HH:mm') : (record.lifecycleStage != null ? record.lifecycleStage : '-')}">Released</span>
+                                    <span th:text="${record.transfusionStaffName != null ? record.transfusionStaffName : record.labStaffName}">Staff</span>
+                                </div>
+                            </article>
+
+                            <div class="traceability-empty-result" data-traceability-empty hidden>
+                                No traceability records match the selected filters.
+                            </div>
                         </div>
                     </section>
                 </div>
+    </th:block>
+
+    <th:block layout:fragment="custom-js">
+        <script>
+            (() => {
+                const matrix = document.querySelector("[data-traceability-matrix]");
+                if (!matrix) {
+                    return;
+                }
+
+                const rows = Array.from(matrix.querySelectorAll("[data-traceability-row]"));
+                if (!rows.length) {
+                    return;
+                }
+
+                const searchInput = document.querySelector("[data-traceability-search]");
+                const stageFilter = document.querySelector("[data-traceability-stage-filter]");
+                const typeFilter = document.querySelector("[data-traceability-type-filter]");
+                const labFilter = document.querySelector("[data-traceability-lab-filter]");
+                const groupFilter = document.querySelector("[data-traceability-group-filter]");
+                const sortSelect = document.querySelector("[data-traceability-sort]");
+                const applyButton = document.querySelector("[data-apply-traceability-filters]");
+                const clearButton = document.querySelector("[data-clear-traceability-filters]");
+                const saveButton = document.querySelector("[data-save-traceability-report]");
+                const printButton = document.querySelector("[data-print-traceability-report]");
+                const downloadButtons = Array.from(document.querySelectorAll("[data-download-traceability-report]"));
+                const reportActions = document.querySelector("[data-trace-report-actions]");
+                const reportActionsToggle = document.querySelector("[data-trace-report-actions-toggle]");
+                const resultsSummary = document.querySelector("[data-traceability-results-summary]");
+                const emptyResult = document.querySelector("[data-traceability-empty]");
+                const saveStatus = document.querySelector("[data-traceability-save-status]");
+                const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+
+                const rowData = (row) => ({
+                    element: row,
+                    componentId: Number(row.getAttribute("data-component-id") || "0"),
+                    donationId: Number(row.getAttribute("data-donation-id") || "0"),
+                    stage: row.getAttribute("data-stage") || "",
+                    type: row.getAttribute("data-type") || "",
+                    componentStatus: row.getAttribute("data-component-status") || "",
+                    labStatus: row.getAttribute("data-lab-status") || "QUARANTINED",
+                    group: row.getAttribute("data-group") || "",
+                    collection: Number(row.getAttribute("data-collection") || "0"),
+                    collectionLabel: row.getAttribute("data-collection-label") || "-",
+                    testId: row.getAttribute("data-test-id") || "-",
+                    testDate: Number(row.getAttribute("data-test-date") || "0"),
+                    testLabel: row.getAttribute("data-test-label") || "-",
+                    donor: row.getAttribute("data-donor") || "",
+                    storage: row.getAttribute("data-storage") || "-",
+                    patient: row.getAttribute("data-patient") || "-",
+                    transfusionLabel: row.getAttribute("data-transfusion-label") || "-"
+                });
+
+                const sortComparators = {
+                    "collection-desc": (left, right) => right.collection - left.collection || right.componentId - left.componentId,
+                    "collection-asc": (left, right) => left.collection - right.collection || left.componentId - right.componentId,
+                    "component-desc": (left, right) => right.componentId - left.componentId,
+                    "component-asc": (left, right) => left.componentId - right.componentId,
+                    "donation-desc": (left, right) => right.donationId - left.donationId || right.componentId - left.componentId,
+                    "stage-asc": (left, right) => collator.compare(left.stage, right.stage) || right.collection - left.collection,
+                    "type-asc": (left, right) => collator.compare(left.type, right.type) || right.collection - left.collection,
+                    "donor-asc": (left, right) => collator.compare(left.donor, right.donor) || right.collection - left.collection
+                };
+
+                const reportHeaders = [
+                    "Component ID",
+                    "Component Type",
+                    "Donation ID",
+                    "Collection",
+                    "Donor",
+                    "Blood Group",
+                    "Lifecycle Stage",
+                    "Component Status",
+                    "Lab Test",
+                    "Lab Status",
+                    "Storage",
+                    "Patient",
+                    "Transfusion"
+                ];
+
+                const visibleReportRows = () => rows
+                    .filter((row) => !row.hidden)
+                    .map(rowData);
+
+                const reportValues = (item) => [
+                    item.componentId,
+                    item.type,
+                    item.donationId,
+                    item.collectionLabel,
+                    item.donor,
+                    item.group,
+                    item.stage,
+                    item.componentStatus,
+                    item.testId,
+                    item.labStatus,
+                    item.storage,
+                    item.patient,
+                    item.transfusionLabel
+                ];
+
+                const csvValue = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+
+                const escapeHtml = (value) => String(value ?? "")
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;");
+
+                const downloadBlob = (content, type, filename) => {
+                    const blob = new Blob([content], { type });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement("a");
+                    link.href = url;
+                    link.download = filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    link.remove();
+                    URL.revokeObjectURL(url);
+                };
+
+                const timestampSlug = () => new Date()
+                    .toISOString()
+                    .replace(/[-:]/g, "")
+                    .replace(/\.\d{3}Z$/, "");
+
+                const buildCsvReport = (items) => [
+                    reportHeaders.map(csvValue).join(","),
+                    ...items.map((item) => reportValues(item).map(csvValue).join(","))
+                ].join("\n");
+
+                const buildHtmlReport = (items) => {
+                    const headerCells = reportHeaders.map((header) => `<th>${escapeHtml(header)}</th>`).join("");
+                    const bodyRows = items.map((item) => {
+                        const cells = reportValues(item).map((value) => `<td>${escapeHtml(value)}</td>`).join("");
+                        return `<tr>${cells}</tr>`;
+                    }).join("");
+
+                    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Traceability Report</title>
+<style>
+body{font-family:Arial,sans-serif;margin:24px;color:#172033}
+h1{font-size:24px;margin:0 0 8px}
+p{color:#5b6778}
+table{width:100%;border-collapse:collapse;margin-top:18px}
+th,td{border:1px solid #d7dee8;padding:8px 10px;text-align:left;font-size:12px}
+th{background:#edf2f8}
+</style>
+</head>
+<body>
+<h1>Traceability Report</h1>
+<p>${items.length} visible records exported from Blood Inventory Management System.</p>
+<table><thead><tr>${headerCells}</tr></thead><tbody>${bodyRows}</tbody></table>
+</body>
+</html>`;
+                };
+
+                const updateSaveStatus = (message) => {
+                    if (!saveStatus) {
+                        return;
+                    }
+
+                    saveStatus.textContent = message;
+                    saveStatus.hidden = false;
+                };
+
+                const closeReportActions = () => {
+                    reportActions?.classList.remove("open");
+                    reportActionsToggle?.setAttribute("aria-expanded", "false");
+                };
+
+                const applyTraceabilityControls = () => {
+                    const query = (searchInput?.value || "").trim().toLowerCase();
+                    const stageValue = stageFilter?.value || "all";
+                    const typeValue = typeFilter?.value || "all";
+                    const labValue = labFilter?.value || "all";
+                    const groupValue = groupFilter?.value || "all";
+                    const sortValue = sortSelect?.value || "collection-desc";
+
+                    const visibleRows = rows
+                        .filter((row) => {
+                            const details = rowData(row);
+                            const searchHaystack = [
+                                details.componentId,
+                                details.donationId,
+                                details.stage,
+                                details.type,
+                                details.componentStatus,
+                                details.labStatus,
+                                details.group,
+                                details.donor,
+                                details.storage,
+                                details.patient,
+                                details.testId
+                            ].join(" ").toLowerCase();
+
+                            const matchesQuery = !query || searchHaystack.includes(query);
+                            const matchesStage = stageValue === "all" || details.stage === stageValue;
+                            const matchesType = typeValue === "all" || details.type === typeValue;
+                            const matchesLab = labValue === "all" || details.labStatus === labValue;
+                            const matchesGroup = groupValue === "all" || details.group === groupValue;
+
+                            return matchesQuery && matchesStage && matchesType && matchesLab && matchesGroup;
+                        })
+                        .map(rowData)
+                        .sort(sortComparators[sortValue] || sortComparators["collection-desc"]);
+
+                    const visibleElements = new Set(visibleRows.map((item) => item.element));
+                    const fragment = document.createDocumentFragment();
+
+                    visibleRows.forEach((item) => {
+                        item.element.hidden = false;
+                        fragment.appendChild(item.element);
+                    });
+
+                    rows.forEach((row) => {
+                        if (visibleElements.has(row)) {
+                            return;
+                        }
+
+                        row.hidden = true;
+                        fragment.appendChild(row);
+                    });
+
+                    if (emptyResult) {
+                        emptyResult.hidden = visibleRows.length !== 0;
+                        fragment.appendChild(emptyResult);
+                    }
+
+                    matrix.appendChild(fragment);
+
+                    if (resultsSummary) {
+                        resultsSummary.textContent = visibleRows.length === rows.length
+                            ? `Showing all ${rows.length} traceability records.`
+                            : `Showing ${visibleRows.length} of ${rows.length} traceability records.`;
+                    }
+                };
+
+                const resetTraceabilityControls = () => {
+                    if (searchInput) {
+                        searchInput.value = "";
+                    }
+
+                    [stageFilter, typeFilter, labFilter, groupFilter].forEach((filter) => {
+                        if (filter) {
+                            filter.value = "all";
+                        }
+                    });
+
+                    if (sortSelect) {
+                        sortSelect.value = "collection-desc";
+                    }
+
+                    applyTraceabilityControls();
+                };
+
+                const downloadReport = (format) => {
+                    const items = visibleReportRows();
+                    const slug = timestampSlug();
+
+                    if (format === "html") {
+                        downloadBlob(buildHtmlReport(items), "text/html;charset=utf-8", `traceability-report-${slug}.html`);
+                        return;
+                    }
+
+                    downloadBlob(buildCsvReport(items), "text/csv;charset=utf-8", `traceability-report-${slug}.csv`);
+                };
+
+                searchInput?.addEventListener("input", applyTraceabilityControls);
+                stageFilter?.addEventListener("change", applyTraceabilityControls);
+                typeFilter?.addEventListener("change", applyTraceabilityControls);
+                labFilter?.addEventListener("change", applyTraceabilityControls);
+                groupFilter?.addEventListener("change", applyTraceabilityControls);
+                sortSelect?.addEventListener("change", applyTraceabilityControls);
+                applyButton?.addEventListener("click", applyTraceabilityControls);
+                clearButton?.addEventListener("click", resetTraceabilityControls);
+                reportActions?.addEventListener("click", (event) => event.stopPropagation());
+
+                reportActionsToggle?.addEventListener("click", () => {
+                    const isOpen = reportActions?.classList.toggle("open");
+                    reportActionsToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+                });
+
+                downloadButtons.forEach((button) => {
+                    button.addEventListener("click", () => {
+                        downloadReport(button.getAttribute("data-download-traceability-report"));
+                        closeReportActions();
+                    });
+                });
+
+                saveButton?.addEventListener("click", () => {
+                    const items = visibleReportRows();
+                    const savedAt = new Date().toLocaleString();
+                    try {
+                        localStorage.setItem("bloodInventoryTraceabilityReport", JSON.stringify({
+                            savedAt,
+                            total: items.length,
+                            rows: items.map((item) => Object.fromEntries(
+                                reportHeaders.map((header, index) => [header, reportValues(item)[index]])
+                            ))
+                        }));
+                        updateSaveStatus(`Saved ${items.length} visible records at ${savedAt}.`);
+                    } catch (error) {
+                        updateSaveStatus("Unable to save report in this browser.");
+                    }
+
+                    closeReportActions();
+                });
+
+                printButton?.addEventListener("click", () => {
+                    closeReportActions();
+                    window.print();
+                });
+                document.addEventListener("click", closeReportActions);
+                document.addEventListener("keydown", (event) => {
+                    if (event.key === "Escape") {
+                        closeReportActions();
+                    }
+                });
+                applyTraceabilityControls();
+            })();
+        </script>
     </th:block>
 
 </body>

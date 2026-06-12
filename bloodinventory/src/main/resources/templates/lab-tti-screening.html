@@ -79,6 +79,8 @@
                                                 <button type="button"
                                                         class="text-btn async-approve-btn"
                                                         data-approve-pending-test
+                                                        data-action-label="approve pending lab screening"
+                                                        data-action-confirm-text="Confirm Approval"
                                                         th:data-donation-id="${test.donationId}"
                                                         th:data-approve-url="@{/api/lab/approve/{donationId}(donationId=${test.donationId})}">
                                                     Approve Safe
@@ -105,7 +107,10 @@
                                 </div>
                             </div>
 
-                            <form th:action="@{/lab/tti-screening}" th:object="${screeningRequest}" method="post">
+                            <form th:action="@{/lab/tti-screening}" th:object="${screeningRequest}" method="post"
+                                  data-action-confirm
+                                  data-action-label="save screening result"
+                                  data-action-confirm-text="Confirm Save">
                                 <div class="form-grid">
                                     <div class="form-group full">
                                         <label for="donationId">Donation</label>
@@ -150,6 +155,66 @@
                             </div>
                         </div>
                         <div class="empty-state" th:if="${#lists.isEmpty(testRecords)}">No lab test records have been saved.</div>
+                        <div th:if="${!#lists.isEmpty(testRecords)}" class="table-controls" data-screening-history-controls>
+                            <div class="form-group table-search-col">
+                                <label for="screening-history-search" class="form-label">Search History</label>
+                                <input id="screening-history-search"
+                                       class="form-input"
+                                       type="search"
+                                       placeholder="Search by test, donation, donor, or staff"
+                                       data-screening-history-search>
+                            </div>
+
+                            <div class="form-group table-filter-col">
+                                <label for="screening-tti-filter" class="form-label">TTI Filter</label>
+                                <select id="screening-tti-filter" class="form-select" data-screening-tti-filter>
+                                    <option value="all">All TTI results</option>
+                                    <option th:each="result : ${ttiResults}" th:value="${result}" th:text="${result}">NEGATIVE</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group table-filter-col">
+                                <label for="screening-match-filter" class="form-label">Match Filter</label>
+                                <select id="screening-match-filter" class="form-select" data-screening-match-filter>
+                                    <option value="all">All matches</option>
+                                    <option th:each="result : ${bloodTypeResults}" th:value="${result}" th:text="${result}">MATCHED</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group table-filter-col">
+                                <label for="screening-final-filter" class="form-label">Final Filter</label>
+                                <select id="screening-final-filter" class="form-select" data-screening-final-filter>
+                                    <option value="all">All final statuses</option>
+                                    <option th:each="status : ${finalStatuses}" th:value="${status}" th:text="${status}">PASSED</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group table-filter-col">
+                                <label for="screening-history-sort" class="form-label">Sort By</label>
+                                <select id="screening-history-sort" class="form-select" data-screening-history-sort>
+                                    <option value="date-desc">Newest Test</option>
+                                    <option value="date-asc">Oldest Test</option>
+                                    <option value="test-desc">Test ID High-Low</option>
+                                    <option value="test-asc">Test ID Low-High</option>
+                                    <option value="donation-desc">Donation ID High-Low</option>
+                                    <option value="donor-asc">Donor A-Z</option>
+                                    <option value="final-asc">Final Status</option>
+                                    <option value="staff-asc">Staff A-Z</option>
+                                </select>
+                            </div>
+
+                            <button type="button" class="btn btn-tertiary table-filter-reset" data-clear-screening-history-filters>
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M3 12a9 9 0 1 0 3-6.7"></path>
+                                    <path d="M3 4v6h6"></path>
+                                </svg>
+                                Reset Filters
+                            </button>
+                        </div>
+
+                        <div th:if="${!#lists.isEmpty(testRecords)}" class="form-help table-results-summary" data-screening-history-results-summary>
+                            Showing all screening results.
+                        </div>
                         <div class="table-wrap" th:if="${!#lists.isEmpty(testRecords)}">
                             <table class="data-table">
                                 <thead>
@@ -165,8 +230,18 @@
                                     <th id="delete">Operations</th>
                                 </tr>
                                 </thead>
-                                <tbody>
-                                <tr th:each="test : ${testRecords}" data-search-item>
+                                <tbody data-screening-history-table-body>
+                                <tr th:each="test : ${testRecords}"
+                                    data-search-item
+                                    data-screening-history-row
+                                    th:attr="data-test-id=${test.testId},
+                                             data-test-date=${test.testDate != null ? #dates.format(test.testDate, 'yyyyMMddHHmm') : '0'},
+                                             data-donation-id=${test.donationId},
+                                             data-donor=${test.donorName},
+                                             data-tti=${test.ttiScreening},
+                                             data-blood-match=${test.bloodTypeMatch},
+                                             data-final-status=${test.finalStatus},
+                                             data-staff=${test.staffName}">
                                     <td th:text="${test.testId}">1</td>
                                     <td th:text="${test.testDate != null ? #dates.format(test.testDate, 'yyyy-MM-dd HH:mm') : '-'}">2026-07-01 08:00</td>
                                     <td th:text="${test.donationId}">1</td>
@@ -176,7 +251,10 @@
                                     <td><span class="status-pill" th:classappend="${#strings.equalsIgnoreCase(test.finalStatus, 'PASSED') or #strings.equalsIgnoreCase(test.finalStatus, 'SAFE')} ? ' good' : (${#strings.equalsIgnoreCase(test.finalStatus, 'FAILED') or #strings.equalsIgnoreCase(test.finalStatus, 'DISCARDED')} ? ' bad' : ' warn')" th:text="${test.finalStatus}">PASSED</span></td>
                                     <td th:text="${test.staffName}">Staff Name</td>
                                     <td>
-                                        <form class="button-row" th:action="@{/lab/tti-screening}" method="post">
+                                        <form class="button-row" th:action="@{/lab/tti-screening}" method="post"
+                                              data-action-confirm
+                                              data-action-label="update screening result"
+                                              data-action-confirm-text="Confirm Update">
                                             <input type="hidden" name="donationId" th:value="${test.donationId}">
                                             <select name="ttiScreening" required
                                                     aria-label="TTI screening result" title="TTI screening result">
@@ -201,11 +279,17 @@
                                             </select>
                                             <button type="submit" class="secondary-btn">Update</button>
                                         </form>
-                                        <form class="compact-form" th:action="@{/lab/tti-screening/delete}" method="post">
+                                        <form class="compact-form" th:action="@{/lab/tti-screening/delete}" method="post"
+                                              data-action-confirm
+                                              data-action-label="delete screening result"
+                                              data-action-variant="danger">
                                             <input type="hidden" name="testId" th:value="${test.testId}">
                                             <button type="submit" class="danger-btn btn-sm">Delete</button>
                                         </form>
                                     </td>
+                                </tr>
+                                <tr data-screening-history-empty hidden>
+                                    <td colspan="9">No screening results match the selected filters.</td>
                                 </tr>
                                 </tbody>
                             </table>
@@ -236,6 +320,67 @@
                     if (window.Swal) {
                         window.Swal.fire({ icon, title: translatedTitle, timer: 3000, showConfirmButton: false });
                     }
+                };
+
+                const confirmAsyncAction = async (action) => {
+                    if (!window.Swal) {
+                        return window.confirm(translate(action.message))
+                            && window.confirm(translate(action.finalMessage));
+                    }
+
+                    const firstConfirmed = await window.Swal.fire({
+                        title: translate("Confirm action"),
+                        text: translate(action.message),
+                        icon: action.variant === "danger" ? "warning" : "question",
+                        showCancelButton: true,
+                        confirmButtonText: translate("Continue"),
+                        cancelButtonText: translate("Cancel"),
+                        reverseButtons: true,
+                        focusCancel: true
+                    }).then((result) => result.isConfirmed);
+
+                    if (!firstConfirmed) {
+                        return false;
+                    }
+
+                    return window.Swal.fire({
+                        title: translate("Final confirmation"),
+                        text: translate(action.finalMessage),
+                        icon: action.variant === "danger" ? "warning" : "info",
+                        showCancelButton: true,
+                        confirmButtonText: translate(action.confirmButtonText),
+                        cancelButtonText: translate("Cancel"),
+                        reverseButtons: true,
+                        focusCancel: true
+                    }).then((result) => result.isConfirmed);
+                };
+
+                const showRedoAction = (redo) => {
+                    if (!window.Swal) {
+                        return;
+                    }
+
+                    window.Swal.fire({
+                        toast: true,
+                        position: "top-end",
+                        icon: "info",
+                        title: translate("Action cancelled"),
+                        text: translate("Use Redo to start the confirmation again."),
+                        showConfirmButton: true,
+                        confirmButtonText: translate("Redo"),
+                        showCancelButton: true,
+                        cancelButtonText: translate("Dismiss"),
+                        timer: 7000,
+                        timerProgressBar: true,
+                        didOpen: (element) => {
+                            element.addEventListener("mouseenter", window.Swal.stopTimer);
+                            element.addEventListener("mouseleave", window.Swal.resumeTimer);
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            redo();
+                        }
+                    });
                 };
 
                 const pendingRows = () => Array.from(document.querySelectorAll("[data-pending-row]"));
@@ -318,6 +463,36 @@
                     }
                 };
 
+                const confirmApprovePendingTest = async (button) => {
+                    if (!(button instanceof HTMLButtonElement) || button.dataset.actionConfirming === "true") {
+                        return;
+                    }
+
+                    button.dataset.actionConfirming = "true";
+                    const label = button.dataset.actionLabel || "approve pending lab screening";
+                    try {
+                        const confirmed = await confirmAsyncAction({
+                            variant: "warning",
+                            message: `Please confirm before you ${label}.`,
+                            finalMessage: `This will ${label} and update system records. Continue?`,
+                            confirmButtonText: button.dataset.actionConfirmText || "Confirm Approval"
+                        });
+
+                        if (!confirmed) {
+                            showRedoAction(() => {
+                                if (button.isConnected && !button.disabled) {
+                                    confirmApprovePendingTest(button);
+                                }
+                            });
+                            return;
+                        }
+
+                        approvePendingTest(button);
+                    } finally {
+                        delete button.dataset.actionConfirming;
+                    }
+                };
+
                 document.querySelectorAll("[data-select-pending-donation]").forEach((button) => {
                     button.addEventListener("click", () => {
                         if (donationSelect) {
@@ -330,9 +505,147 @@
                 });
 
                 document.querySelectorAll("[data-approve-pending-test]").forEach((button) => {
-                    button.addEventListener("click", () => approvePendingTest(button));
+                    button.addEventListener("click", () => confirmApprovePendingTest(button));
                 });
 
+                const initScreeningHistoryControls = () => {
+                    const tableBody = document.querySelector("[data-screening-history-table-body]");
+                    if (!tableBody) {
+                        return;
+                    }
+
+                    const rows = Array.from(tableBody.querySelectorAll("[data-screening-history-row]"));
+                    if (!rows.length) {
+                        return;
+                    }
+
+                    const searchInput = document.querySelector("[data-screening-history-search]");
+                    const ttiFilter = document.querySelector("[data-screening-tti-filter]");
+                    const matchFilter = document.querySelector("[data-screening-match-filter]");
+                    const finalFilter = document.querySelector("[data-screening-final-filter]");
+                    const sortSelect = document.querySelector("[data-screening-history-sort]");
+                    const clearButton = document.querySelector("[data-clear-screening-history-filters]");
+                    const emptyRow = document.querySelector("[data-screening-history-empty]");
+                    const resultsSummary = document.querySelector("[data-screening-history-results-summary]");
+                    const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+
+                    const rowData = (row) => ({
+                        element: row,
+                        testId: Number(row.getAttribute("data-test-id") || "0"),
+                        testDate: Number(row.getAttribute("data-test-date") || "0"),
+                        donationId: Number(row.getAttribute("data-donation-id") || "0"),
+                        donor: row.getAttribute("data-donor") || "",
+                        tti: row.getAttribute("data-tti") || "",
+                        bloodMatch: row.getAttribute("data-blood-match") || "",
+                        finalStatus: row.getAttribute("data-final-status") || "",
+                        staff: row.getAttribute("data-staff") || ""
+                    });
+
+                    const sortComparators = {
+                        "date-desc": (left, right) => right.testDate - left.testDate || right.testId - left.testId,
+                        "date-asc": (left, right) => left.testDate - right.testDate || left.testId - right.testId,
+                        "test-desc": (left, right) => right.testId - left.testId,
+                        "test-asc": (left, right) => left.testId - right.testId,
+                        "donation-desc": (left, right) => right.donationId - left.donationId || right.testDate - left.testDate,
+                        "donor-asc": (left, right) => collator.compare(left.donor, right.donor) || right.testDate - left.testDate,
+                        "final-asc": (left, right) => collator.compare(left.finalStatus, right.finalStatus) || right.testDate - left.testDate,
+                        "staff-asc": (left, right) => collator.compare(left.staff, right.staff) || right.testDate - left.testDate
+                    };
+
+                    const applyHistoryControls = () => {
+                        const query = (searchInput?.value || "").trim().toLowerCase();
+                        const ttiValue = ttiFilter?.value || "all";
+                        const matchValue = matchFilter?.value || "all";
+                        const finalValue = finalFilter?.value || "all";
+                        const sortValue = sortSelect?.value || "date-desc";
+
+                        const visibleRows = rows
+                            .filter((row) => {
+                                const details = rowData(row);
+                                const searchHaystack = [
+                                    details.testId,
+                                    details.donationId,
+                                    details.donor,
+                                    details.tti,
+                                    details.bloodMatch,
+                                    details.finalStatus,
+                                    details.staff
+                                ].join(" ").toLowerCase();
+
+                                const matchesQuery = !query || searchHaystack.includes(query);
+                                const matchesTti = ttiValue === "all" || details.tti === ttiValue;
+                                const matchesBloodMatch = matchValue === "all" || details.bloodMatch === matchValue;
+                                const matchesFinal = finalValue === "all" || details.finalStatus === finalValue;
+
+                                return matchesQuery && matchesTti && matchesBloodMatch && matchesFinal;
+                            })
+                            .map(rowData)
+                            .sort(sortComparators[sortValue] || sortComparators["date-desc"]);
+
+                        const visibleElements = new Set(visibleRows.map((item) => item.element));
+                        const fragment = document.createDocumentFragment();
+
+                        visibleRows.forEach((item) => {
+                            item.element.hidden = false;
+                            fragment.appendChild(item.element);
+                        });
+
+                        rows.forEach((row) => {
+                            if (visibleElements.has(row)) {
+                                return;
+                            }
+
+                            row.hidden = true;
+                            fragment.appendChild(row);
+                        });
+
+                        if (emptyRow) {
+                            emptyRow.hidden = visibleRows.length !== 0;
+                            fragment.appendChild(emptyRow);
+                        }
+
+                        tableBody.appendChild(fragment);
+
+                        if (resultsSummary) {
+                            resultsSummary.textContent = visibleRows.length === rows.length
+                                ? `Showing all ${rows.length} screening results.`
+                                : `Showing ${visibleRows.length} of ${rows.length} screening results.`;
+                        }
+                    };
+
+                    searchInput?.addEventListener("input", applyHistoryControls);
+                    ttiFilter?.addEventListener("change", applyHistoryControls);
+                    matchFilter?.addEventListener("change", applyHistoryControls);
+                    finalFilter?.addEventListener("change", applyHistoryControls);
+                    sortSelect?.addEventListener("change", applyHistoryControls);
+                    clearButton?.addEventListener("click", () => {
+                        if (searchInput) {
+                            searchInput.value = "";
+                        }
+
+                        if (ttiFilter) {
+                            ttiFilter.value = "all";
+                        }
+
+                        if (matchFilter) {
+                            matchFilter.value = "all";
+                        }
+
+                        if (finalFilter) {
+                            finalFilter.value = "all";
+                        }
+
+                        if (sortSelect) {
+                            sortSelect.value = "date-desc";
+                        }
+
+                        applyHistoryControls();
+                    });
+
+                    applyHistoryControls();
+                };
+
+                initScreeningHistoryControls();
                 updatePendingCount();
             })();
         </script>

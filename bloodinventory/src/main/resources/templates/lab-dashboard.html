@@ -26,118 +26,438 @@
     </th:block>
 
     <th:block layout:fragment="content">
-                <div class="main-stack">
-                    <section class="hero-card page-card">
-                        <div class="eyebrow">Dashboard</div>
-                        <h1>Lab Technician Dashboard</h1>
-                        <p>Monitor pending tests, validate screening outcomes, and keep blood component traceability records organized.</p>
+                <div class="main-stack lab-dashboard-stack">
+                    <section class="lab-kpi-grid" aria-label="Lab dashboard summary">
+                        <article class="lab-kpi-card lab-kpi-blue" data-search-item>
+                            <div class="lab-kpi-main">
+                                <strong th:text="${labSummary.pendingTests + labSummary.completedTests}">0</strong>
+                                <span>Total Tests</span>
+                            </div>
+                            <svg class="lab-kpi-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <path d="M4 19h16v2H4v-2Zm2-2h3V7H6v10Zm5 0h3V3h-3v14Zm5 0h3v-7h-3v7Z"></path>
+                            </svg>
+                            <a class="lab-kpi-link" th:href="@{/lab/tti-screening}">More info <span aria-hidden="true">&gt;</span></a>
+                        </article>
+
+                        <article class="lab-kpi-card lab-kpi-green" data-search-item>
+                            <div class="lab-kpi-main">
+                                <strong th:text="${labSummary.pendingTests}">0</strong>
+                                <span>Pending Tests</span>
+                            </div>
+                            <svg class="lab-kpi-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <path d="M4 6h12v2H4V6Zm0 5h16v2H4v-2Zm0 5h10v2H4v-2Zm14-9a3 3 0 1 1 0 6 3 3 0 0 1 0-6Z"></path>
+                            </svg>
+                            <a class="lab-kpi-link" th:href="@{/lab/tti-screening#queue}">More info <span aria-hidden="true">&gt;</span></a>
+                        </article>
+
+                        <article class="lab-kpi-card lab-kpi-red" data-search-item>
+                            <div class="lab-kpi-main">
+                                <strong th:text="${labSummary.completedTests}">0</strong>
+                                <span>Completed Tests</span>
+                            </div>
+                            <svg class="lab-kpi-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <path d="m9 16.2-3.5-3.5L4 14.2 9 19l11-11-1.5-1.5L9 16.2Z"></path>
+                            </svg>
+                            <a class="lab-kpi-link" th:href="@{/lab/tti-screening}">More info <span aria-hidden="true">&gt;</span></a>
+                        </article>
+
+                        <article class="lab-kpi-card lab-kpi-purple" data-search-item>
+                            <div class="lab-kpi-main">
+                                <strong th:text="${labSummary.safeComponents}">0</strong>
+                                <span>Safe Components</span>
+                            </div>
+                            <svg class="lab-kpi-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <path d="M12 2 4 5v6c0 5.1 3.4 9.9 8 11 4.6-1.1 8-5.9 8-11V5l-8-3Zm-1 14-3.2-3.2 1.4-1.4 1.8 1.8 4.8-4.8 1.4 1.4L11 16Z"></path>
+                            </svg>
+                            <a class="lab-kpi-link" th:href="@{/lab/component-status}">More info <span aria-hidden="true">&gt;</span></a>
+                        </article>
                     </section>
 
-                    <section class="medical-stat-grid">
-                        <article class="medical-stat-card page-card" data-search-item>
-                            <div class="medical-stat-label">Pending Tests</div>
-                            <div class="medical-stat-value" th:text="${labSummary.pendingTests}">0</div>
-                        </article>
-                        <article class="medical-stat-card page-card" data-search-item>
-                            <div class="medical-stat-label">Completed Tests</div>
-                            <div class="medical-stat-value" th:text="${labSummary.completedTests}">0</div>
-                        </article>
-                        <article class="medical-stat-card page-card" data-search-item>
-                            <div class="medical-stat-label">Safe Components</div>
-                            <div class="medical-stat-value" th:text="${labSummary.safeComponents}">0</div>
-                        </article>
-                        <article class="medical-stat-card page-card" data-search-item>
-                            <div class="medical-stat-label">Discarded Components</div>
-                            <div class="medical-stat-value" th:text="${labSummary.discardedComponents}">0</div>
-                        </article>
-                    </section>
+                    <section class="lab-dashboard-report page-card" data-search-item>
+                        <div class="lab-board-toolbar">
+                            <div>
+                                <div class="eyebrow">Dashboard</div>
+                                <h1>Lab Workflow Summary</h1>
+                                <p>Monitor pending tests, result trends, and component release readiness from one board.</p>
+                            </div>
+                            <div class="lab-report-actions">
+                                <a th:href="@{/lab/tti-screening#queue}">Open queue</a>
+                                <a th:href="@{/lab/tti-screening}">Open results</a>
+                            </div>
+                        </div>
 
-                    <section class="workflow-grid">
-                        <article class="workflow-card page-card" data-search-item>
-                            <h2>TTI Screening Queue</h2>
-                            <p>Review pending laboratory samples, approve clear donations, and record detailed screening outcomes.</p>
-                            <a th:href="@{/lab/tti-screening#queue}">Open screening queue</a>
-                        </article>
-
-                        <article class="workflow-card page-card" data-search-item>
-                            <h2>Component Status</h2>
-                            <p>Update validation results, quarantine states, and release readiness for blood components.</p>
-                            <a th:href="@{/lab/component-status}">Open component status</a>
-                        </article>
-
-                        <article class="workflow-card page-card" data-search-item>
-                            <h2>Traceability</h2>
-                            <p>Track blood unit movement from testing through storage and final downstream usage.</p>
-                            <a th:href="@{/lab/traceability}">Open traceability</a>
-                        </article>
-                    </section>
-
-                    <section class="two-column-grid">
-                        <article class="workflow-card page-card" data-search-item>
-                            <div class="section-title">
-                                <div>
-                                    <h2>Pending Queue</h2>
-                                    <p th:text="${#lists.size(pendingTests)} + ' samples awaiting screening'">0 samples awaiting screening</p>
+                        <div class="lab-board-grid">
+                            <article class="lab-board-panel">
+                                <header class="lab-board-panel-header">
+                                    <span>This Month (Lab)</span>
+                                    <strong>Queue and completed trend</strong>
+                                </header>
+                                <div class="empty-state" th:if="${#lists.isEmpty(pendingTrendTests) and #lists.isEmpty(recentLabTrendTests)}">No lab workflow trend data is available.</div>
+                                <div class="lab-chart-frame" th:if="${!#lists.isEmpty(pendingTrendTests) or !#lists.isEmpty(recentLabTrendTests)}">
+                                    <svg class="lab-line-chart" data-lab-trend-chart role="img" aria-label="Pending and completed lab trend"></svg>
+                                    <div class="lab-chart-legend" data-lab-trend-legend></div>
+                                    <div hidden>
+                                        <span th:each="test : ${pendingTrendTests}"
+                                              th:if="${test.collectionTimestamp != null}"
+                                              data-lab-trend-source
+                                              data-series="Pending"
+                                              th:attr="data-label=${#dates.format(test.collectionTimestamp, 'dd MMM')}, data-key=${#dates.format(test.collectionTimestamp, 'yyyyMMdd')}"></span>
+                                        <span th:each="test : ${recentLabTrendTests}"
+                                              th:if="${test.testDate != null}"
+                                              data-lab-trend-source
+                                              data-series="Completed"
+                                              th:attr="data-label=${#dates.format(test.testDate, 'dd MMM')}, data-key=${#dates.format(test.testDate, 'yyyyMMdd')}"></span>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="empty-state" th:if="${#lists.isEmpty(pendingTests)}">No donations are waiting for lab screening.</div>
-                            <div class="table-wrap" th:if="${!#lists.isEmpty(pendingTests)}">
-                                <table class="data-table">
-                                    <thead>
-                                    <tr>
-                                        <th>Donation</th>
-                                        <th>Donor</th>
-                                        <th>Group</th>
-                                        <th>Components</th>
-                                        <th>Status</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-                                    <tr th:each="test : ${pendingTests}">
-                                        <td th:text="${test.donationId}">1</td>
-                                        <td th:text="${test.donorName}">Donor</td>
-                                        <td><span class="status-pill neutral" th:text="${test.bloodGroup}">A+</span></td>
-                                        <td th:text="${test.componentTypes}">RBC</td>
-                                        <td><span class="status-pill warn" th:text="${test.finalStatus}">PENDING</span></td>
-                                    </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </article>
+                            </article>
 
-                        <article class="workflow-card page-card" data-search-item>
-                            <div class="section-title">
-                                <div>
-                                    <h2>Recent Lab Results</h2>
-                                    <p th:text="${#lists.size(recentLabTests)} + ' latest records'">0 latest records</p>
+                            <article class="lab-board-panel">
+                                <header class="lab-board-panel-header">
+                                    <span>This Year (Results)</span>
+                                    <strong>Recent lab outcomes</strong>
+                                </header>
+                                <div class="empty-state" th:if="${#lists.isEmpty(recentLabTests)}">No lab screening records have been saved yet.</div>
+                                <div class="lab-chart-frame" th:if="${recentLabGraphTotal > 0}">
+                                    <svg class="lab-bar-chart" data-lab-results-chart role="img" aria-label="Recent lab outcome bar chart"></svg>
+                                    <div class="lab-chart-legend" data-lab-results-legend></div>
+                                    <div hidden>
+                                        <span th:each="segment : ${recentTtiGraph}"
+                                              data-lab-result-source
+                                              data-series="TTI"
+                                              th:attr="data-label=${segment.label}, data-value=${segment.value}, data-tone=${segment.tone}"></span>
+                                        <span th:each="segment : ${recentMatchGraph}"
+                                              data-lab-result-source
+                                              data-series="Match"
+                                              th:attr="data-label=${segment.label}, data-value=${segment.value}, data-tone=${segment.tone}"></span>
+                                        <span th:each="segment : ${recentFinalGraph}"
+                                              data-lab-result-source
+                                              data-series="Final"
+                                              th:attr="data-label=${segment.label}, data-value=${segment.value}, data-tone=${segment.tone}"></span>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="empty-state" th:if="${#lists.isEmpty(recentLabTests)}">No lab screening records have been saved yet.</div>
-                            <div class="table-wrap" th:if="${!#lists.isEmpty(recentLabTests)}">
-                                <table class="data-table">
-                                    <thead>
-                                    <tr>
-                                        <th>Test</th>
-                                        <th>Donation</th>
-                                        <th>TTI</th>
-                                        <th>Match</th>
-                                        <th>Final</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-                                    <tr th:each="test : ${recentLabTests}">
-                                        <td th:text="${test.testId}">1</td>
-                                        <td th:text="${test.donationId}">1</td>
-                                        <td><span class="status-pill" th:classappend="${#strings.equalsIgnoreCase(test.ttiScreening, 'NEGATIVE')} ? ' good' : (${#strings.equalsIgnoreCase(test.ttiScreening, 'POSITIVE')} ? ' bad' : ' warn')" th:text="${test.ttiScreening}">NEGATIVE</span></td>
-                                        <td><span class="status-pill" th:classappend="${#strings.equalsIgnoreCase(test.bloodTypeMatch, 'MATCHED')} ? ' good' : (${#strings.equalsIgnoreCase(test.bloodTypeMatch, 'NOT_MATCHED') or #strings.equalsIgnoreCase(test.bloodTypeMatch, 'MISMATCHED')} ? ' bad' : ' warn')" th:text="${test.bloodTypeMatch}">MATCHED</span></td>
-                                        <td><span class="status-pill" th:classappend="${#strings.equalsIgnoreCase(test.finalStatus, 'PASSED') or #strings.equalsIgnoreCase(test.finalStatus, 'SAFE')} ? ' good' : (${#strings.equalsIgnoreCase(test.finalStatus, 'FAILED') or #strings.equalsIgnoreCase(test.finalStatus, 'DISCARDED')} ? ' bad' : ' warn')" th:text="${test.finalStatus}">PASSED</span></td>
-                                    </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </article>
+                            </article>
+
+                            <article class="lab-board-panel">
+                                <header class="lab-board-panel-header">
+                                    <span>Today&apos;s Screening Activity</span>
+                                    <strong th:text="${#lists.size(recentLabTests)} + ' latest records'">0 latest records</strong>
+                                </header>
+                                <div class="empty-state" th:if="${#lists.isEmpty(recentLabTests)}">No recent screening activity is available.</div>
+                                <div class="table-wrap lab-compact-table" th:if="${!#lists.isEmpty(recentLabTests)}">
+                                    <table class="data-table">
+                                        <thead>
+                                        <tr>
+                                            <th>Test</th>
+                                            <th>Donation</th>
+                                            <th>Donor</th>
+                                            <th>TTI</th>
+                                            <th>Match</th>
+                                            <th>Final</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        <tr th:each="test : ${recentLabTests}">
+                                            <td th:text="${test.testId}">1</td>
+                                            <td th:text="${test.donationId}">1</td>
+                                            <td th:text="${test.donorName}">Donor</td>
+                                            <td><span class="status-pill" th:classappend="${#strings.equalsIgnoreCase(test.ttiScreening, 'NEGATIVE')} ? ' good' : (${#strings.equalsIgnoreCase(test.ttiScreening, 'POSITIVE')} ? ' bad' : ' warn')" th:text="${test.ttiScreening}">NEGATIVE</span></td>
+                                            <td><span class="status-pill" th:classappend="${#strings.equalsIgnoreCase(test.bloodTypeMatch, 'MATCHED')} ? ' good' : (${#strings.equalsIgnoreCase(test.bloodTypeMatch, 'NOT_MATCHED') or #strings.equalsIgnoreCase(test.bloodTypeMatch, 'MISMATCHED')} ? ' bad' : ' warn')" th:text="${test.bloodTypeMatch}">MATCHED</span></td>
+                                            <td><span class="status-pill" th:classappend="${#strings.equalsIgnoreCase(test.finalStatus, 'PASSED') or #strings.equalsIgnoreCase(test.finalStatus, 'SAFE')} ? ' good' : (${#strings.equalsIgnoreCase(test.finalStatus, 'FAILED') or #strings.equalsIgnoreCase(test.finalStatus, 'DISCARDED')} ? ' bad' : ' warn')" th:text="${test.finalStatus}">PASSED</span></td>
+                                        </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </article>
+
+                            <article class="lab-board-panel">
+                                <header class="lab-board-panel-header">
+                                    <span>From The Beginning (Lab)</span>
+                                    <strong>Outcome mix</strong>
+                                </header>
+                                <div class="lab-summary-bars">
+                                    <div class="lab-summary-row lab-chart-tone-good">
+                                        <div>
+                                            <span>Completed Tests</span>
+                                            <strong th:text="${labSummary.completedTests}">0</strong>
+                                        </div>
+                                        <meter class="lab-summary-meter" min="0" th:max="${labSummary.pendingTests + labSummary.completedTests + labSummary.safeComponents + labSummary.discardedComponents + 1}" th:value="${labSummary.completedTests}">0</meter>
+                                    </div>
+                                    <div class="lab-summary-row lab-chart-tone-info">
+                                        <div>
+                                            <span>Safe Components</span>
+                                            <strong th:text="${labSummary.safeComponents}">0</strong>
+                                        </div>
+                                        <meter class="lab-summary-meter" min="0" th:max="${labSummary.pendingTests + labSummary.completedTests + labSummary.safeComponents + labSummary.discardedComponents + 1}" th:value="${labSummary.safeComponents}">0</meter>
+                                    </div>
+                                    <div class="lab-summary-row lab-chart-tone-warn">
+                                        <div>
+                                            <span>Pending Tests</span>
+                                            <strong th:text="${labSummary.pendingTests}">0</strong>
+                                        </div>
+                                        <meter class="lab-summary-meter" min="0" th:max="${labSummary.pendingTests + labSummary.completedTests + labSummary.safeComponents + labSummary.discardedComponents + 1}" th:value="${labSummary.pendingTests}">0</meter>
+                                    </div>
+                                    <div class="lab-summary-row lab-chart-tone-bad">
+                                        <div>
+                                            <span>Discarded Components</span>
+                                            <strong th:text="${labSummary.discardedComponents}">0</strong>
+                                        </div>
+                                        <meter class="lab-summary-meter" min="0" th:max="${labSummary.pendingTests + labSummary.completedTests + labSummary.safeComponents + labSummary.discardedComponents + 1}" th:value="${labSummary.discardedComponents}">0</meter>
+                                    </div>
+                                </div>
+                            </article>
+                        </div>
                     </section>
                 </div>
+    </th:block>
+
+    <th:block layout:fragment="custom-js">
+        <script>
+            (() => {
+                const svgNamespace = "http://www.w3.org/2000/svg";
+                const toneColors = {
+                    good: "#2dd4bf",
+                    warn: "#fbbf24",
+                    bad: "#fb7185",
+                    info: "#38bdf8",
+                    accent: "#60a5fa",
+                    purple: "#a78bfa",
+                    neutral: "#94a3b8"
+                };
+
+                const createSvgElement = (name, attrs = {}) => {
+                    const node = document.createElementNS(svgNamespace, name);
+                    Object.entries(attrs).forEach(([key, value]) => node.setAttribute(key, value));
+                    return node;
+                };
+
+                const drawLegend = (legend, rows) => {
+                    if (!legend) {
+                        return;
+                    }
+
+                    const seen = new Set();
+                    legend.replaceChildren();
+
+                    rows.forEach((row) => {
+                        const key = `${row.series}:${row.label || row.series}`;
+                        if (seen.has(key)) {
+                            return;
+                        }
+
+                        seen.add(key);
+                        const item = document.createElement("span");
+                        item.className = "lab-legend-item";
+                        const icon = document.createElement("span");
+                        icon.className = `lab-legend-icon lab-chart-tone-${row.tone || "neutral"}`;
+                        item.appendChild(icon);
+                        item.appendChild(document.createTextNode(row.label ? `${row.series}: ${row.label}` : row.series));
+                        legend.appendChild(item);
+                    });
+                };
+
+                const drawTrendChart = () => {
+                    const chart = document.querySelector("[data-lab-trend-chart]");
+                    const sources = Array.from(document.querySelectorAll("[data-lab-trend-source]"));
+                    const legend = document.querySelector("[data-lab-trend-legend]");
+
+                    if (!chart || !sources.length) {
+                        return;
+                    }
+
+                    const width = 640;
+                    const height = 270;
+                    const padding = { top: 24, right: 24, bottom: 44, left: 42 };
+                    const innerWidth = width - padding.left - padding.right;
+                    const innerHeight = height - padding.top - padding.bottom;
+                    const seriesNames = ["Completed", "Pending"];
+                    const seriesTones = { Completed: "good", Pending: "warn" };
+                    const grouped = new Map();
+
+                    sources.forEach((source) => {
+                        const key = source.getAttribute("data-key") || source.getAttribute("data-label") || "0";
+                        const label = source.getAttribute("data-label") || key;
+                        const series = source.getAttribute("data-series") || "Pending";
+
+                        if (!grouped.has(key)) {
+                            grouped.set(key, { key, label, Completed: 0, Pending: 0 });
+                        }
+
+                        const point = grouped.get(key);
+                        point[series] = (point[series] || 0) + 1;
+                    });
+
+                    const points = Array.from(grouped.values())
+                        .sort((left, right) => String(left.key).localeCompare(String(right.key)))
+                        .slice(-8);
+                    const maxValue = Math.max(1, ...points.flatMap((point) => seriesNames.map((name) => point[name] || 0)));
+                    const xFor = (index) => points.length === 1
+                        ? padding.left + innerWidth / 2
+                        : padding.left + (index / (points.length - 1)) * innerWidth;
+                    const yFor = (value) => padding.top + innerHeight - (value / maxValue) * innerHeight;
+
+                    chart.replaceChildren();
+                    chart.setAttribute("viewBox", `0 0 ${width} ${height}`);
+                    chart.setAttribute("preserveAspectRatio", "xMidYMid meet");
+
+                    [0, 0.5, 1].forEach((tick) => {
+                        const y = yFor(maxValue * tick);
+                        chart.appendChild(createSvgElement("line", {
+                            x1: padding.left,
+                            y1: y.toFixed(2),
+                            x2: width - padding.right,
+                            y2: y.toFixed(2),
+                            class: "lab-chart-grid-line"
+                        }));
+                    });
+
+                    points.forEach((point, index) => {
+                        const label = createSvgElement("text", {
+                            x: xFor(index).toFixed(2),
+                            y: (height - 14).toFixed(2),
+                            class: "lab-chart-axis-label lab-chart-axis-label-muted",
+                            "text-anchor": "middle"
+                        });
+                        label.textContent = point.label;
+                        chart.appendChild(label);
+                    });
+
+                    seriesNames.forEach((seriesName) => {
+                        const tone = seriesTones[seriesName];
+                        const color = toneColors[tone] || toneColors.neutral;
+                        const coordinates = points.map((point, index) => ({
+                            x: xFor(index),
+                            y: yFor(point[seriesName] || 0),
+                            value: point[seriesName] || 0
+                        }));
+                        const pathData = coordinates
+                            .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
+                            .join(" ");
+
+                        chart.appendChild(createSvgElement("path", {
+                            d: pathData,
+                            class: `lab-line-path lab-chart-tone-${tone}`,
+                            fill: "none",
+                            stroke: color
+                        }));
+
+                        coordinates.forEach((point) => {
+                            chart.appendChild(createSvgElement("circle", {
+                                cx: point.x.toFixed(2),
+                                cy: point.y.toFixed(2),
+                                r: "4",
+                                class: `lab-line-point lab-chart-tone-${tone}`,
+                                fill: color
+                            }));
+                        });
+                    });
+
+                    drawLegend(legend, seriesNames.map((seriesName) => ({
+                        series: seriesName,
+                        label: "",
+                        tone: seriesTones[seriesName]
+                    })));
+                };
+
+                const drawResultChart = () => {
+                    const chart = document.querySelector("[data-lab-results-chart]");
+                    const sources = Array.from(document.querySelectorAll("[data-lab-result-source]"));
+                    const legend = document.querySelector("[data-lab-results-legend]");
+
+                    if (!chart || !sources.length) {
+                        return;
+                    }
+
+                    const rows = sources.map((source) => ({
+                        series: source.getAttribute("data-series") || "",
+                        label: source.getAttribute("data-label") || "",
+                        value: Number(source.getAttribute("data-value") || "0"),
+                        tone: source.getAttribute("data-tone") || "neutral"
+                    }));
+                    const width = 640;
+                    const height = 270;
+                    const padding = { top: 26, right: 24, bottom: 54, left: 42 };
+                    const innerWidth = width - padding.left - padding.right;
+                    const innerHeight = height - padding.top - padding.bottom;
+                    const maxValue = Math.max(1, ...rows.map((row) => row.value));
+                    const barGap = 16;
+                    const barWidth = rows.length
+                        ? Math.max(34, (innerWidth - (rows.length - 1) * barGap) / rows.length)
+                        : innerWidth;
+
+                    chart.replaceChildren();
+                    chart.setAttribute("viewBox", `0 0 ${width} ${height}`);
+                    chart.setAttribute("preserveAspectRatio", "xMidYMid meet");
+
+                    [0, 0.5, 1].forEach((tick) => {
+                        const y = padding.top + innerHeight - innerHeight * tick;
+                        chart.appendChild(createSvgElement("line", {
+                            x1: padding.left,
+                            y1: y.toFixed(2),
+                            x2: width - padding.right,
+                            y2: y.toFixed(2),
+                            class: "lab-chart-grid-line"
+                        }));
+                    });
+
+                    rows.forEach((row, index) => {
+                        const x = padding.left + index * (barWidth + barGap);
+                        const barHeight = Math.max(4, (row.value / maxValue) * innerHeight);
+                        const y = padding.top + innerHeight - barHeight;
+                        const color = toneColors[row.tone] || toneColors.neutral;
+
+                        chart.appendChild(createSvgElement("rect", {
+                            x: x.toFixed(2),
+                            y: y.toFixed(2),
+                            width: barWidth.toFixed(2),
+                            height: barHeight.toFixed(2),
+                            rx: "5",
+                            class: "lab-chart-column",
+                            fill: color
+                        }));
+
+                        const valueLabel = createSvgElement("text", {
+                            x: (x + barWidth / 2).toFixed(2),
+                            y: Math.max(14, y - 8).toFixed(2),
+                            class: "lab-chart-value-label",
+                            "text-anchor": "middle"
+                        });
+                        valueLabel.textContent = row.value;
+                        chart.appendChild(valueLabel);
+
+                        const seriesLabel = createSvgElement("text", {
+                            x: (x + barWidth / 2).toFixed(2),
+                            y: (height - padding.bottom + 22).toFixed(2),
+                            class: "lab-chart-axis-label",
+                            "text-anchor": "middle"
+                        });
+                        seriesLabel.textContent = row.series;
+                        chart.appendChild(seriesLabel);
+
+                        const statusLabel = createSvgElement("text", {
+                            x: (x + barWidth / 2).toFixed(2),
+                            y: (height - padding.bottom + 40).toFixed(2),
+                            class: "lab-chart-axis-label lab-chart-axis-label-muted",
+                            "text-anchor": "middle"
+                        });
+                        statusLabel.textContent = row.label;
+                        chart.appendChild(statusLabel);
+                    });
+
+                    drawLegend(legend, rows);
+                };
+
+                const drawAllCharts = () => {
+                    drawTrendChart();
+                    drawResultChart();
+                };
+
+                drawAllCharts();
+                new MutationObserver(drawAllCharts).observe(document.body, {
+                    attributes: true,
+                    attributeFilter: ["class"]
+                });
+            })();
+        </script>
     </th:block>
 
 </body>

@@ -34,12 +34,12 @@
                     <section class="profile-dashboard">
                         <aside class="profile-id-card module-card">
                             <div class="profile-avatar-large">
-                                <img th:if="${profile.photoUrl != null}"
+                                <img th:if="${!#strings.isEmpty(profile.photoUrl)}"
                                      th:src="${profile.photoUrl}"
                                      alt="Staff profile photo"
                                      onerror="this.hidden=true; this.nextElementSibling.hidden=false;">
                                 <div class="profile-avatar-fallback"
-                                     th:hidden="${profile.photoUrl != null}"
+                                     th:hidden="${!#strings.isEmpty(profile.photoUrl)}"
                                      th:text="${profile.initials}">SP</div>
                             </div>
 
