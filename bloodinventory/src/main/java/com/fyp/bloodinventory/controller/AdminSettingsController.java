@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -27,6 +28,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.Principal;
+import java.util.List;
 import java.util.Objects;
 
 @Controller
@@ -43,12 +45,19 @@ public class AdminSettingsController {
 
     @GetMapping("/admin/settings")
     public String settingsPage(Model model) {
+        List<BackupHistoryDto> backupHistory = settingsService.getRecentBackups();
+        List<BackupHistoryDto> recoverableBackups = backupHistory.stream()
+                .filter(this::isSuccessfulBackup)
+                .toList();
+
         model.addAttribute("uiSettings", settingsService.getUiSettings());
         model.addAttribute("languageSettings", settingsService.getLanguageSettings());
         model.addAttribute("languageOptions", settingsService.getLanguageOptions());
         model.addAttribute("backupSettings", settingsService.getBackupSettings());
         model.addAttribute("securitySettings", settingsService.getSecuritySettings());
-        model.addAttribute("backupHistory", settingsService.getRecentBackups());
+        model.addAttribute("backupHistory", backupHistory);
+        model.addAttribute("recoverableBackups", recoverableBackups);
+        model.addAttribute("latestSuccessfulBackup", recoverableBackups.isEmpty() ? null : recoverableBackups.get(0));
         return "admin-settings";
     }
 
@@ -79,7 +88,7 @@ public class AdminSettingsController {
         settingsService.updateBackupSettings(request);
         record("Settings", "UPDATE", "Updated database backup schedule.", principal);
         redirectAttributes.addFlashAttribute("successMessage", "Backup schedule saved.");
-        return "redirect:/admin/settings";
+        return "redirect:/admin/settings#backup";
     }
 
     @PostMapping("/admin/settings/backup/run")
@@ -91,7 +100,21 @@ public class AdminSettingsController {
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
         }
-        return "redirect:/admin/settings";
+        return "redirect:/admin/settings#backup";
+    }
+
+    @PostMapping("/admin/settings/backup/recover")
+    public String recoverBackup(@RequestParam("backupId") Long backupId,
+                                Principal principal,
+                                RedirectAttributes redirectAttributes) {
+        try {
+            BackupHistoryDto recovery = settingsService.recoverBackup(backupId, actorName(principal));
+            record("Database Backup", "RECOVERY", "Recovered database from backup: " + recovery.getFileName(), principal);
+            redirectAttributes.addFlashAttribute("successMessage", "Recovery completed from backup: " + recovery.getFileName());
+        } catch (RuntimeException ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+        }
+        return "redirect:/admin/settings#backup";
     }
 
     @GetMapping("/admin/settings/backup/{backupId}/download")
@@ -139,5 +162,12 @@ public class AdminSettingsController {
 
     private @NonNull String actorName(Principal principal) {
         return principal == null ? "system" : Objects.requireNonNull(principal.getName(), "Principal name must not be null.");
+    }
+
+    private boolean isSuccessfulBackup(BackupHistoryDto backup) {
+        return backup != null
+                && "SUCCESS".equalsIgnoreCase(backup.getStatus())
+                && backup.getFileName() != null
+                && !backup.getFileName().isBlank();
     }
 }

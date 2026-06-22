@@ -35,13 +35,6 @@
                     </section>
 
                     <section class="settings-shell">
-                        <nav class="settings-index page-card" aria-label="Settings sections">
-                            <a href="#interface" data-search-item>Interface</a>
-                            <a href="#language" data-search-item>Language</a>
-                            <a href="#backup" data-search-item>Database Backup</a>
-                            <a href="#security" data-search-item>Security</a>
-                        </nav>
-
                         <div class="settings-content">
                             <article id="interface" class="settings-section page-card" data-search-item>
                                 <div class="section-head">
@@ -176,49 +169,117 @@
                             <article id="backup" class="settings-section page-card" data-search-item>
                                 <div class="section-head">
                                     <div>
-                                        <h2>Database Backup</h2>
-                                        <p>Manual backup and automated schedule.</p>
+                                        <h2>Backup and Recovery</h2>
+                                        <p>Database protection, scheduled backups, restore points, and recovery actions.</p>
                                     </div>
-                                    <form th:action="@{/admin/settings/backup/run}" method="post">
+                                    <form th:action="@{/admin/settings/backup/run}" method="post"
+                                          data-action-confirm
+                                          data-action-label="run a manual backup"
+                                          data-action-message="A new SQL backup will be created in the configured backup directory."
+                                          data-action-final-message="Start a manual database backup now?"
+                                          data-action-confirm-text="Run Backup">
                                         <button type="submit" class="secondary-btn">Run Manual Backup</button>
                                     </form>
                                 </div>
 
-                                <form class="settings-form" th:action="@{/admin/settings/backup}" th:object="${backupSettings}" method="post">
-                                    <div class="toggle-row">
-                                        <div>
-                                            <strong>Automatic Backup</strong>
-                                            <span>Scheduled database backup</span>
-                                        </div>
-                                        <input id="autoBackupEnabled" type="checkbox" th:field="*{autoBackupEnabled}"
-                                               aria-label="Automatic backup" title="Automatic backup">
+                                <div class="backup-overview-grid">
+                                    <div class="backup-status-card">
+                                        <span>Latest Restore Point</span>
+                                        <strong th:text="${latestSuccessfulBackup != null ? #dates.format(latestSuccessfulBackup.startedAt, 'yyyy-MM-dd HH:mm') : 'None'}">None</strong>
+                                        <small th:text="${latestSuccessfulBackup != null ? latestSuccessfulBackup.fileName : 'Run a backup to create one.'}">Run a backup to create one.</small>
                                     </div>
+                                    <div class="backup-status-card">
+                                        <span>Automatic Backup</span>
+                                        <strong th:text="${backupSettings.autoBackupEnabled ? 'Enabled' : 'Paused'}">Paused</strong>
+                                        <small th:text="${backupSettings.scheduleFrequency + ' at ' + backupSettings.scheduleTime}">DAILY at 23:00</small>
+                                    </div>
+                                    <div class="backup-status-card">
+                                        <span>Recoverable Backups</span>
+                                        <strong th:text="${#lists.size(recoverableBackups)}">0</strong>
+                                        <small th:text="${backupSettings.retentionDays + ' day retention window'}">30 day retention window</small>
+                                    </div>
+                                </div>
 
-                                    <div class="form-grid">
-                                        <div class="form-group full">
-                                            <label for="backupDirectory">Backup Directory</label>
-                                            <input id="backupDirectory" type="text" th:field="*{backupDirectory}">
+                                <div class="backup-workspace">
+                                    <form class="settings-form backup-panel" th:action="@{/admin/settings/backup}" th:object="${backupSettings}" method="post">
+                                        <div class="section-mini-head">
+                                            <h3>Backup Policy</h3>
+                                            <p>Schedule, retention, and storage directory.</p>
                                         </div>
-                                        <div class="form-group">
-                                            <label for="scheduleFrequency">Frequency</label>
-                                            <select id="scheduleFrequency" th:field="*{scheduleFrequency}">
-                                                <option value="DAILY">Daily</option>
-                                                <option value="WEEKLY">Weekly</option>
-                                            </select>
+
+                                        <div class="toggle-row">
+                                            <div>
+                                                <strong>Automatic Backup</strong>
+                                                <span>Scheduled database backup</span>
+                                            </div>
+                                            <input id="autoBackupEnabled" type="checkbox" th:field="*{autoBackupEnabled}"
+                                                   aria-label="Automatic backup" title="Automatic backup">
                                         </div>
-                                        <div class="form-group">
-                                            <label for="scheduleTime">Schedule Time</label>
-                                            <input id="scheduleTime" type="time" th:field="*{scheduleTime}">
+
+                                        <div class="form-grid">
+                                            <div class="form-group full">
+                                                <label for="backupDirectory">Backup Directory</label>
+                                                <input id="backupDirectory" type="text" th:field="*{backupDirectory}">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="scheduleFrequency">Frequency</label>
+                                                <select id="scheduleFrequency" th:field="*{scheduleFrequency}">
+                                                    <option value="DAILY">Daily</option>
+                                                    <option value="WEEKLY">Weekly</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="scheduleTime">Schedule Time</label>
+                                                <input id="scheduleTime" type="time" th:field="*{scheduleTime}">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="retentionDays">Retention Days</label>
+                                                <input id="retentionDays" type="number" min="1" max="3650" th:field="*{retentionDays}">
+                                            </div>
                                         </div>
-                                        <div class="form-group">
-                                            <label for="retentionDays">Retention Days</label>
-                                            <input id="retentionDays" type="number" min="1" max="3650" th:field="*{retentionDays}">
+                                        <div class="button-row">
+                                            <button type="submit" class="submit-btn">Save Backup Policy</button>
                                         </div>
-                                    </div>
-                                    <div class="button-row">
-                                        <button type="submit" class="submit-btn">Save Backup Policy</button>
-                                    </div>
-                                </form>
+                                    </form>
+
+                                    <section class="backup-panel backup-recovery-panel" aria-label="Database recovery">
+                                        <div class="section-mini-head">
+                                            <h3>Recovery</h3>
+                                            <p>Restore the database from a successful backup.</p>
+                                        </div>
+
+                                        <form class="settings-form" th:action="@{/admin/settings/backup/recover}" method="post"
+                                              data-action-confirm
+                                              data-action-label="recover database from selected backup"
+                                              data-action-variant="danger"
+                                              data-action-message="Recovery creates a safety backup, then replaces current database records with the selected backup."
+                                              data-action-final-message="Current data will be replaced by the selected backup. Continue recovery?"
+                                              data-action-confirm-text="Recover Database">
+                                            <div class="form-grid">
+                                                <div class="form-group full">
+                                                    <label for="backupRecoveryId">Restore Point</label>
+                                                    <select id="backupRecoveryId" name="backupId" required
+                                                            th:disabled="${#lists.isEmpty(recoverableBackups)}">
+                                                        <option value="">Select successful backup</option>
+                                                        <option th:each="backup : ${recoverableBackups}"
+                                                                th:value="${backup.backupId}"
+                                                                th:text="${'#' + backup.backupId + ' - ' + #dates.format(backup.startedAt, 'yyyy-MM-dd HH:mm') + ' - ' + backup.fileName}">#1 - backup.sql</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <div class="recovery-warning">
+                                                <strong>Safety backup first</strong>
+                                                <span>Recovery creates a fresh recovery point before the selected restore point is applied.</span>
+                                            </div>
+
+                                            <div class="button-row">
+                                                <button type="submit" class="danger-btn"
+                                                        th:disabled="${#lists.isEmpty(recoverableBackups)}">Recover Database</button>
+                                            </div>
+                                        </form>
+                                    </section>
+                                </div>
 
                                 <div class="section-head settings-history-head">
                                     <div>
@@ -254,9 +315,20 @@
                                             <td th:text="${backup.fileName != null ? backup.fileName : '-'}">backup.sql</td>
                                             <td th:text="${backup.message}">Backup completed successfully.</td>
                                             <td>
-                                                <a class="text-btn"
-                                                   th:if="${#strings.equalsIgnoreCase(backup.status, 'SUCCESS')}"
-                                                   th:href="@{/admin/settings/backup/{backupId}/download(backupId=${backup.backupId})}">Download</a>
+                                                <div class="backup-row-actions" th:if="${#strings.equalsIgnoreCase(backup.status, 'SUCCESS')}">
+                                                    <a class="text-btn"
+                                                       th:href="@{/admin/settings/backup/{backupId}/download(backupId=${backup.backupId})}">Download</a>
+                                                    <form th:action="@{/admin/settings/backup/recover}" method="post"
+                                                          data-action-confirm
+                                                          data-action-label="recover this backup"
+                                                          data-action-variant="danger"
+                                                          data-action-message="Recovery creates a safety backup, then replaces current database records with this backup."
+                                                          data-action-final-message="Current data will be replaced by this backup. Continue recovery?"
+                                                          data-action-confirm-text="Recover Database">
+                                                        <input type="hidden" name="backupId" th:value="${backup.backupId}">
+                                                        <button type="submit" class="text-btn danger-text-btn">Recover</button>
+                                                    </form>
+                                                </div>
                                             </td>
                                         </tr>
                                         </tbody>

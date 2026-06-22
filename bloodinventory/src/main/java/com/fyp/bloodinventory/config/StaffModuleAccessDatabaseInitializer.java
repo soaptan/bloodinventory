@@ -43,6 +43,7 @@ public class StaffModuleAccessDatabaseInitializer {
             seedRule(jdbcTemplate, "BLOOD_ADMINISTRATOR", "staff_management", "Staff Management", "/admin/staff/**", 20);
             seedRule(jdbcTemplate, "BLOOD_ADMINISTRATOR", "storage_config", "Storage Configuration", "/admin/storage/**", 30);
             seedRule(jdbcTemplate, "BLOOD_ADMINISTRATOR", "deferral_rules", "Deferral Rules", "/admin/deferral-rules/**", 40);
+            seedRule(jdbcTemplate, "BLOOD_ADMINISTRATOR", "audit_trail", "Audit Trail", "/admin/audit/**", 45);
             seedRule(jdbcTemplate, "BLOOD_ADMINISTRATOR", "inventory_monitoring", "Inventory Monitoring", "/admin/inventory/**", 50);
             seedRule(jdbcTemplate, "BLOOD_ADMINISTRATOR", "reports_alerts", "Reports and Alerts", "/admin/reports/**", 60);
             seedRule(jdbcTemplate, "BLOOD_ADMINISTRATOR", "system_settings", "System Settings", "/admin/settings/**", 70);

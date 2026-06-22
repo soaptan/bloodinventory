@@ -29,9 +29,12 @@ public class LabWorkflowService {
     private static final Set<String> FAILED_FINAL_STATUSES = Set.of("FAILED", "DISCARDED");
 
     private final JdbcTemplate jdbcTemplate;
+    private final DatabaseAuditContextService auditContextService;
 
-    public LabWorkflowService(JdbcTemplate jdbcTemplate) {
+    public LabWorkflowService(JdbcTemplate jdbcTemplate,
+                              DatabaseAuditContextService auditContextService) {
         this.jdbcTemplate = jdbcTemplate;
+        this.auditContextService = auditContextService;
     }
 
     public LabDashboardSummaryDto getDashboardSummary() {
@@ -248,6 +251,7 @@ public class LabWorkflowService {
 
     @Transactional
     public void approvePendingDonation(Long donationId, String username) {
+        applyAuditContext();
         Long requiredDonationId = requireId(donationId, "Please select a pending donation.");
         ensureDonationPendingForScreening(requiredDonationId);
 
@@ -262,6 +266,7 @@ public class LabWorkflowService {
 
     @Transactional
     public void recordScreening(LabScreeningRequest request, String username) {
+        applyAuditContext();
         Long donationId = requireId(request.getDonationId(), "Please select a donation from the pending test list.");
         Long staffId = requireLabTechnicianId(username);
         String ttiScreening = normalizeAllowed(request.getTtiScreening(), TTI_RESULTS, "Please select a valid TTI screening result.");
@@ -299,6 +304,7 @@ public class LabWorkflowService {
 
     @Transactional
     public void updateComponentStatus(Long componentId, String status) {
+        applyAuditContext();
         Long requiredComponentId = requireId(componentId, "Please select a component.");
         String normalizedStatus = normalizeAllowed(status, LAB_COMPONENT_STATUS_OPTIONS, "Please select a valid lab component status.");
 
@@ -337,6 +343,7 @@ public class LabWorkflowService {
 
     @Transactional
     public void deleteScreening(Long testId) {
+        applyAuditContext();
         Long requiredTestId = requireId(testId, "Please select a screening result.");
         Long donationId;
         try {
@@ -374,6 +381,10 @@ public class LabWorkflowService {
                 WHERE donation_id = ?
                   AND UPPER(status) IN ('AVAILABLE', 'DISCARDED')
                 """, donationId);
+    }
+
+    private void applyAuditContext() {
+        auditContextService.applyCurrentContext();
     }
 
     private LabTestQueueDto mapQueue(@NonNull ResultSet rs, int rowNum) throws SQLException {

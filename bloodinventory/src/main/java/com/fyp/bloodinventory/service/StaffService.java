@@ -46,23 +46,27 @@ public class StaffService {
     private final BloodAdministratorRepository bloodAdministratorRepository;
     private final PasswordEncoder passwordEncoder;
     private final JdbcTemplate jdbcTemplate;
+    private final DatabaseAuditContextService auditContextService;
 
     public StaffService(StaffRepository staffRepository,
                         MedicalStaffRepository medicalStaffRepository,
                         LabTechnicianRepository labTechnicianRepository,
                         BloodAdministratorRepository bloodAdministratorRepository,
                         PasswordEncoder passwordEncoder,
-                        JdbcTemplate jdbcTemplate) {
+                        JdbcTemplate jdbcTemplate,
+                        DatabaseAuditContextService auditContextService) {
         this.staffRepository = staffRepository;
         this.medicalStaffRepository = medicalStaffRepository;
         this.labTechnicianRepository = labTechnicianRepository;
         this.bloodAdministratorRepository = bloodAdministratorRepository;
         this.passwordEncoder = passwordEncoder;
         this.jdbcTemplate = jdbcTemplate;
+        this.auditContextService = auditContextService;
     }
 
     @Transactional
     public void registerStaff(StaffRegistrationRequest request, MultipartFile photoFile) throws Exception {
+        applyAuditContext();
         StaffRole staffType = requireStaffType(request.getStaffType());
         String fullName = requireText(request.getFullName(), "Please enter the staff member's full name.");
         String username = requireText(request.getUsername(), "Please enter a username.");
@@ -124,7 +128,9 @@ public class StaffService {
         return request;
     }
 
+    @Transactional
     public void updateOwnProfile(@NonNull String username, StaffProfileUpdateRequest request) {
+        applyAuditContext();
         Staff staff = findStaffByUsername(username);
 
         String fullName = requireText(request.getFullName(), "Please enter your full name.");
@@ -149,6 +155,7 @@ public class StaffService {
                                   String currentPassword,
                                   String newPassword,
                                   String confirmPassword) {
+        applyAuditContext();
         Staff staff = findStaffByUsername(username);
 
         String normalizedCurrentPassword = requireText(currentPassword, "Please enter your current password.");
@@ -170,6 +177,7 @@ public class StaffService {
 
     @Transactional
     public void updateStaff(@NonNull Long staffId, StaffManagementRequest request, String currentUsername) {
+        applyAuditContext();
         Long requiredStaffId = Objects.requireNonNull(staffId, "Staff ID must not be null.");
         Staff staff = findStaffById(requiredStaffId);
 
@@ -230,6 +238,7 @@ public class StaffService {
 
     @Transactional
     public void deleteStaff(@NonNull Long staffId, String currentUsername) {
+        applyAuditContext();
         Long requiredStaffId = Objects.requireNonNull(staffId, "Staff ID must not be null.");
         Staff staff = findStaffById(requiredStaffId);
 
@@ -242,6 +251,7 @@ public class StaffService {
 
     @Transactional
     public int deleteSelectedStaff(List<Long> staffIds, String currentUsername) {
+        applyAuditContext();
         List<Long> uniqueStaffIds = uniqueStaffIds(staffIds);
         if (uniqueStaffIds.isEmpty()) {
             throw new RuntimeException("Select at least one staff record to delete.");
@@ -263,13 +273,17 @@ public class StaffService {
         return selectedStaff.size();
     }
 
+    @Transactional
     public void updateStaffPhoto(@NonNull Long staffId, MultipartFile photoFile) throws Exception {
+        applyAuditContext();
         Long requiredStaffId = Objects.requireNonNull(staffId, "Staff ID must not be null.");
         Staff staff = findStaffById(requiredStaffId);
         updateProfilePhoto(staff, photoFile);
     }
 
+    @Transactional
     public void updateStaffPhotoByUsername(@NonNull String username, MultipartFile photoFile) throws Exception {
+        applyAuditContext();
         Staff staff = findStaffByUsername(username);
         updateProfilePhoto(staff, photoFile);
     }
@@ -286,6 +300,10 @@ public class StaffService {
 
         staff.setProfilePhoto("staff/" + newFileName);
         staffRepository.save(staff);
+    }
+
+    private void applyAuditContext() {
+        auditContextService.applyCurrentContext();
     }
 
     private StaffProfileDto buildStaffProfile(Staff staff) {

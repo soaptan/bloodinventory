@@ -6,6 +6,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -15,9 +16,12 @@ import java.util.List;
 public class StorageLocationService {
 
     private final JdbcTemplate jdbcTemplate;
+    private final DatabaseAuditContextService auditContextService;
 
-    public StorageLocationService(JdbcTemplate jdbcTemplate) {
+    public StorageLocationService(JdbcTemplate jdbcTemplate,
+                                  DatabaseAuditContextService auditContextService) {
         this.jdbcTemplate = jdbcTemplate;
+        this.auditContextService = auditContextService;
     }
 
     public List<StorageLocationDto> getAllLocations() {
@@ -44,7 +48,9 @@ public class StorageLocationService {
         return result == null ? 0L : result;
     }
 
+    @Transactional
     public void addLocation(StorageLocationRequest request) {
+        applyAuditContext();
         jdbcTemplate.update(
                 "CALL sp_add_storage_location(?, ?)",
                 request.getDescription(),
@@ -52,7 +58,9 @@ public class StorageLocationService {
         );
     }
 
+    @Transactional
     public void updateLocation(Long locationId, StorageLocationRequest request) {
+        applyAuditContext();
         Long requiredLocationId = requireId(locationId, "Please select a storage location.");
         String description = requireText(request.getDescription(), "Please enter a storage description.");
         Long staffId = requireId(request.getStaffId(), "Signed-in administrator account was not found.");
@@ -69,7 +77,9 @@ public class StorageLocationService {
         }
     }
 
+    @Transactional
     public void archiveLocation(Long locationId) {
+        applyAuditContext();
         Long requiredLocationId = requireId(locationId, "Please select a storage location.");
 
         int updatedRows = jdbcTemplate.update("""
@@ -82,7 +92,9 @@ public class StorageLocationService {
         }
     }
 
+    @Transactional
     public void restoreLocation(Long locationId) {
+        applyAuditContext();
         Long requiredLocationId = requireId(locationId, "Please select a storage location.");
 
         int updatedRows = jdbcTemplate.update("""
@@ -93,6 +105,10 @@ public class StorageLocationService {
         if (updatedRows == 0) {
             throw new RuntimeException("Storage location was not found.");
         }
+    }
+
+    private void applyAuditContext() {
+        auditContextService.applyCurrentContext();
     }
 
     private Long requireId(Long value, String message) {

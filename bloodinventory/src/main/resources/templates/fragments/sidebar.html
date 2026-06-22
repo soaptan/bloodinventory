@@ -80,20 +80,69 @@
                                 </span>
                             </a>
                         </li>
-                        <li th:if="${#lists.contains(accessibleModules, 'system_settings')}">
-                            <a th:href="@{/admin/settings}"
-                               th:classappend="${activeMenu == 'system-settings'} ? ' active'">
+                        <li th:if="${#lists.contains(accessibleModules, 'audit_trail')}">
+                            <a th:href="@{/admin/audit}"
+                               th:classappend="${activeMenu == 'audit-trail'} ? ' active'">
                                 <span class="nav-icon" aria-hidden="true">
                                     <svg viewBox="0 0 24 24">
-                                        <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"></path>
-                                        <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.3a2 2 0 0 1-4 0V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1A2 2 0 1 1 4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H2.7a2 2 0 0 1 0-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7A2 2 0 1 1 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3h.1a1.7 1.7 0 0 0 1-1.6V2.7a2 2 0 0 1 4 0V3a1.7 1.7 0 0 0 1 1.6h.1a1.7 1.7 0 0 0 1.9-.3l.1-.1A2 2 0 1 1 19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1a1.7 1.7 0 0 0 1.6 1h.3a2 2 0 0 1 0 4H21a1.7 1.7 0 0 0-1.6 1z"></path>
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                        <path d="M14 2v6h6"></path>
+                                        <path d="M8 13h8"></path>
+                                        <path d="M8 17h5"></path>
                                     </svg>
                                 </span>
                                 <span class="nav-copy">
-                                    <span class="nav-title">Settings</span>
-                                    <span class="nav-hint">UI, backup and security</span>
+                                    <span class="nav-title">Audit Trail</span>
+                                    <span class="nav-hint">Immutable history</span>
                                 </span>
                             </a>
+                        </li>
+                        <li class="nav-dropdown" th:if="${#lists.contains(accessibleModules, 'system_settings')}">
+                            <details th:attr="open=${activeMenu == 'system-settings'} ? 'open' : null">
+                                <summary th:classappend="${activeMenu == 'system-settings'} ? ' active'">
+                                    <span class="nav-icon" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24">
+                                            <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"></path>
+                                            <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.3a2 2 0 0 1-4 0V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1A2 2 0 1 1 4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H2.7a2 2 0 0 1 0-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7A2 2 0 1 1 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3h.1a1.7 1.7 0 0 0 1-1.6V2.7a2 2 0 0 1 4 0V3a1.7 1.7 0 0 0 1 1.6h.1a1.7 1.7 0 0 0 1.9-.3l.1-.1A2 2 0 1 1 19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1a1.7 1.7 0 0 0 1.6 1h.3a2 2 0 0 1 0 4H21a1.7 1.7 0 0 0-1.6 1z"></path>
+                                        </svg>
+                                    </span>
+                                    <span class="nav-copy">
+                                        <span class="nav-title">Settings</span>
+                                        <span class="nav-hint">UI, backup and security</span>
+                                    </span>
+                                    <span class="nav-chevron" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24">
+                                            <path d="m6 9 6 6 6-6"></path>
+                                        </svg>
+                                    </span>
+                                </summary>
+                                <ul class="nav-submenu">
+                                    <li>
+                                        <a th:href="@{/admin/settings#interface}" data-search-item>
+                                            <span class="nav-sub-dot" aria-hidden="true"></span>
+                                            <span>Interface</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a th:href="@{/admin/settings#language}" data-search-item>
+                                            <span class="nav-sub-dot" aria-hidden="true"></span>
+                                            <span>Language</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a th:href="@{/admin/settings#backup}" data-search-item>
+                                            <span class="nav-sub-dot" aria-hidden="true"></span>
+                                            <span>Database Backup</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a th:href="@{/admin/settings#security}" data-search-item>
+                                            <span class="nav-sub-dot" aria-hidden="true"></span>
+                                            <span>Security</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </details>
                         </li>
                     </ul>
                 </div>

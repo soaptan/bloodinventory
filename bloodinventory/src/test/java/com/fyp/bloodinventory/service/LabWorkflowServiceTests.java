@@ -19,7 +19,8 @@ import static org.mockito.Mockito.when;
 class LabWorkflowServiceTests {
 
     private final JdbcTemplate jdbcTemplate = mock(JdbcTemplate.class);
-    private final LabWorkflowService service = new LabWorkflowService(jdbcTemplate);
+    private final DatabaseAuditContextService auditContextService = mock(DatabaseAuditContextService.class);
+    private final LabWorkflowService service = new LabWorkflowService(jdbcTemplate, auditContextService);
 
     @Test
     @SuppressWarnings("null")

@@ -5,7 +5,11 @@ import com.fyp.bloodinventory.dto.BackupSettingsRequest;
 import com.fyp.bloodinventory.dto.LanguageSettingsRequest;
 import com.fyp.bloodinventory.dto.SecuritySettingsRequest;
 import com.fyp.bloodinventory.dto.SystemUiSettingsRequest;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.support.EncodedResource;
+import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.init.ScriptUtils;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -16,8 +20,12 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.SecureRandom;
+import java.sql.Connection;
 import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.LocalDate;
@@ -25,11 +33,16 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.HexFormat;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 
@@ -208,6 +221,48 @@ public class SystemSettingsService {
         return Path.of(filePath).toAbsolutePath().normalize();
     }
 
+    public BackupHistoryDto recoverBackup(Long backupId, String actor) {
+        if (backupId == null) {
+            throw new IllegalArgumentException("Select a backup before starting recovery.");
+        }
+        if (!backupRunning.compareAndSet(false, true)) {
+            throw new IllegalStateException("Another backup or recovery is already running.");
+        }
+
+        try {
+            BackupHistoryDto sourceBackup = getBackupById(backupId);
+            if (!"SUCCESS".equalsIgnoreCase(sourceBackup.getStatus())) {
+                throw new IllegalArgumentException("Only successful backups can be recovered.");
+            }
+
+            Path backupPath = resolveAvailableBackupPath(sourceBackup);
+            BackupHistoryDto recoveryPoint = createBackupUnlocked("RECOVERY_POINT", actor, false);
+
+            try {
+                restoreDatabaseFromSqlBackup(backupPath);
+                upsertBackupHistorySnapshot(sourceBackup);
+                upsertBackupHistorySnapshot(recoveryPoint);
+                syncIdentitySequences();
+
+                String message = "Database recovered from backup #%d. Safety backup: %s.".formatted(
+                        sourceBackup.getBackupId(),
+                        recoveryPoint.getFileName()
+                );
+                return createRecoveryHistoryRow(sourceBackup, recoveryPoint, actor, "SUCCESS", message);
+            } catch (Exception ex) {
+                String message = "Recovery failed for backup #%d. Safety backup: %s. %s".formatted(
+                        sourceBackup.getBackupId(),
+                        recoveryPoint.getFileName(),
+                        rootCauseMessage(ex)
+                );
+                createRecoveryHistoryRow(sourceBackup, recoveryPoint, actor, "FAILED", message);
+                throw new RuntimeException("Recovery failed: " + rootCauseMessage(ex), ex);
+            }
+        } finally {
+            backupRunning.set(false);
+        }
+    }
+
     public String getPreferenceCss() {
         SystemUiSettingsRequest settings = getUiSettings();
         double scale = clamp(settings.getFontScale(), 0.9, 1.25);
@@ -303,9 +358,17 @@ public class SystemSettingsService {
 
     private BackupHistoryDto createBackup(String triggerType, String actor) {
         if (!backupRunning.compareAndSet(false, true)) {
-            throw new IllegalStateException("Another backup is already running.");
+            throw new IllegalStateException("Another backup or recovery is already running.");
         }
 
+        try {
+            return createBackupUnlocked(triggerType, actor, true);
+        } finally {
+            backupRunning.set(false);
+        }
+    }
+
+    private BackupHistoryDto createBackupUnlocked(String triggerType, String actor, boolean cleanupExpiredAfterBackup) {
         Long backupId = null;
         try {
             backupId = createBackupHistoryRow(triggerType, actor);
@@ -343,7 +406,9 @@ public class SystemSettingsService {
                     WHERE config_key = 'default'
                     """);
 
-            cleanupExpiredBackups(settings.getRetentionDays());
+            if (cleanupExpiredAfterBackup) {
+                cleanupExpiredBackups(settings.getRetentionDays());
+            }
             return getBackupById(backupId);
         } catch (Exception ex) {
             if (backupId != null) {
@@ -356,8 +421,6 @@ public class SystemSettingsService {
                         """, truncate(ex.getMessage(), 680), backupId);
             }
             throw new RuntimeException("Backup failed: " + ex.getMessage(), ex);
-        } finally {
-            backupRunning.set(false);
         }
     }
 
@@ -405,21 +468,367 @@ public class SystemSettingsService {
         }, backupId), "Backup history row must not be null.");
     }
 
+    private Path resolveAvailableBackupPath(BackupHistoryDto backup) {
+        if (backup.getFilePath() == null || backup.getFilePath().isBlank()) {
+            throw new IllegalArgumentException("Backup file is not available.");
+        }
+
+        Path backupPath = Path.of(backup.getFilePath()).toAbsolutePath().normalize();
+        if (!Files.exists(backupPath) || !Files.isRegularFile(backupPath)) {
+            throw new IllegalArgumentException("Backup file is missing from disk.");
+        }
+
+        return backupPath;
+    }
+
+    private void restoreDatabaseFromSqlBackup(Path backupPath) throws IOException {
+        String recoveryScript = stripTransactionStatements(Files.readString(backupPath, StandardCharsets.UTF_8));
+        ByteArrayResource scriptResource = new ByteArrayResource(recoveryScript.getBytes(StandardCharsets.UTF_8));
+        EncodedResource encodedScript = new EncodedResource(scriptResource, StandardCharsets.UTF_8);
+
+        jdbcTemplate.execute((ConnectionCallback<Void>) connection -> {
+            boolean originalAutoCommit = connection.getAutoCommit();
+            connection.setAutoCommit(false);
+            try {
+                ensureRestoreSchema(connection);
+                List<String> tableNames = getPublicTableNames(connection);
+                List<IdentityColumn> generatedAlwaysColumns = generatedAlwaysIdentityColumns(connection);
+                setIdentityGeneration(connection, generatedAlwaysColumns, "BY DEFAULT");
+                setUserTriggers(connection, tableNames, false);
+                truncatePublicTables(connection, tableNames);
+                ScriptUtils.executeSqlScript(connection, encodedScript);
+                syncIdentitySequences(connection);
+                setUserTriggers(connection, tableNames, true);
+                setIdentityGeneration(connection, generatedAlwaysColumns, "ALWAYS");
+                connection.commit();
+            } catch (Exception ex) {
+                connection.rollback();
+                if (ex instanceof SQLException sqlException) {
+                    throw sqlException;
+                }
+                throw new SQLException("Could not restore SQL backup.", ex);
+            } finally {
+                connection.setAutoCommit(originalAutoCommit);
+            }
+            return null;
+        });
+    }
+
+    private String stripTransactionStatements(String script) {
+        return script.replaceAll("(?im)^\\s*(BEGIN|COMMIT)\\s*;\\s*\\R?", "");
+    }
+
+    private void ensureRestoreSchema(Connection connection) throws SQLException {
+        ensureLabTestTable(connection);
+    }
+
+    private void ensureLabTestTable(Connection connection) throws SQLException {
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("""
+                    CREATE TABLE IF NOT EXISTS public.lab_test (
+                        test_id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+                        tti_screening character varying(30) NOT NULL,
+                        blood_type_match character varying(20) NOT NULL,
+                        final_status character varying(20) NOT NULL,
+                        test_date date NOT NULL,
+                        staff_id bigint NOT NULL,
+                        donation_id bigint NOT NULL,
+                        CONSTRAINT chk_labtest_blood_type_match CHECK (((blood_type_match)::text = ANY ((ARRAY['MATCHED'::character varying, 'NOT_MATCHED'::character varying, 'PENDING'::character varying])::text[]))),
+                        CONSTRAINT chk_labtest_final_status CHECK (((final_status)::text = ANY ((ARRAY['PASSED'::character varying, 'FAILED'::character varying, 'QUARANTINED'::character varying])::text[])))
+                    )
+                    """);
+        }
+
+        addConstraintIfMissing(connection, "chk_labtest_blood_type_match",
+                "ALTER TABLE public.lab_test ADD CONSTRAINT chk_labtest_blood_type_match CHECK (((blood_type_match)::text = ANY ((ARRAY['MATCHED'::character varying, 'NOT_MATCHED'::character varying, 'PENDING'::character varying])::text[])))");
+        addConstraintIfMissing(connection, "chk_labtest_final_status",
+                "ALTER TABLE public.lab_test ADD CONSTRAINT chk_labtest_final_status CHECK (((final_status)::text = ANY ((ARRAY['PASSED'::character varying, 'FAILED'::character varying, 'QUARANTINED'::character varying])::text[])))");
+        addConstraintIfMissing(connection, "lab_test_pkey",
+                "ALTER TABLE ONLY public.lab_test ADD CONSTRAINT lab_test_pkey PRIMARY KEY (test_id)");
+        addConstraintIfMissing(connection, "lab_test_donation_id_key",
+                "ALTER TABLE ONLY public.lab_test ADD CONSTRAINT lab_test_donation_id_key UNIQUE (donation_id)");
+        addConstraintIfMissing(connection, "fk_labtest_donation",
+                "ALTER TABLE ONLY public.lab_test ADD CONSTRAINT fk_labtest_donation FOREIGN KEY (donation_id) REFERENCES public.donation(donation_id) ON DELETE CASCADE");
+        addConstraintIfMissing(connection, "fk_labtest_staff",
+                "ALTER TABLE ONLY public.lab_test ADD CONSTRAINT fk_labtest_staff FOREIGN KEY (staff_id) REFERENCES public.lab_technician(staff_id) ON DELETE RESTRICT");
+
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("CREATE INDEX IF NOT EXISTS idx_lab_test_staff_id ON public.lab_test USING btree (staff_id)");
+        }
+    }
+
+    private void addConstraintIfMissing(Connection connection, String constraintName, String ddl) throws SQLException {
+        if (constraintExists(connection, constraintName)) {
+            return;
+        }
+
+        try (Statement statement = connection.createStatement()) {
+            statement.execute(ddl);
+        }
+    }
+
+    private boolean constraintExists(Connection connection, String constraintName) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("""
+                SELECT EXISTS (
+                    SELECT 1
+                    FROM pg_constraint
+                    WHERE connamespace = 'public'::regnamespace
+                      AND conname = ?
+                )
+                """)) {
+            statement.setString(1, constraintName);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next() && resultSet.getBoolean(1);
+            }
+        }
+    }
+
+    private List<IdentityColumn> generatedAlwaysIdentityColumns(Connection connection) throws SQLException {
+        List<IdentityColumn> columns = new ArrayList<>();
+        try (PreparedStatement statement = connection.prepareStatement("""
+                SELECT table_schema,
+                       table_name,
+                       column_name
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND is_identity = 'YES'
+                  AND identity_generation = 'ALWAYS'
+                ORDER BY table_name, ordinal_position
+                """);
+             ResultSet resultSet = statement.executeQuery()) {
+            while (resultSet.next()) {
+                columns.add(new IdentityColumn(
+                        resultSet.getString("table_schema"),
+                        resultSet.getString("table_name"),
+                        resultSet.getString("column_name")
+                ));
+            }
+        }
+        return columns;
+    }
+
+    private void setIdentityGeneration(Connection connection,
+                                       List<IdentityColumn> columns,
+                                       String generation) throws SQLException {
+        if (columns.isEmpty()) {
+            return;
+        }
+
+        try (Statement statement = connection.createStatement()) {
+            for (IdentityColumn column : columns) {
+                statement.execute("ALTER TABLE %s.%s ALTER COLUMN %s SET GENERATED %s".formatted(
+                        quoteIdentifier(column.schemaName()),
+                        quoteIdentifier(column.tableName()),
+                        quoteIdentifier(column.columnName()),
+                        generation
+                ));
+            }
+        }
+    }
+
+    private void setUserTriggers(Connection connection, List<String> tableNames, boolean enabled) throws SQLException {
+        if (tableNames.isEmpty()) {
+            return;
+        }
+
+        String triggerAction = enabled ? "ENABLE" : "DISABLE";
+        try (Statement statement = connection.createStatement()) {
+            for (String tableName : tableNames) {
+                statement.execute("ALTER TABLE %s.%s %s TRIGGER USER".formatted(
+                        quoteIdentifier("public"),
+                        quoteIdentifier(tableName),
+                        triggerAction
+                ));
+            }
+        }
+    }
+
+    private void truncatePublicTables(Connection connection) throws SQLException {
+        truncatePublicTables(connection, getPublicTableNames(connection));
+    }
+
+    private void truncatePublicTables(Connection connection, List<String> tableNames) throws SQLException {
+        if (tableNames.isEmpty()) {
+            return;
+        }
+
+        String qualifiedTables = tableNames.stream()
+                .map(tableName -> quoteIdentifier("public") + "." + quoteIdentifier(tableName))
+                .reduce((left, right) -> left + ", " + right)
+                .orElse("");
+
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("TRUNCATE TABLE " + qualifiedTables + " RESTART IDENTITY CASCADE");
+        }
+    }
+
+    private List<String> getPublicTableNames(Connection connection) throws SQLException {
+        List<String> tableNames = new ArrayList<>();
+        try (PreparedStatement statement = connection.prepareStatement("""
+                SELECT table_name
+                FROM information_schema.tables
+                WHERE table_schema = 'public'
+                  AND table_type = 'BASE TABLE'
+                ORDER BY table_name
+                """);
+             ResultSet resultSet = statement.executeQuery()) {
+            while (resultSet.next()) {
+                tableNames.add(resultSet.getString("table_name"));
+            }
+        }
+        return tableNames;
+    }
+
+    private void upsertBackupHistorySnapshot(BackupHistoryDto backup) {
+        if (backup == null || backup.getBackupId() == null) {
+            return;
+        }
+
+        jdbcTemplate.update("""
+                INSERT INTO system_backup_history (
+                    backup_id,
+                    trigger_type,
+                    status,
+                    file_name,
+                    file_path,
+                    file_size_bytes,
+                    triggered_by,
+                    started_at,
+                    completed_at,
+                    message
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT (backup_id) DO UPDATE
+                SET trigger_type = EXCLUDED.trigger_type,
+                    status = EXCLUDED.status,
+                    file_name = EXCLUDED.file_name,
+                    file_path = EXCLUDED.file_path,
+                    file_size_bytes = EXCLUDED.file_size_bytes,
+                    triggered_by = EXCLUDED.triggered_by,
+                    started_at = EXCLUDED.started_at,
+                    completed_at = EXCLUDED.completed_at,
+                    message = EXCLUDED.message
+                """,
+                backup.getBackupId(),
+                backup.getTriggerType(),
+                backup.getStatus(),
+                backup.getFileName(),
+                backup.getFilePath(),
+                backup.getFileSizeBytes(),
+                backup.getTriggeredBy(),
+                backup.getStartedAt(),
+                backup.getCompletedAt(),
+                backup.getMessage()
+        );
+    }
+
+    private BackupHistoryDto createRecoveryHistoryRow(BackupHistoryDto sourceBackup,
+                                                      BackupHistoryDto recoveryPoint,
+                                                      String actor,
+                                                      String status,
+                                                      String message) {
+        Long recoveryId = Objects.requireNonNull(jdbcTemplate.queryForObject("""
+                INSERT INTO system_backup_history (
+                    trigger_type,
+                    status,
+                    file_name,
+                    file_path,
+                    file_size_bytes,
+                    triggered_by,
+                    started_at,
+                    completed_at,
+                    message
+                )
+                VALUES ('RECOVERY', ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?)
+                RETURNING backup_id
+                """, Long.class,
+                status,
+                sourceBackup.getFileName(),
+                sourceBackup.getFilePath(),
+                sourceBackup.getFileSizeBytes(),
+                actor,
+                truncate(message + " Recovery point: " + recoveryPoint.getFileName(), 680)
+        ), "Recovery ID must not be null.");
+        return getBackupById(recoveryId);
+    }
+
+    private void syncIdentitySequences() {
+        jdbcTemplate.execute((ConnectionCallback<Void>) connection -> {
+            syncIdentitySequences(connection);
+            return null;
+        });
+    }
+
+    private void syncIdentitySequences(Connection connection) throws SQLException {
+        try (PreparedStatement columnStatement = connection.prepareStatement("""
+                SELECT table_schema,
+                       table_name,
+                       column_name
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND (column_default LIKE 'nextval(%' OR is_identity = 'YES')
+                ORDER BY table_name, ordinal_position
+                """);
+             ResultSet columns = columnStatement.executeQuery()) {
+            while (columns.next()) {
+                syncIdentitySequence(
+                        connection,
+                        columns.getString("table_schema"),
+                        columns.getString("table_name"),
+                        columns.getString("column_name")
+                );
+            }
+        }
+    }
+
+    private void syncIdentitySequence(Connection connection,
+                                      String schemaName,
+                                      String tableName,
+                                      String columnName) throws SQLException {
+        String sequenceName;
+        try (PreparedStatement sequenceStatement = connection.prepareStatement("SELECT pg_get_serial_sequence(?, ?)")) {
+            sequenceStatement.setString(1, schemaName + "." + tableName);
+            sequenceStatement.setString(2, columnName);
+            try (ResultSet sequenceResult = sequenceStatement.executeQuery()) {
+                if (!sequenceResult.next()) {
+                    return;
+                }
+                sequenceName = sequenceResult.getString(1);
+            }
+        }
+
+        if (sequenceName == null || sequenceName.isBlank()) {
+            return;
+        }
+
+        long maxValue = 0;
+        String maxSql = "SELECT MAX(%s) FROM %s.%s".formatted(
+                quoteIdentifier(columnName),
+                quoteIdentifier(schemaName),
+                quoteIdentifier(tableName)
+        );
+        try (Statement maxStatement = connection.createStatement();
+             ResultSet maxResult = maxStatement.executeQuery(maxSql)) {
+            if (maxResult.next() && maxResult.getObject(1) instanceof Number number) {
+                maxValue = number.longValue();
+            }
+        }
+
+        try (PreparedStatement setvalStatement = connection.prepareStatement("SELECT setval(?::regclass, ?, ?)")) {
+            setvalStatement.setString(1, sequenceName);
+            setvalStatement.setLong(2, Math.max(maxValue, 1));
+            setvalStatement.setBoolean(3, maxValue > 0);
+            setvalStatement.execute();
+        }
+    }
+
     private void writeSqlBackup(Path backupPath) throws IOException {
         try (BufferedWriter writer = Files.newBufferedWriter(backupPath, StandardCharsets.UTF_8)) {
             writer.write("-- Blood Inventory Management System backup\n");
             writer.write("-- Generated at: " + Timestamp.valueOf(LocalDateTime.now()) + "\n\n");
             writer.write("BEGIN;\n\n");
 
-            List<String> tableNames = jdbcTemplate.queryForList("""
-                    SELECT table_name
-                    FROM information_schema.tables
-                    WHERE table_schema = 'public'
-                      AND table_type = 'BASE TABLE'
-                    ORDER BY table_name
-                    """, String.class);
-
-            for (String tableName : tableNames) {
+            for (String tableName : backupTableNames()) {
                 writeTableData(writer, tableName);
             }
 
@@ -427,6 +836,75 @@ public class SystemSettingsService {
         } catch (UncheckedIOException ex) {
             throw ex.getCause();
         }
+    }
+
+    private List<String> backupTableNames() {
+        List<String> tableNames = jdbcTemplate.queryForList("""
+                SELECT table_name
+                FROM information_schema.tables
+                WHERE table_schema = 'public'
+                  AND table_type = 'BASE TABLE'
+                ORDER BY table_name
+                """, String.class);
+
+        Map<String, Set<String>> dependenciesByTable = new HashMap<>();
+        for (String tableName : tableNames) {
+            dependenciesByTable.put(tableName, new LinkedHashSet<>());
+        }
+
+        jdbcTemplate.query("""
+                SELECT tc.table_name,
+                       ccu.table_name AS referenced_table
+                FROM information_schema.table_constraints tc
+                JOIN information_schema.key_column_usage kcu
+                  ON tc.constraint_name = kcu.constraint_name
+                 AND tc.table_schema = kcu.table_schema
+                JOIN information_schema.constraint_column_usage ccu
+                  ON ccu.constraint_name = tc.constraint_name
+                 AND ccu.constraint_schema = tc.constraint_schema
+                WHERE tc.table_schema = 'public'
+                  AND ccu.table_schema = 'public'
+                  AND tc.constraint_type = 'FOREIGN KEY'
+                ORDER BY tc.table_name, ccu.table_name
+                """, rs -> {
+            String tableName = rs.getString("table_name");
+            String referencedTable = rs.getString("referenced_table");
+            if (!Objects.equals(tableName, referencedTable) && dependenciesByTable.containsKey(tableName)) {
+                dependenciesByTable.get(tableName).add(referencedTable);
+            }
+        });
+
+        List<String> orderedTables = new ArrayList<>();
+        Set<String> visited = new HashSet<>();
+        Set<String> visiting = new HashSet<>();
+        for (String tableName : tableNames) {
+            visitBackupTable(tableName, dependenciesByTable, visited, visiting, orderedTables);
+        }
+
+        return orderedTables;
+    }
+
+    private void visitBackupTable(String tableName,
+                                  Map<String, Set<String>> dependenciesByTable,
+                                  Set<String> visited,
+                                  Set<String> visiting,
+                                  List<String> orderedTables) {
+        if (visited.contains(tableName)) {
+            return;
+        }
+        if (visiting.contains(tableName)) {
+            return;
+        }
+
+        visiting.add(tableName);
+        for (String dependency : dependenciesByTable.getOrDefault(tableName, Set.of())) {
+            if (dependenciesByTable.containsKey(dependency)) {
+                visitBackupTable(dependency, dependenciesByTable, visited, visiting, orderedTables);
+            }
+        }
+        visiting.remove(tableName);
+        visited.add(tableName);
+        orderedTables.add(tableName);
     }
 
     private void writeTableData(BufferedWriter writer, String tableName) throws IOException {
@@ -448,6 +926,7 @@ public class SystemSettingsService {
                 .map(this::quoteIdentifier)
                 .reduce((left, right) -> left + ", " + right)
                 .orElse("");
+        boolean hasIdentityColumn = hasIdentityColumn(tableName);
         String selectSql = "SELECT " + quotedColumns + " FROM " + quotedTable;
 
         jdbcTemplate.query(selectSql, rs -> {
@@ -456,7 +935,11 @@ public class SystemSettingsService {
                 writer.write(quotedTable);
                 writer.write(" (");
                 writer.write(quotedColumns);
-                writer.write(") VALUES (");
+                writer.write(") ");
+                if (hasIdentityColumn) {
+                    writer.write("OVERRIDING SYSTEM VALUE ");
+                }
+                writer.write("VALUES (");
                 for (int index = 0; index < columns.size(); index++) {
                     if (index > 0) {
                         writer.write(", ");
@@ -470,6 +953,18 @@ public class SystemSettingsService {
         });
 
         writer.write("\n");
+    }
+
+    private boolean hasIdentityColumn(String tableName) {
+        return Boolean.TRUE.equals(jdbcTemplate.queryForObject("""
+                SELECT EXISTS (
+                    SELECT 1
+                    FROM information_schema.columns
+                    WHERE table_schema = 'public'
+                      AND table_name = ?
+                      AND is_identity = 'YES'
+                )
+                """, Boolean.class, tableName));
     }
 
     private void cleanupExpiredBackups(int retentionDays) {
@@ -610,5 +1105,17 @@ public class SystemSettingsService {
             return "Unknown backup error.";
         }
         return value.length() <= maxLength ? value : value.substring(0, maxLength - 3) + "...";
+    }
+
+    private String rootCauseMessage(Throwable throwable) {
+        Throwable current = throwable;
+        while (current.getCause() != null) {
+            current = current.getCause();
+        }
+
+        return truncate(current.getMessage(), 240);
+    }
+
+    private record IdentityColumn(String schemaName, String tableName, String columnName) {
     }
 }

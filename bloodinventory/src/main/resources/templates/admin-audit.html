@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/master-layout}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audit Trail</title>
+    <th:block layout:fragment="custom-css">
+    <link rel="stylesheet" th:href="@{/css/admin-reports.css}">
+    </th:block>
+</head>
+<body>
+
+    <th:block layout:fragment="app-subtitle">
+        Administrative workspace for staffing, storage, monitoring, and audit history.
+    </th:block>
+
+    <th:block layout:fragment="sidebar">
+            <div th:replace="~{fragments/sidebar :: sidebar(
+                'Blood Administrator Panel',
+                'Centralized navigation for staff, storage, audit history, and settings.',
+                'audit-trail'
+            )}"></div>
+    </th:block>
+
+    <th:block layout:fragment="content">
+                <div class="main-stack">
+                    <section class="page-intro page-card">
+                        <div>
+                            <div class="page-kicker">Audit Trail</div>
+                            <h1>Database Audit Trail</h1>
+                            <p>
+                                Review immutable PostgreSQL trigger history for inserts, updates, deletes, and recorded system actions.
+                            </p>
+                        </div>
+                        <div class="report-actions" data-report-actions>
+                            <button type="button" class="report-actions-button" data-report-actions-toggle aria-expanded="false">
+                                Actions
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="m6 9 6 6 6-6"></path>
+                                </svg>
+                            </button>
+                            <div class="report-actions-menu" data-report-actions-menu>
+                                <button type="button" class="report-action-item" data-report-download-open>
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <path d="M7 10l5 5 5-5"></path>
+                                        <path d="M12 15V3"></path>
+                                    </svg>
+                                    Download
+                                </button>
+                                <button type="button" class="report-action-item" data-report-print>
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M6 9V2h12v7"></path>
+                                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                                        <path d="M6 14h12v8H6z"></path>
+                                    </svg>
+                                    Print
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="summary-grid audit-summary-grid">
+                        <div class="summary-card">
+                            <div class="label">Total Audit Events</div>
+                            <div class="value" th:text="${auditSummary.totalEvents}">0</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="label">Last 24 Hours</div>
+                            <div class="value" th:text="${auditSummary.recentEvents}">0</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="label">Component Events</div>
+                            <div class="value" th:text="${auditSummary.componentEvents}">0</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="label">Active Actors</div>
+                            <div class="value" th:text="${auditSummary.activeActors}">0</div>
+                        </div>
+                    </section>
+
+                    <section class="reports-grid">
+                        <article class="module-card module-card-full audit-card">
+                            <div class="report-card-header">
+                                <div>
+                                    <h2>Audit Records</h2>
+                                    <p>Trigger-captured data changes plus user views, searches, downloads, authentication, and security events.</p>
+                                </div>
+                            </div>
+
+                            <form class="audit-filter-grid" method="get" th:action="@{/admin/audit}">
+                                <div class="audit-filter-wide">
+                                    <label for="audit-search">Search Audit</label>
+                                    <input id="audit-search" name="search" type="search"
+                                           th:value="${auditSearch}"
+                                           placeholder="Search actor, operation, action, table, component, donation, location, or device">
+                                </div>
+
+                                <div>
+                                    <label for="audit-table">Table Filter</label>
+                                    <select id="audit-table" name="tableName">
+                                        <option value="">All tables</option>
+                                        <option th:each="table : ${auditTables}"
+                                                th:value="${table}"
+                                                th:selected="${table == auditTableName}"
+                                                th:text="${table}">blood_component</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label for="audit-operation">Operation Filter</label>
+                                    <select id="audit-operation" name="operationType">
+                                        <option value="">All operations</option>
+                                        <option th:each="operation : ${auditOperations}"
+                                                th:value="${operation}"
+                                                th:selected="${operation == auditOperationType}"
+                                                th:text="${operation}">UPDATE</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label for="audit-action">Action Filter</label>
+                                    <select id="audit-action" name="actionType">
+                                        <option value="">All actions</option>
+                                        <option th:each="action : ${auditActions}"
+                                                th:value="${action}"
+                                                th:selected="${action == auditActionType}"
+                                                th:text="${action}">UPDATE</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label for="audit-role">Role Filter</label>
+                                    <select id="audit-role" name="role">
+                                        <option value="">All roles</option>
+                                        <option th:each="roleName : ${auditRoles}"
+                                                th:value="${roleName}"
+                                                th:selected="${roleName == auditRole}"
+                                                th:text="${roleName}">LAB_TECHNICIAN</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label for="audit-sort">Sort By</label>
+                                    <select id="audit-sort" name="sortBy">
+                                        <option value="newest" th:selected="${auditSortBy == 'newest'}">Newest first</option>
+                                        <option value="oldest" th:selected="${auditSortBy == 'oldest'}">Oldest first</option>
+                                        <option value="actor" th:selected="${auditSortBy == 'actor'}">Actor A-Z</option>
+                                        <option value="table" th:selected="${auditSortBy == 'table'}">Table A-Z</option>
+                                        <option value="component" th:selected="${auditSortBy == 'component'}">Component ID</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label for="audit-limit">Rows</label>
+                                    <select id="audit-limit" name="limit">
+                                        <option value="50" th:selected="${auditLimit == 50}">50 rows</option>
+                                        <option value="100" th:selected="${auditLimit == 100}">100 rows</option>
+                                        <option value="200" th:selected="${auditLimit == 200}">200 rows</option>
+                                        <option value="500" th:selected="${auditLimit == 500}">500 rows</option>
+                                    </select>
+                                </div>
+
+                                <div class="audit-filter-actions">
+                                    <button type="submit" class="download-footer-btn primary">Apply Filters</button>
+                                    <a th:href="@{/admin/audit}" class="report-download-btn">Reset</a>
+                                </div>
+                            </form>
+
+                            <div class="audit-meta">
+                                <span th:text="'Showing ' + ${#lists.size(auditRecords)} + ' audit records.'">Showing 0 audit records.</span>
+                            </div>
+
+                            <div class="table-wrap">
+                                <table class="data-table audit-table">
+                                    <thead>
+                                    <tr>
+                                        <th>Time</th>
+                                        <th>Actor</th>
+                                        <th>Category</th>
+                                        <th>Operation</th>
+                                        <th>Action</th>
+                                        <th>Object</th>
+                                        <th>Component</th>
+                                        <th>Donation</th>
+                                        <th>Location</th>
+                                        <th>Device</th>
+                                        <th>Snapshot</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr th:if="${auditRecords == null or #lists.isEmpty(auditRecords)}">
+                                        <td colspan="11" class="audit-empty">No audit records match the current filters.</td>
+                                    </tr>
+                                    <tr th:each="record : ${auditRecords}">
+                                        <td>
+                                            <span th:text="${record.eventTimestampUtc != null ? record.eventTimestampUtc : '-'}">2026-06-12T12:00:00Z</span>
+                                            <small th:text="${record.sourceIp != null ? record.sourceIp : '-'}">127.0.0.1</small>
+                                        </td>
+                                        <td>
+                                            <span th:text="${record.actorLabel}">admin</span>
+                                            <small th:text="${record.role != null ? record.role : '-'}">BLOOD_ADMINISTRATOR</small>
+                                        </td>
+                                        <td>
+                                            <span class="action-pill"
+                                                  th:classappend="${record.eventCategory != null ? #strings.toLowerCase(record.eventCategory) : ''}"
+                                                  th:text="${record.eventCategory != null ? record.eventCategory : '-'}">DATA_CHANGE</span>
+                                            <small th:text="${record.workflowPhase != null ? record.workflowPhase : '-'}">Inventory Control</small>
+                                        </td>
+                                        <td>
+                                            <span class="action-pill"
+                                                  th:classappend="${record.operationType != null ? #strings.toLowerCase(record.operationType) : ''}"
+                                                  th:text="${record.operationType != null ? record.operationType : '-'}">UPDATE</span>
+                                        </td>
+                                        <td>
+                                            <span class="action-pill"
+                                                  th:classappend="${record.actionType != null ? #strings.toLowerCase(record.actionType) : ''}"
+                                                  th:text="${record.actionType != null ? record.actionType : '-'}">UPDATE</span>
+                                        </td>
+                                        <td>
+                                            <span th:text="${record.tableName != null ? record.tableName : '-'}">blood_component</span>
+                                            <small th:text="${record.rowPk != null ? record.rowPk : '-'}">component_id=1</small>
+                                            <small th:if="${record.requestPath != null}"
+                                                   th:text="${(record.httpMethod != null ? record.httpMethod + ' ' : '') + record.requestPath}">GET /admin/audit</small>
+                                        </td>
+                                        <td th:text="${record.componentId != null ? record.componentId : '-'}">1</td>
+                                        <td th:text="${record.donationId != null ? record.donationId : '-'}">1</td>
+                                        <td th:text="${record.location != null ? record.location : '-'}">RBC Refrigerator</td>
+                                        <td th:text="${record.deviceId != null ? record.deviceId : '-'}">web</td>
+                                        <td>
+                                            <details class="audit-snapshot">
+                                                <summary>View JSON</summary>
+                                                <div class="audit-json-grid">
+                                                    <div>
+                                                        <div class="audit-json-label">Old Value</div>
+                                                        <pre class="audit-json" th:text="${record.oldValue != null ? record.oldValue : '-'}">-</pre>
+                                                    </div>
+                                                    <div>
+                                                        <div class="audit-json-label">New Value</div>
+                                                        <pre class="audit-json" th:text="${record.newValue != null ? record.newValue : '-'}">-</pre>
+                                                    </div>
+                                                    <div>
+                                                        <div class="audit-json-label">Process Context</div>
+                                                        <pre class="audit-json" th:text="${record.processContext != null ? record.processContext : '-'}">-</pre>
+                                                    </div>
+                                                    <div>
+                                                        <div class="audit-json-label">Integrity Hash</div>
+                                                        <pre class="audit-json" th:text="${record.integrityHash != null ? record.integrityHash : '-'}">-</pre>
+                                                    </div>
+                                                </div>
+                                            </details>
+                                        </td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </article>
+                    </section>
+
+                    <div class="report-download-backdrop" data-report-download-modal aria-hidden="true">
+                        <form class="report-download-dialog"
+                              th:action="@{/admin/audit/download}"
+                              method="get"
+                              role="dialog"
+                              aria-modal="true"
+                              aria-labelledby="audit-download-title">
+                            <input type="hidden" name="search" th:value="${auditSearch}">
+                            <input type="hidden" name="tableName" th:value="${auditTableName}">
+                            <input type="hidden" name="operationType" th:value="${auditOperationType}">
+                            <input type="hidden" name="actionType" th:value="${auditActionType}">
+                            <input type="hidden" name="role" th:value="${auditRole}">
+                            <input type="hidden" name="sortBy" th:value="${auditSortBy}">
+
+                            <div class="download-dialog-header">
+                                <h2 id="audit-download-title">Download Audit Trail</h2>
+                                <button type="button" class="download-close" data-report-download-close aria-label="Close download dialog">&times;</button>
+                            </div>
+
+                            <div class="download-dialog-body">
+                                <div>
+                                    <div class="download-format-title">Format</div>
+                                    <div class="download-format-grid">
+                                        <label class="download-format-option">
+                                            <input type="radio" name="format" value="csv" checked
+                                                   aria-label="CSV format" title="CSV format">
+                                            <span class="download-format-card">
+                                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                                    <path d="M14 2v6h6"></path>
+                                                    <path d="M8 13h8"></path>
+                                                    <path d="M8 17h5"></path>
+                                                </svg>
+                                                CSV
+                                            </span>
+                                        </label>
+
+                                        <label class="download-format-option">
+                                            <input type="radio" name="format" value="excel"
+                                                   aria-label="Excel format" title="Excel format">
+                                            <span class="download-format-card">
+                                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                                    <path d="M3 3h18v18H3z"></path>
+                                                    <path d="M3 9h18"></path>
+                                                    <path d="M9 9v12"></path>
+                                                    <path d="m13 13 4 4"></path>
+                                                    <path d="m17 13-4 4"></path>
+                                                </svg>
+                                                Excel
+                                            </span>
+                                        </label>
+
+                                        <label class="download-format-option">
+                                            <input type="radio" name="format" value="pdf"
+                                                   aria-label="PDF format" title="PDF format">
+                                            <span class="download-format-card">
+                                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                                    <path d="M14 2v6h6"></path>
+                                                    <path d="M8 15h8"></path>
+                                                    <path d="M8 18h4"></path>
+                                                </svg>
+                                                PDF
+                                            </span>
+                                        </label>
+
+                                        <label class="download-format-option">
+                                            <input type="radio" name="format" value="html"
+                                                   aria-label="HTML format" title="HTML format">
+                                            <span class="download-format-card">
+                                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                                    <path d="M16 18l6-6-6-6"></path>
+                                                    <path d="M8 6l-6 6 6 6"></path>
+                                                </svg>
+                                                HTML
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="download-dialog-footer">
+                                <button type="button" class="download-footer-btn" data-report-download-close>Cancel</button>
+                                <button type="submit" class="download-footer-btn primary">Download</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+    </th:block>
+
+    <th:block layout:fragment="custom-js">
+<script th:src="@{/js/admin-report-actions.js}"></script>
+    </th:block>
+
+</body>
+</html>

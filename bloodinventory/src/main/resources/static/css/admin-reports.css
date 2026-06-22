@@ -369,6 +369,158 @@
         .action-pill.delete { background:#fff0f0; color:#c52f3f; }
         .action-pill.login { background:#f1ecff; color:#6846b8; }
         .action-pill.logout { background:#fff6e8; color:#b66b04; }
+        .action-pill.backup { background:#eef8ff; color:#0c6d9c; }
+        .action-pill.recovery { background:#f5f0ff; color:#6d3bc1; }
+        .action-pill.data_change { background:#edf5ff; color:#1f5f9f; }
+        .action-pill.user_action { background:#f5f0ff; color:#6d3bc1; }
+        .action-pill.view,
+        .action-pill.search,
+        .action-pill.download { background:#eef8ff; color:#0c6d9c; }
+        .action-pill.security,
+        .action-pill.access_denied,
+        .action-pill.login_failure { background:#fff0f0; color:#c52f3f; }
+
+        .audit-summary-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        .audit-card {
+            display:grid;
+            gap:16px;
+        }
+
+        .audit-filter-grid {
+            display:grid;
+            grid-template-columns: minmax(240px, 1.6fr) repeat(6, minmax(130px, 1fr));
+            gap:12px;
+            align-items:end;
+        }
+
+        .audit-filter-grid label {
+            display:block;
+            margin-bottom:7px;
+            color:#6b85a3;
+            font-size:11px;
+            font-weight:800;
+            letter-spacing:.08em;
+            text-transform:uppercase;
+        }
+
+        .audit-filter-grid input,
+        .audit-filter-grid select {
+            width:100%;
+            min-height:42px;
+            border:1px solid #ccd8e6;
+            border-radius:8px;
+            background:#fff;
+            color:#172033;
+            padding:9px 12px;
+            font-size:13px;
+        }
+
+        .audit-filter-actions {
+            display:flex;
+            align-items:center;
+            gap:10px;
+        }
+
+        .audit-filter-actions .download-footer-btn,
+        .audit-filter-actions .report-download-btn {
+            min-height:42px;
+        }
+
+        .audit-meta {
+            color:#6b85a3;
+            font-size:12px;
+            font-weight:700;
+        }
+
+        .audit-table th,
+        .audit-table td {
+            white-space:nowrap;
+        }
+
+        .audit-table td small {
+            display:block;
+            margin-top:4px;
+            color:#7d93ad;
+            font-size:11px;
+            font-weight:700;
+        }
+
+        .audit-snapshot summary {
+            cursor:pointer;
+            color:#1f5f9f;
+            font-size:12px;
+            font-weight:800;
+        }
+
+        .audit-json-grid {
+            display:grid;
+            grid-template-columns: repeat(2, minmax(260px, 1fr));
+            gap:10px;
+            margin-top:10px;
+        }
+
+        .audit-json-label {
+            margin-bottom:6px;
+            color:#6b85a3;
+            font-size:11px;
+            font-weight:800;
+            letter-spacing:.08em;
+            text-transform:uppercase;
+        }
+
+        .audit-json {
+            max-width:420px;
+            max-height:210px;
+            overflow:auto;
+            margin:0;
+            padding:10px;
+            border:1px solid #dce6f2;
+            border-radius:8px;
+            background:#f8fbff;
+            color:#253954;
+            font-size:11px;
+            line-height:1.5;
+            white-space:pre-wrap;
+            word-break:break-word;
+        }
+
+        .audit-empty {
+            text-align:center;
+            color:#6b85a3;
+            font-weight:700;
+        }
+
+        .action-pill.created,
+        .action-pill.released,
+        .action-pill.restored,
+        .action-pill.reserved {
+            background:#e9f9ef;
+            color:#16803a;
+        }
+
+        .action-pill.modified,
+        .action-pill.location_updated,
+        .action-pill.deferral_updated,
+        .action-pill.quarantined {
+            background:#edf5ff;
+            color:#1f5f9f;
+        }
+
+        .action-pill.transfused {
+            background:#f1ecff;
+            color:#6846b8;
+        }
+
+        .action-pill.discarded,
+        .action-pill.deleted,
+        .action-pill.archived,
+        .action-pill.expired {
+            background:#fff0f0;
+            color:#c52f3f;
+        }
 
         body.theme-dark .report-actions-button,
         body.theme-dark .report-download-btn {
@@ -429,6 +581,65 @@
         body.theme-dark .action-pill.delete { background:rgba(239,68,68,.16); color:#ff9aa2; }
         body.theme-dark .action-pill.login { background:rgba(139,92,246,.18); color:#c4b5fd; }
         body.theme-dark .action-pill.logout { background:rgba(245,158,11,.18); color:#facc6b; }
+        body.theme-dark .action-pill.backup { background:rgba(14,165,233,.16); color:#8bd8ff; }
+        body.theme-dark .action-pill.recovery { background:rgba(168,85,247,.18); color:#d8b4fe; }
+        body.theme-dark .action-pill.data_change { background:rgba(47,128,237,.16); color:#8ec6ff; }
+        body.theme-dark .action-pill.user_action { background:rgba(168,85,247,.18); color:#d8b4fe; }
+        body.theme-dark .action-pill.view,
+        body.theme-dark .action-pill.search,
+        body.theme-dark .action-pill.download { background:rgba(14,165,233,.16); color:#8bd8ff; }
+        body.theme-dark .action-pill.security,
+        body.theme-dark .action-pill.access_denied,
+        body.theme-dark .action-pill.login_failure { background:rgba(239,68,68,.16); color:#ff9aa2; }
+
+        body.theme-dark .audit-filter-grid label,
+        body.theme-dark .audit-meta,
+        body.theme-dark .audit-json-label,
+        body.theme-dark .audit-table td small,
+        body.theme-dark .audit-empty {
+            color:#9db8d4;
+        }
+
+        body.theme-dark .audit-filter-grid input,
+        body.theme-dark .audit-filter-grid select,
+        body.theme-dark .audit-json {
+            background:#071824;
+            border-color:#27506d;
+            color:#f8fbff;
+        }
+
+        body.theme-dark .audit-snapshot summary {
+            color:#8ec6ff;
+        }
+
+        body.theme-dark .action-pill.created,
+        body.theme-dark .action-pill.released,
+        body.theme-dark .action-pill.restored,
+        body.theme-dark .action-pill.reserved {
+            background:rgba(34,197,94,.16);
+            color:#7be39e;
+        }
+
+        body.theme-dark .action-pill.modified,
+        body.theme-dark .action-pill.location_updated,
+        body.theme-dark .action-pill.deferral_updated,
+        body.theme-dark .action-pill.quarantined {
+            background:rgba(47,128,237,.16);
+            color:#8ec6ff;
+        }
+
+        body.theme-dark .action-pill.transfused {
+            background:rgba(139,92,246,.18);
+            color:#c4b5fd;
+        }
+
+        body.theme-dark .action-pill.discarded,
+        body.theme-dark .action-pill.deleted,
+        body.theme-dark .action-pill.archived,
+        body.theme-dark .action-pill.expired {
+            background:rgba(239,68,68,.16);
+            color:#ff9aa2;
+        }
 
         @media (max-width: 1100px) {
             .summary-grid {
@@ -437,6 +648,14 @@
 
             .reports-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .audit-summary-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .audit-filter-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
             }
         }
 
@@ -461,6 +680,17 @@
 
             .download-format-grid {
                 grid-template-columns:repeat(2, minmax(0, 1fr));
+            }
+
+            .audit-summary-grid,
+            .audit-filter-grid,
+            .audit-json-grid {
+                grid-template-columns:1fr;
+            }
+
+            .audit-filter-actions {
+                justify-content:flex-start;
+                flex-wrap:wrap;
             }
         }
 
@@ -539,7 +769,9 @@
 
             .chart-source-data,
             .inventory-apply-control,
-            .form-grid {
+            .form-grid,
+            .audit-filter-grid,
+            .audit-meta {
                 display:none !important;
             }
 

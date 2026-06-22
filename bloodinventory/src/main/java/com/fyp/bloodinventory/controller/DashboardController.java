@@ -1,6 +1,7 @@
 package com.fyp.bloodinventory.controller;
 
 import com.fyp.bloodinventory.dto.AdminDashboardStats;
+import com.fyp.bloodinventory.dto.AuditTrailDto;
 import com.fyp.bloodinventory.dto.AvailableStockDto;
 import com.fyp.bloodinventory.dto.DashboardChartSegmentDto;
 import com.fyp.bloodinventory.dto.DeferralRuleRequest;
@@ -14,6 +15,7 @@ import com.fyp.bloodinventory.dto.StaffRoleTotalDto;
 import com.fyp.bloodinventory.dto.StorageLocationRequest;
 import com.fyp.bloodinventory.dto.SystemNotificationDto;
 import com.fyp.bloodinventory.service.AdminDashboardService;
+import com.fyp.bloodinventory.service.AuditTrailService;
 import com.fyp.bloodinventory.service.DeferralRuleService;
 import com.fyp.bloodinventory.service.InventoryMonitorService;
 import com.fyp.bloodinventory.service.LabWorkflowService;
@@ -80,6 +82,7 @@ public class DashboardController {
     private final MedicalWorkflowService medicalWorkflowService;
     private final LabWorkflowService labWorkflowService;
     private final ReportsAlertService reportsAlertService;
+    private final AuditTrailService auditTrailService;
     private final StaffService staffService;
     private final SystemNotificationService notificationService;
 
@@ -90,6 +93,7 @@ public class DashboardController {
                                MedicalWorkflowService medicalWorkflowService,
                                LabWorkflowService labWorkflowService,
                                ReportsAlertService reportsAlertService,
+                               AuditTrailService auditTrailService,
                                StaffService staffService,
                                SystemNotificationService notificationService) {
         this.adminDashboardService = adminDashboardService;
@@ -99,6 +103,7 @@ public class DashboardController {
         this.medicalWorkflowService = medicalWorkflowService;
         this.labWorkflowService = labWorkflowService;
         this.reportsAlertService = reportsAlertService;
+        this.auditTrailService = auditTrailService;
         this.staffService = staffService;
         this.notificationService = notificationService;
     }
@@ -248,6 +253,70 @@ public class DashboardController {
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         "attachment; filename=\"" + normalizedType + "-report." + fileExtension(normalizedFormat) + "\"")
+                .contentType(responseType)
+                .body(body);
+    }
+
+    @GetMapping("/admin/audit")
+    public String adminAuditTrail(@RequestParam(value = "search", required = false) String search,
+                                  @RequestParam(value = "tableName", required = false) String tableName,
+                                  @RequestParam(value = "operationType", required = false) String operationType,
+                                  @RequestParam(value = "actionType", required = false) String actionType,
+                                  @RequestParam(value = "role", required = false) String role,
+                                  @RequestParam(value = "sortBy", required = false) String sortBy,
+                                  @RequestParam(value = "limit", required = false) Integer limit,
+                                  Model model) {
+        String normalizedSort = auditTrailService.normalizeSort(sortBy);
+        int normalizedLimit = auditTrailService.normalizeLimit(limit);
+
+        model.addAttribute("auditSummary", auditTrailService.getSummary());
+        model.addAttribute("auditRecords", auditTrailService.getAuditRecords(
+                search,
+                tableName,
+                operationType,
+                actionType,
+                role,
+                normalizedSort,
+                normalizedLimit
+        ));
+        model.addAttribute("auditTables", auditTrailService.getTableNames());
+        model.addAttribute("auditOperations", auditTrailService.getOperationTypes());
+        model.addAttribute("auditActions", auditTrailService.getActionTypes());
+        model.addAttribute("auditRoles", auditTrailService.getRoles());
+        model.addAttribute("auditSearch", search == null ? "" : search);
+        model.addAttribute("auditTableName", tableName == null ? "" : tableName);
+        model.addAttribute("auditOperationType", operationType == null ? "" : operationType);
+        model.addAttribute("auditActionType", actionType == null ? "" : actionType);
+        model.addAttribute("auditRole", role == null ? "" : role);
+        model.addAttribute("auditSortBy", normalizedSort);
+        model.addAttribute("auditLimit", normalizedLimit);
+        return "admin-audit";
+    }
+
+    @GetMapping("/admin/audit/download")
+    public ResponseEntity<byte[]> downloadAuditTrail(@RequestParam(value = "search", required = false) String search,
+                                                     @RequestParam(value = "tableName", required = false) String tableName,
+                                                     @RequestParam(value = "operationType", required = false) String operationType,
+                                                     @RequestParam(value = "actionType", required = false) String actionType,
+                                                     @RequestParam(value = "role", required = false) String role,
+                                                     @RequestParam(value = "sortBy", required = false) String sortBy,
+                                                     @RequestParam(value = "format", required = false) String format) {
+        String normalizedFormat = normalizeReportFormat(format);
+        ReportExport report = auditTrailExport(auditTrailService.getAuditRecords(
+                search,
+                tableName,
+                operationType,
+                actionType,
+                role,
+                auditTrailService.normalizeSort(sortBy),
+                500
+        ));
+        byte[] body = renderReport(report, normalizedFormat);
+        MediaType responseType = MediaType.parseMediaType(contentType(normalizedFormat));
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"audit-trail." + fileExtension(normalizedFormat) + "\"")
                 .contentType(responseType)
                 .body(body);
     }
@@ -599,6 +668,35 @@ public class DashboardController {
                                 row.getActorUsername(),
                                 row.getSourceIp(),
                                 row.getMessage()
+                        ))
+                        .toList()
+        );
+    }
+
+    private ReportExport auditTrailExport(List<AuditTrailDto> rows) {
+        return new ReportExport(
+                "Audit Trail",
+                List.of("Time UTC", "Actor", "Role", "Category", "Operation", "Action", "Object", "Workflow Phase", "Request", "Component", "Donation", "Location", "Device", "Source IP", "Session Hash", "Row PK", "Integrity Hash", "Process Context"),
+                rows.stream()
+                        .map(row -> row(
+                                row.getEventTimestampUtc(),
+                                row.getActorLabel(),
+                                row.getRole(),
+                                row.getEventCategory(),
+                                row.getOperationType(),
+                                row.getActionType(),
+                                row.getTableName(),
+                                row.getWorkflowPhase(),
+                                row.getRequestPath(),
+                                row.getComponentId(),
+                                row.getDonationId(),
+                                row.getLocation(),
+                                row.getDeviceId(),
+                                row.getSourceIp(),
+                                row.getSessionIdHash(),
+                                row.getRowPk(),
+                                row.getIntegrityHash(),
+                                row.getProcessContext()
                         ))
                         .toList()
         );

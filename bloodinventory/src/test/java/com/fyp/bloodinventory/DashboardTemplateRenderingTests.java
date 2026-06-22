@@ -48,6 +48,7 @@ class DashboardTemplateRenderingTests {
             "/admin/storage",
             "/admin/inventory",
             "/admin/reports",
+            "/admin/audit",
             "/admin/deferral-rules",
             "/admin/settings",
             "/admin/staff/management",
@@ -90,6 +91,28 @@ class DashboardTemplateRenderingTests {
                 .andExpect(expect(content().string(containsString("data-report-download-modal"))))
                 .andExpect(expect(content().string(containsString("action=\"/admin/reports/download\""))))
                 .andExpect(expect(content().string(containsString("name=\"format\""))));
+    }
+
+    @Test
+    void adminAuditDownloadReturnsAttachment() throws Exception {
+        mockMvc.perform(get("/admin/audit/download")
+                        .param("format", "csv")
+                        .principal(ADMIN_AUTHENTICATION))
+                .andExpect(expect(status().isOk()))
+                .andExpect(expect(header().string(HttpHeaders.CONTENT_DISPOSITION, containsString("audit-trail.csv"))))
+                .andExpect(expect(content().contentTypeCompatibleWith(MediaType.valueOf("text/csv"))))
+                .andExpect(expect(content().string(containsString("Time UTC,Actor,Role,Category,Operation,Action,Object"))));
+    }
+
+    @Test
+    void adminAuditPageIncludesDownloadAndPrintActions() throws Exception {
+        mockMvc.perform(get("/admin/audit").principal(ADMIN_AUTHENTICATION))
+                .andExpect(expect(status().isOk()))
+                .andExpect(expect(content().string(containsString("action=\"/admin/audit/download\""))))
+                .andExpect(expect(content().string(containsString("data-report-print"))))
+                .andExpect(expect(content().string(containsString("<th>Category</th>"))))
+                .andExpect(expect(content().string(containsString("<th>Operation</th>"))))
+                .andExpect(expect(content().string(containsString("Database Audit Trail"))));
     }
 
     @Test

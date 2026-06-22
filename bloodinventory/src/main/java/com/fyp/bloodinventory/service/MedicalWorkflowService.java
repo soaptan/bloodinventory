@@ -37,9 +37,12 @@ public class MedicalWorkflowService {
     public static final List<String> COMPONENT_TYPES = List.of("RBC", "PLASMA", "PLATELET");
 
     private final JdbcTemplate jdbcTemplate;
+    private final DatabaseAuditContextService auditContextService;
 
-    public MedicalWorkflowService(JdbcTemplate jdbcTemplate) {
+    public MedicalWorkflowService(JdbcTemplate jdbcTemplate,
+                                  DatabaseAuditContextService auditContextService) {
         this.jdbcTemplate = jdbcTemplate;
+        this.auditContextService = auditContextService;
     }
 
     public MedicalDashboardSummaryDto getDashboardSummary() {
@@ -261,6 +264,7 @@ public class MedicalWorkflowService {
 
     @Transactional
     public void saveDonor(MedicalDonorRequest request) {
+        applyAuditContext();
         String icNumber = requireText(request.getIcNumber(), "Please enter the donor IC number.");
         String fullName = requireText(request.getFullName(), "Please enter the donor full name.");
         String bloodGroup = requireBloodGroup(request.getBloodGroup());
@@ -292,6 +296,7 @@ public class MedicalWorkflowService {
 
     @Transactional
     public void recordDeferral(MedicalDeferralRequest request, String username) {
+        applyAuditContext();
         Long donorId = requireId(request.getDonorId(), "Please select a donor.");
         Long reasonId = requireId(request.getReasonId(), "Please select a deferral reason.");
         Long staffId = requireMedicalStaffId(username);
@@ -324,12 +329,14 @@ public class MedicalWorkflowService {
 
     @Transactional
     public void clearDeferral(Long donorId) {
+        applyAuditContext();
         Long requiredDonorId = requireId(donorId, "Please select a donor.");
         jdbcTemplate.update("UPDATE donor SET deferral_expiry_date = NULL WHERE donor_id = ?", requiredDonorId);
     }
 
     @Transactional
     public void deleteDonor(Long donorId) {
+        applyAuditContext();
         Long requiredDonorId = requireId(donorId, "Please select a donor.");
         Long donationCount = jdbcTemplate.queryForObject("""
                 SELECT COUNT(*)
@@ -349,6 +356,7 @@ public class MedicalWorkflowService {
 
     @Transactional
     public void recordDonation(MedicalDonationRequest request, String username) {
+        applyAuditContext();
         Long donorId = requireId(request.getDonorId(), "Please select a donor.");
         Long locationId = requireId(request.getLocationId(), "Please select a storage location.");
         Long staffId = requireMedicalStaffId(username);
@@ -386,6 +394,7 @@ public class MedicalWorkflowService {
 
     @Transactional
     public void updateDonation(Long donationId, String collectionTimestampValue, Long locationId) {
+        applyAuditContext();
         Long requiredDonationId = requireId(donationId, "Please select a donation.");
         Long requiredLocationId = requireId(locationId, "Please select a storage location.");
         Timestamp collectionTimestamp = parseTimestamp(collectionTimestampValue);
@@ -417,6 +426,7 @@ public class MedicalWorkflowService {
 
     @Transactional
     public void deleteDonation(Long donationId) {
+        applyAuditContext();
         Long requiredDonationId = requireId(donationId, "Please select a donation.");
         ensureDonationEditable(requiredDonationId);
 
@@ -428,6 +438,7 @@ public class MedicalWorkflowService {
 
     @Transactional
     public void recordTransfusion(MedicalTransfusionRequest request, String username) {
+        applyAuditContext();
         Long componentId = requireId(request.getComponentId(), "Please select a blood component.");
         Long staffId = requireMedicalStaffId(username);
         Long patientId = resolvePatientId(request);
@@ -464,6 +475,7 @@ public class MedicalWorkflowService {
 
     @Transactional
     public void updateTransfusion(Long componentId, MedicalTransfusionRequest request) {
+        applyAuditContext();
         Long requiredComponentId = requireId(componentId, "Please select a transfusion record.");
         Long patientId = resolvePatientId(request);
 
@@ -479,6 +491,7 @@ public class MedicalWorkflowService {
 
     @Transactional
     public void deleteTransfusion(Long componentId) {
+        applyAuditContext();
         Long requiredComponentId = requireId(componentId, "Please select a transfusion record.");
         int deletedRows = jdbcTemplate.update("DELETE FROM transfusion_record WHERE component_id = ?", requiredComponentId);
         if (deletedRows == 0) {
@@ -495,6 +508,7 @@ public class MedicalWorkflowService {
 
     @Transactional
     public void reserveComponent(Long componentId) {
+        applyAuditContext();
         Long requiredComponentId = requireId(componentId, "Please select a component.");
         int updated = jdbcTemplate.update("""
                 UPDATE blood_component
@@ -509,6 +523,7 @@ public class MedicalWorkflowService {
 
     @Transactional
     public void releaseComponent(Long componentId) {
+        applyAuditContext();
         Long requiredComponentId = requireId(componentId, "Please select a component.");
         int updated = jdbcTemplate.update("""
                 UPDATE blood_component
@@ -519,6 +534,10 @@ public class MedicalWorkflowService {
         if (updated == 0) {
             throw new RuntimeException("Only reserved components can be released.");
         }
+    }
+
+    private void applyAuditContext() {
+        auditContextService.applyCurrentContext();
     }
 
     private MedicalDonorDto mapDonor(@NonNull ResultSet rs, int rowNum) throws SQLException {

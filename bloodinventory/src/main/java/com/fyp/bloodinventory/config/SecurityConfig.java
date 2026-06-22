@@ -1,5 +1,6 @@
 package com.fyp.bloodinventory.config;
 
+import com.fyp.bloodinventory.service.AuditEventService;
 import com.fyp.bloodinventory.service.CustomUserDetailsService;
 import com.fyp.bloodinventory.service.DatabaseSessionControlService;
 import com.fyp.bloodinventory.service.StaffModuleAccessService;
@@ -28,17 +29,20 @@ public class SecurityConfig {
     private final SystemNotificationService notificationService;
     private final DatabaseSessionControlService sessionControlService;
     private final DatabaseSessionControlFilter databaseSessionControlFilter;
+    private final AuditEventService auditEventService;
 
     public SecurityConfig(CustomUserDetailsService customUserDetailsService,
                           StaffModuleAccessService staffModuleAccessService,
                           SystemNotificationService notificationService,
                           DatabaseSessionControlService sessionControlService,
-                          DatabaseSessionControlFilter databaseSessionControlFilter) {
+                          DatabaseSessionControlFilter databaseSessionControlFilter,
+                          AuditEventService auditEventService) {
         this.customUserDetailsService = customUserDetailsService;
         this.staffModuleAccessService = staffModuleAccessService;
         this.notificationService = notificationService;
         this.sessionControlService = sessionControlService;
         this.databaseSessionControlFilter = databaseSessionControlFilter;
+        this.auditEventService = auditEventService;
     }
 
     @Bean
@@ -71,6 +75,7 @@ public class SecurityConfig {
                     username,
                     request.getRemoteAddr()
             );
+            auditEventService.recordLoginSuccess(request, username);
 
             if (authorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_BLOOD_ADMINISTRATOR"))) {
                 response.sendRedirect("/admin/dashboard");
@@ -87,22 +92,27 @@ public class SecurityConfig {
     @Bean
     public AuthenticationFailureHandler customFailureHandler() {
         return (request, response, exception) -> {
+            String username = request.getParameter("username");
             String attemptedPassword = request.getParameter("password");
             if (PasswordHashSupport.isBcryptHash(attemptedPassword)) {
+                auditEventService.recordLoginFailure(request, username, "HASHED_PASSWORD_SUBMITTED");
                 response.sendRedirect("/login?hashPassword");
                 return;
             }
 
             if (exception instanceof DisabledException) {
+                auditEventService.recordLoginFailure(request, username, "ACCOUNT_INACTIVE");
                 response.sendRedirect("/login?inactive");
                 return;
             }
 
             if (exception instanceof LockedException) {
+                auditEventService.recordLoginFailure(request, username, "ACCOUNT_LOCKED");
                 response.sendRedirect("/login?locked");
                 return;
             }
 
+            auditEventService.recordLoginFailure(request, username, exception.getClass().getSimpleName());
             response.sendRedirect("/login?error");
         };
     }
@@ -139,6 +149,7 @@ public class SecurityConfig {
                                         authentication.getName(),
                                         request.getRemoteAddr()
                                 );
+                                auditEventService.recordLogout(request, authentication.getName());
                             }
 
                             response.sendRedirect("/login?logout");
@@ -149,7 +160,10 @@ public class SecurityConfig {
                         .permitAll()
                 )
                 .exceptionHandling(exception -> exception
-                        .accessDeniedPage("/access-denied")
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            auditEventService.recordAccessDenied(request, accessDeniedException.getMessage());
+                            response.sendRedirect("/access-denied");
+                        })
                 )
                 .sessionManagement(session -> session
                         .sessionFixation(sessionFixation -> sessionFixation.migrateSession())

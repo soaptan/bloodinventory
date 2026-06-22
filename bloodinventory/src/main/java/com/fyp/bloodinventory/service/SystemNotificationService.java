@@ -4,15 +4,19 @@ import com.fyp.bloodinventory.dto.SystemNotificationDto;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import java.sql.PreparedStatement;
 import java.util.List;
 
 @Service
 public class SystemNotificationService {
 
     private final JdbcTemplate jdbcTemplate;
+    private final DatabaseAuditContextService auditContextService;
 
-    public SystemNotificationService(JdbcTemplate jdbcTemplate) {
+    public SystemNotificationService(JdbcTemplate jdbcTemplate,
+                                     DatabaseAuditContextService auditContextService) {
         this.jdbcTemplate = jdbcTemplate;
+        this.auditContextService = auditContextService;
     }
 
     public void record(String moduleName, String actionType, String message, String actorUsername) {
@@ -20,14 +24,17 @@ public class SystemNotificationService {
     }
 
     public void record(String moduleName, String actionType, String message, String actorUsername, String sourceIp) {
-        jdbcTemplate.update(
-                "CALL sp_add_system_notification(?, ?, ?, ?, ?)",
-                moduleName,
-                actionType,
-                message,
-                actorUsername,
-                sourceIp
-        );
+        auditContextService.executeWithCurrentContext(connection -> {
+            try (PreparedStatement statement = connection.prepareStatement("CALL sp_add_system_notification(?, ?, ?, ?, ?)")) {
+                statement.setString(1, moduleName);
+                statement.setString(2, actionType);
+                statement.setString(3, message);
+                statement.setString(4, actorUsername);
+                statement.setString(5, sourceIp);
+                statement.execute();
+            }
+            return null;
+        });
     }
 
     public List<SystemNotificationDto> getRecentNotifications() {
@@ -61,6 +68,11 @@ public class SystemNotificationService {
     }
 
     public void markAllAsRead() {
-        jdbcTemplate.update("CALL sp_mark_all_system_notifications_read()");
+        auditContextService.executeWithCurrentContext(connection -> {
+            try (PreparedStatement statement = connection.prepareStatement("CALL sp_mark_all_system_notifications_read()")) {
+                statement.execute();
+            }
+            return null;
+        });
     }
 }
