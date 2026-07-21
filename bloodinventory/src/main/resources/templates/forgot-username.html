@@ -17,19 +17,23 @@
         <p>Enter the email and IC number registered with your staff account.</p>
     </div>
 
-    <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
-    <div th:if="${errorMessage}" class="alert alert-error" th:text="${errorMessage}"></div>
+    <div th:if="${successMessage}" class="alert alert-success" role="status" th:text="${successMessage}"></div>
+    <div th:if="${errorMessage}" class="alert alert-error" role="alert" th:text="${errorMessage}"></div>
 
-    <form th:action="@{/forgot-username}" method="post">
-        <div class="form-group">
+    <form th:action="@{/forgot-username}" method="post" novalidate data-validate-form>
+        <div class="form-group" th:classappend="${fieldErrors != null and fieldErrors.containsKey('email')} ? ' has-error'">
             <label for="email">Registered Email</label>
             <input id="email" name="email" type="email" autocomplete="email" required
-                   th:value="${email}" placeholder="name@bloodbank.my">
+                   maxlength="100" th:value="${email}" placeholder="name@bloodbank.my"
+                   th:attr="aria-invalid=${fieldErrors != null and fieldErrors.containsKey('email')},aria-describedby='email-error'">
+            <p id="email-error" class="field-error" th:text="${fieldErrors != null ? fieldErrors.get('email') : ''}"></p>
         </div>
-        <div class="form-group">
+        <div class="form-group" th:classappend="${fieldErrors != null and fieldErrors.containsKey('icNumber')} ? ' has-error'">
             <label for="icNumber">IC Number</label>
             <input id="icNumber" name="icNumber" type="text" autocomplete="off" required
-                   th:value="${icNumber}" placeholder="850101-10-2001">
+                   maxlength="14" pattern="[0-9]{6}-?[0-9]{2}-?[0-9]{4}" th:value="${icNumber}" placeholder="850101-10-2001"
+                   th:attr="aria-invalid=${fieldErrors != null and fieldErrors.containsKey('icNumber')},aria-describedby='icNumber-error'">
+            <p id="icNumber-error" class="field-error" th:text="${fieldErrors != null ? fieldErrors.get('icNumber') : ''}"></p>
         </div>
         <button type="submit" class="primary-btn">Find Username</button>
     </form>
@@ -40,5 +44,6 @@
     </div>
     <p class="security-note">For security, only active staff accounts can be recovered here.</p>
 </main>
+<script th:src="@{/js/auth-validation.js}"></script>
 </body>
 </html>

@@ -219,6 +219,9 @@ public class StaffService {
                     gender.toUpperCase(), email, storedPassword, request.getLicenseNo(), request.getPosition(),
                     request.getCertificationNo(), request.getDepartment(), currentUsername);
             applyAccountStatus(requiredStaffId, active);
+            if (!active) {
+                endActiveSessions(username);
+            }
             return;
         }
 
@@ -234,27 +237,31 @@ public class StaffService {
 
         staffRepository.save(staff);
         applyAccountStatus(requiredStaffId, active);
+        if (!active) {
+            endActiveSessions(username);
+        }
     }
 
     @Transactional
-    public void deleteStaff(@NonNull Long staffId, String currentUsername) {
+    public void archiveStaff(@NonNull Long staffId, String currentUsername) {
         applyAuditContext();
         Long requiredStaffId = Objects.requireNonNull(staffId, "Staff ID must not be null.");
         Staff staff = findStaffById(requiredStaffId);
 
         if (isCurrentUser(staff, currentUsername)) {
-            throw new RuntimeException("You cannot delete your own account from staff management.");
+            throw new RuntimeException("You cannot archive your own account from staff management.");
         }
 
-        deleteStaffRecord(staff);
+        requireActiveForArchive(staff);
+        archiveStaffAccount(staff);
     }
 
     @Transactional
-    public int deleteSelectedStaff(List<Long> staffIds, String currentUsername) {
+    public int archiveSelectedStaff(List<Long> staffIds, String currentUsername) {
         applyAuditContext();
         List<Long> uniqueStaffIds = uniqueStaffIds(staffIds);
         if (uniqueStaffIds.isEmpty()) {
-            throw new RuntimeException("Select at least one staff record to delete.");
+            throw new RuntimeException("Select at least one active staff account to archive.");
         }
 
         List<Staff> selectedStaff = new ArrayList<>();
@@ -265,11 +272,42 @@ public class StaffService {
 
         for (Staff staff : selectedStaff) {
             if (isCurrentUser(staff, currentUsername)) {
-                throw new RuntimeException("Deselect your own account before deleting staff records.");
+                throw new RuntimeException("Deselect your own account before archiving staff accounts.");
             }
+
+            requireActiveForArchive(staff);
         }
 
-        selectedStaff.forEach(this::deleteStaffRecord);
+        selectedStaff.forEach(this::archiveStaffAccount);
+        return selectedStaff.size();
+    }
+
+    @Transactional
+    public void restoreStaff(@NonNull Long staffId) {
+        applyAuditContext();
+        Long requiredStaffId = Objects.requireNonNull(staffId, "Staff ID must not be null.");
+        Staff staff = findStaffById(requiredStaffId);
+
+        requireArchivedForRestore(staff);
+        restoreStaffAccount(staff);
+    }
+
+    @Transactional
+    public int restoreSelectedStaff(List<Long> staffIds) {
+        applyAuditContext();
+        List<Long> uniqueStaffIds = uniqueStaffIds(staffIds);
+        if (uniqueStaffIds.isEmpty()) {
+            throw new RuntimeException("Select at least one archived staff account to restore.");
+        }
+
+        List<Staff> selectedStaff = new ArrayList<>();
+        for (Long selectedStaffId : uniqueStaffIds) {
+            Long requiredStaffId = Objects.requireNonNull(selectedStaffId, "Staff ID must not be null.");
+            selectedStaff.add(findStaffById(requiredStaffId));
+        }
+
+        selectedStaff.forEach(this::requireArchivedForRestore);
+        selectedStaff.forEach(this::restoreStaffAccount);
         return selectedStaff.size();
     }
 
@@ -325,8 +363,8 @@ public class StaffService {
         profile.setLastLoginDisplay(lastLoginDisplay(staff.getUsername()));
 
         if (!profile.getActive()) {
-            profile.setStatusLabel("Inactive");
-            profile.setStatusAccentClass("inactive");
+            profile.setStatusLabel("Archived");
+            profile.setStatusAccentClass("archived");
         } else if (profile.getLocked()) {
             profile.setStatusLabel("Locked");
             profile.setStatusAccentClass("locked");
@@ -558,9 +596,38 @@ public class StaffService {
                 """, staffId, requireText(department, "Please enter the administrator department."));
     }
 
-    private void deleteStaffRecord(Staff staff) {
-        deleteProfilePhotoFile(staff.getProfilePhoto());
-        staffRepository.delete(staff);
+    private void requireActiveForArchive(Staff staff) {
+        if (Boolean.FALSE.equals(staff.getActive())) {
+            throw new RuntimeException("Only active staff accounts can be archived.");
+        }
+    }
+
+    private void archiveStaffAccount(Staff staff) {
+        Long staffId = requireStaffId(staff);
+        applyAccountStatus(staffId, false);
+        endActiveSessions(staff.getUsername());
+    }
+
+    private void requireArchivedForRestore(Staff staff) {
+        if (!Boolean.FALSE.equals(staff.getActive())) {
+            throw new RuntimeException("Only archived staff accounts can be restored.");
+        }
+    }
+
+    private void restoreStaffAccount(Staff staff) {
+        applyAccountStatus(requireStaffId(staff), true);
+    }
+
+    private void endActiveSessions(String username) {
+        jdbcTemplate.update("""
+                UPDATE staff_login_session
+                SET status = 'ENDED',
+                    ended_at = COALESCE(ended_at, CURRENT_TIMESTAMP),
+                    expires_at = CURRENT_TIMESTAMP,
+                    end_reason = 'ACCOUNT_ARCHIVED'
+                WHERE LOWER(username) = LOWER(?)
+                  AND status = 'ACTIVE'
+                """, username);
     }
 
     private List<Long> uniqueStaffIds(List<Long> staffIds) {
@@ -594,12 +661,11 @@ public class StaffService {
         Path uploadDir = Paths.get("uploads", "staff").toAbsolutePath().normalize();
         Files.createDirectories(uploadDir);
 
-        String originalFilename = photoFile.getOriginalFilename();
-        String extension = "";
-
-        if (originalFilename != null && originalFilename.contains(".")) {
-            extension = originalFilename.substring(originalFilename.lastIndexOf("."));
-        }
+        String extension = switch (String.valueOf(photoFile.getContentType()).toLowerCase()) {
+            case "image/jpeg" -> ".jpg";
+            case "image/png" -> ".png";
+            default -> throw new IllegalArgumentException("Profile photo must be a JPG or PNG image.");
+        };
 
         String newFileName = filePrefix + "_" + System.currentTimeMillis() + extension;
         Path destination = uploadDir.resolve(newFileName);

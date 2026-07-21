@@ -5,6 +5,7 @@ import com.fyp.bloodinventory.dto.AuditTrailDto;
 import com.fyp.bloodinventory.dto.AvailableStockDto;
 import com.fyp.bloodinventory.dto.DashboardChartSegmentDto;
 import com.fyp.bloodinventory.dto.DeferralRuleRequest;
+import com.fyp.bloodinventory.dto.LabMonthlyTrendPointDto;
 import com.fyp.bloodinventory.dto.LabTestQueueDto;
 import com.fyp.bloodinventory.dto.MedicalComponentDto;
 import com.fyp.bloodinventory.dto.MedicalDashboardSummaryDto;
@@ -40,6 +41,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.Principal;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -123,14 +125,18 @@ public class DashboardController {
 
     @GetMapping("/admin/storage")
     public String adminStorage(Model model) {
-        AdminDashboardStats stats = adminDashboardService.getDashboardStats();
-        model.addAttribute("stats", stats);
         model.addAttribute("locations", storageLocationService.getAllLocations());
+        return "admin-storage";
+    }
+
+    @GetMapping("/admin/storage/create")
+    public String createStorageLocation(Model model) {
+        model.addAttribute("stats", adminDashboardService.getDashboardStats());
         model.addAttribute("locationCount", storageLocationService.countLocations());
         if (!model.containsAttribute("locationRequest")) {
             model.addAttribute("locationRequest", new StorageLocationRequest());
         }
-        return "admin-storage";
+        return "admin-storage-create";
     }
 
     @PostMapping("/admin/storage/add")
@@ -153,7 +159,7 @@ public class DashboardController {
             redirectAttributes.addFlashAttribute("locationRequest", request);
         }
 
-        return "redirect:/admin/storage";
+        return "redirect:/admin/storage/create";
     }
 
     @PostMapping("/admin/storage/{id}/update")
@@ -266,8 +272,8 @@ public class DashboardController {
                                   @RequestParam(value = "sortBy", required = false) String sortBy,
                                   @RequestParam(value = "limit", required = false) Integer limit,
                                   Model model) {
-        String normalizedSort = auditTrailService.normalizeSort(sortBy);
-        int normalizedLimit = auditTrailService.normalizeLimit(limit);
+        String normalizedSort = auditTrailService.latestDisplaySort();
+        int normalizedLimit = auditTrailService.latestDisplayLimit();
 
         model.addAttribute("auditSummary", auditTrailService.getSummary());
         model.addAttribute("auditRecords", auditTrailService.getAuditRecords(
@@ -323,14 +329,18 @@ public class DashboardController {
 
     @GetMapping("/admin/deferral-rules")
     public String adminDeferralRules(Model model) {
-        AdminDashboardStats stats = adminDashboardService.getDashboardStats();
-        model.addAttribute("stats", stats);
         model.addAttribute("rules", deferralRuleService.getAllRules());
+        return "admin-deferral-rules";
+    }
+
+    @GetMapping("/admin/deferral-rules/create")
+    public String createDeferralRule(Model model) {
+        model.addAttribute("stats", adminDashboardService.getDashboardStats());
         model.addAttribute("ruleCount", deferralRuleService.countRules());
         if (!model.containsAttribute("ruleRequest")) {
             model.addAttribute("ruleRequest", new DeferralRuleRequest());
         }
-        return "admin-deferral-rules";
+        return "admin-deferral-rule-create";
     }
 
     @PostMapping("/admin/deferral-rules/add")
@@ -353,7 +363,7 @@ public class DashboardController {
             redirectAttributes.addFlashAttribute("ruleRequest", request);
         }
 
-        return "redirect:/admin/deferral-rules";
+        return "redirect:/admin/deferral-rules/create";
     }
 
     @PostMapping("/admin/deferral-rules/{id}/update")
@@ -447,6 +457,7 @@ public class DashboardController {
     public String labDashboard(Model model) {
         List<LabTestQueueDto> pendingTests = labWorkflowService.getPendingTests();
         List<LabTestQueueDto> labTests = labWorkflowService.getTestRecords();
+        List<LabMonthlyTrendPointDto> monthlyTrend = labWorkflowService.getCurrentMonthTrend();
         List<LabTestQueueDto> recentLabTests = labTests.stream().limit(5).toList();
         List<LabTestQueueDto> recentGraphSample = labTests.stream().limit(12).toList();
         List<DashboardChartSegmentDto> pendingQueueGraph = buildLabDashboardSegments(
@@ -472,9 +483,11 @@ public class DashboardController {
 
         model.addAttribute("labSummary", labWorkflowService.getDashboardSummary());
         model.addAttribute("pendingTests", pendingTests.stream().limit(5).toList());
-        model.addAttribute("pendingTrendTests", pendingTests);
+        model.addAttribute("labMonthlyTrend", monthlyTrend);
+        model.addAttribute("labTrendMonthLabel", monthlyTrend.isEmpty()
+                ? "Current month"
+                : monthlyTrend.get(0).getDate().format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH)));
         model.addAttribute("recentLabTests", recentLabTests);
-        model.addAttribute("recentLabTrendTests", recentGraphSample);
         model.addAttribute("pendingQueueTotal", pendingTests.size());
         model.addAttribute("pendingQueueGraph", pendingQueueGraph);
         model.addAttribute("pendingQueueGraphMax", maxChartSegmentValue(pendingQueueGraph));
@@ -676,25 +689,21 @@ public class DashboardController {
     private ReportExport auditTrailExport(List<AuditTrailDto> rows) {
         return new ReportExport(
                 "Audit Trail",
-                List.of("Time UTC", "Actor", "Role", "Category", "Operation", "Action", "Object", "Workflow Phase", "Request", "Component", "Donation", "Location", "Device", "Source IP", "Session Hash", "Row PK", "Integrity Hash", "Process Context"),
+                List.of("Time UTC", "Actor", "Role", "Activity", "Change", "Action", "Target", "Record", "Workflow Phase", "Request", "Source IP", "Session Hash", "Integrity Hash", "Details"),
                 rows.stream()
                         .map(row -> row(
                                 row.getEventTimestampUtc(),
                                 row.getActorLabel(),
-                                row.getRole(),
-                                row.getEventCategory(),
-                                row.getOperationType(),
-                                row.getActionType(),
-                                row.getTableName(),
+                                row.getRoleLabel(),
+                                row.getEventCategoryLabel(),
+                                row.getOperationTypeLabel(),
+                                row.getActionTypeLabel(),
+                                row.getTargetLabel(),
+                                row.getRowPk(),
                                 row.getWorkflowPhase(),
-                                row.getRequestPath(),
-                                row.getComponentId(),
-                                row.getDonationId(),
-                                row.getLocation(),
-                                row.getDeviceId(),
+                                row.getRequestLabel(),
                                 row.getSourceIp(),
                                 row.getSessionIdHash(),
-                                row.getRowPk(),
                                 row.getIntegrityHash(),
                                 row.getProcessContext()
                         ))

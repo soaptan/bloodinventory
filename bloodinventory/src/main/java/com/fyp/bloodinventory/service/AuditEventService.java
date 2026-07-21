@@ -46,7 +46,7 @@ public class AuditEventService {
     }
 
     public void recordRequest(HttpServletRequest request, int responseStatus, Exception exception) {
-        if (!isSignedIn(currentAuthentication()) || shouldSkipRequest(request)) {
+        if (!isSignedIn(currentAuthentication()) || shouldSkipRequest(request) || !isDataChangingRequest(request)) {
             return;
         }
 
@@ -324,6 +324,18 @@ public class AuditEventService {
                 || normalizedPath.startsWith("/uploads/")
                 || normalizedPath.startsWith("/actuator/")
                 || normalizedPath.equals("/favicon.ico");
+    }
+
+    private boolean isDataChangingRequest(HttpServletRequest request) {
+        String method = request.getMethod();
+        if (method == null) {
+            return false;
+        }
+
+        return switch (method.toUpperCase(Locale.ROOT)) {
+            case "POST", "PUT", "PATCH", "DELETE" -> true;
+            default -> false;
+        };
     }
 
     private Map<String, Object> baseRequestContext(HttpServletRequest request) {

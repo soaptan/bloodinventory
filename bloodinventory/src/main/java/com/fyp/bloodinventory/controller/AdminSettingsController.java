@@ -65,10 +65,14 @@ public class AdminSettingsController {
     public String updateUi(@ModelAttribute("uiSettings") SystemUiSettingsRequest request,
                            Principal principal,
                            RedirectAttributes redirectAttributes) {
-        settingsService.updateUiSettings(request);
-        record("Settings", "UPDATE", "Updated interface font size and accent color.", principal);
-        redirectAttributes.addFlashAttribute("successMessage", "Interface settings saved.");
-        return "redirect:/admin/settings";
+        try {
+            settingsService.updateUiSettings(request);
+            record("Settings", "UPDATE", "Updated interface font size and accent color.", principal);
+            redirectAttributes.addFlashAttribute("successMessage", "Interface settings saved and applied.");
+        } catch (RuntimeException ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+        }
+        return "redirect:/admin/settings#interface";
     }
 
     @PostMapping("/admin/settings/language")

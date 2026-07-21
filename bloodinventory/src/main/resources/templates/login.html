@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
     <link rel="stylesheet" th:href="@{/css/login.css}">
+    <link rel="stylesheet" th:href="@{/css/system-preferences.css}">
 </head>
 <body>
 
@@ -16,6 +17,11 @@
     <!-- ── Brand Panel ─────────────────────────────── -->
     <section class="brand" aria-label="System overview">
         <div class="brand-inner">
+            <img class="brand-system-logo"
+                 th:src="@{/images/blood-drop-logo.png}"
+                 alt="System logo"
+                 data-system-logo>
+
             <div class="brand-chip">
                 <span class="brand-chip-dot"></span>
                 Blood Bank Digital Platform
@@ -73,6 +79,9 @@
                 <svg class="alert-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                 Invalid username or password.
             </div>
+            <div th:if="${param.validation}" class="alert alert-error" role="alert">
+                Please enter both your username and password.
+            </div>
             <div th:if="${param.session != null and param.session[0] == 'limit'}" class="alert alert-error">
                 <svg class="alert-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                 Your database session policy allows only one active session for this account.
@@ -93,7 +102,7 @@
                     <label class="field-label" for="username">Username</label>
                     <input type="text" id="username" name="username"
                            autocomplete="username"
-                           placeholder="e.g. admin_01" required>
+                           placeholder="e.g. admin_01" required minlength="3" maxlength="50" pattern="[A-Za-z0-9._-]+">
                 </div>
 
                 <!-- Password -->
@@ -176,18 +185,14 @@
             const d = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
             if (!d) return;
             usernameInput.value = d.username || '';
-            passwordInput.value = d.password || '';
-            rememberCheck.checked = !!(d.username || d.password);
+            rememberCheck.checked = !!d.username;
             updateHashWarning();
         } catch { localStorage.removeItem(STORE_KEY); }
     }
 
     function saveRemembered() {
         if (!rememberCheck.checked) { localStorage.removeItem(STORE_KEY); return; }
-        localStorage.setItem(STORE_KEY, JSON.stringify({
-            username: usernameInput.value.trim(),
-            password: passwordInput.value
-        }));
+        localStorage.setItem(STORE_KEY, JSON.stringify({ username: usernameInput.value.trim() }));
     }
 
     rememberCheck.addEventListener('change', () => {

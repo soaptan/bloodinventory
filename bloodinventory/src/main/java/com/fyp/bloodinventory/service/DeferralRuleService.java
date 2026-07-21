@@ -15,6 +15,9 @@ import java.util.List;
 @Service
 public class DeferralRuleService {
 
+    private static final String TEMPORARY_LOCK = "TEMPORARY";
+    private static final String PERMANENT_LOCK = "PERMANENT";
+
     private final JdbcTemplate jdbcTemplate;
     private final DatabaseAuditContextService auditContextService;
 
@@ -34,6 +37,7 @@ public class DeferralRuleService {
                 dto.setReasonId(rs.getLong("reason_id"));
                 dto.setDescription(rs.getString("description"));
                 dto.setDefaultCoolingPeriodDays(rs.getInt("default_cooling_period_days"));
+                dto.setLockType(rs.getString("lock_type"));
                 dto.setStaffId(rs.getLong("staff_id"));
                 dto.setActive(rs.getBoolean("is_active"));
                 return dto;
@@ -52,11 +56,17 @@ public class DeferralRuleService {
     @Transactional
     public void addRule(DeferralRuleRequest request) {
         applyAuditContext();
+        String description = requireText(request.getDescription(), "Please enter the deferral reason.");
+        String lockType = requireLockType(request.getLockType());
+        Integer coolingDays = requireCoolingDays(request.getDefaultCoolingPeriodDays(), lockType);
+        Long staffId = requireId(request.getStaffId(), "Signed-in administrator account was not found.");
+
         jdbcTemplate.update(
-                "CALL sp_add_deferral_rule(?, ?, ?)",
-                request.getDescription(),
-                request.getDefaultCoolingPeriodDays(),
-                request.getStaffId()
+                "CALL sp_add_deferral_rule(?, ?, ?, ?)",
+                description,
+                coolingDays,
+                staffId,
+                lockType
         );
     }
 
@@ -65,16 +75,18 @@ public class DeferralRuleService {
         applyAuditContext();
         Long requiredReasonId = requireId(reasonId, "Please select a deferral rule.");
         String description = requireText(request.getDescription(), "Please enter the deferral reason.");
-        Integer coolingDays = requireCoolingDays(request.getDefaultCoolingPeriodDays());
+        String lockType = requireLockType(request.getLockType());
+        Integer coolingDays = requireCoolingDays(request.getDefaultCoolingPeriodDays(), lockType);
         Long staffId = requireId(request.getStaffId(), "Signed-in administrator account was not found.");
 
         int updatedRows = jdbcTemplate.update("""
                 UPDATE deferral_reason
                 SET description = ?,
                     default_cooling_period_days = ?,
+                    lock_type = ?,
                     staff_id = ?
                 WHERE reason_id = ?
-                """, description, coolingDays, staffId, requiredReasonId);
+                """, description, coolingDays, lockType, staffId, requiredReasonId);
 
         if (updatedRows == 0) {
             throw new RuntimeException("Deferral rule was not found.");
@@ -123,12 +135,27 @@ public class DeferralRuleService {
         return value;
     }
 
-    private Integer requireCoolingDays(Integer value) {
+    private Integer requireCoolingDays(Integer value, String lockType) {
+        if (PERMANENT_LOCK.equals(lockType)) {
+            return 0;
+        }
+
         if (value == null || value < 0) {
             throw new RuntimeException("Please enter a valid cooling-off period.");
         }
 
         return value;
+    }
+
+    private String requireLockType(String value) {
+        String normalized = requireText(value == null ? TEMPORARY_LOCK : value, "Please select a deferral lock type.")
+                .toUpperCase();
+
+        if (!TEMPORARY_LOCK.equals(normalized) && !PERMANENT_LOCK.equals(normalized)) {
+            throw new RuntimeException("Please select a valid deferral lock type.");
+        }
+
+        return normalized;
     }
 
     private String requireText(String value, String message) {

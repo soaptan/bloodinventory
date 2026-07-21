@@ -26,23 +26,24 @@
 
     <th:block layout:fragment="content">
                 <div class="section flex-col gap-md">
-                    <section class="dashboard-action-header">
+                    <section class="dashboard-action-header" aria-labelledby="admin-dashboard-title">
                         <div>
                             <div class="section-subtitle">Dashboard</div>
-                            <h1 class="section-title">Administrator Dashboard</h1>
+                            <h1 id="admin-dashboard-title" class="section-title">Administrator Dashboard</h1>
                             <p>
                                 Review blood bank activity, monitor expiry-sensitive stock, and open core administration tools without leaving the screen.
                             </p>
                         </div>
                         <div class="report-actions" data-report-actions>
-                            <button type="button" class="report-actions-button" data-report-actions-toggle aria-expanded="false">
+                            <button type="button" class="report-actions-button" data-report-actions-toggle
+                                    aria-expanded="false" aria-haspopup="menu" aria-controls="admin-dashboard-actions">
                                 Actions
                                 <svg viewBox="0 0 24 24" aria-hidden="true">
                                     <path d="m6 9 6 6 6-6"></path>
                                 </svg>
                             </button>
-                            <div class="report-actions-menu" data-report-actions-menu>
-                                <button type="button" class="report-action-item" data-report-download-open>
+                            <div id="admin-dashboard-actions" class="report-actions-menu" data-report-actions-menu role="menu">
+                                <button type="button" class="report-action-item" data-report-download-open role="menuitem">
                                     <svg viewBox="0 0 24 24" aria-hidden="true">
                                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                                         <path d="M7 10l5 5 5-5"></path>
@@ -50,7 +51,7 @@
                                     </svg>
                                     Download
                                 </button>
-                                <button type="button" class="report-action-item" data-report-print>
+                                <button type="button" class="report-action-item" data-report-print role="menuitem">
                                     <svg viewBox="0 0 24 24" aria-hidden="true">
                                         <path d="M6 9V2h12v7"></path>
                                         <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
@@ -62,7 +63,44 @@
                         </div>
                     </section>
 
-                    <section class="stat-grid">
+                    <nav class="dashboard-quick-actions" aria-label="Administrator quick actions">
+                        <a class="dashboard-quick-action" th:if="${#lists.contains(accessibleModules, 'staff_management')}"
+                           th:href="@{/admin/staff/management}">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="10" cy="7" r="3"></circle>
+                            </svg>
+                            <span><strong>Manage staff</strong><small>Accounts and access</small></span>
+                            <span class="dashboard-quick-action-arrow" aria-hidden="true">&rarr;</span>
+                        </a>
+                        <a class="dashboard-quick-action" th:if="${#lists.contains(accessibleModules, 'inventory_monitoring')}"
+                           th:href="@{/admin/inventory}">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M3 7h18"></path><path d="m5 7 1 12h12l1-12"></path><path d="M9 11h6"></path>
+                            </svg>
+                            <span><strong>Review inventory</strong><small>Stock and expiry</small></span>
+                            <span class="dashboard-quick-action-arrow" aria-hidden="true">&rarr;</span>
+                        </a>
+                        <a class="dashboard-quick-action" th:if="${#lists.contains(accessibleModules, 'reports_alerts')}"
+                           th:href="@{/admin/reports}">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M4 19V9"></path><path d="M10 19V5"></path><path d="M16 19v-7"></path><path d="M22 19V3"></path>
+                            </svg>
+                            <span><strong>Open reports</strong><small>Alerts and trends</small></span>
+                            <span class="dashboard-quick-action-arrow" aria-hidden="true">&rarr;</span>
+                        </a>
+                        <a class="dashboard-quick-action" th:if="${#lists.contains(accessibleModules, 'system_settings')}"
+                           th:href="@{/admin/settings}">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.3h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.7v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3v-.3h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.3v4H21a1.7 1.7 0 0 0-1.6 1Z"></path>
+                            </svg>
+                            <span><strong>System settings</strong><small>Interface and security</small></span>
+                            <span class="dashboard-quick-action-arrow" aria-hidden="true">&rarr;</span>
+                        </a>
+                    </nav>
+
+                    <section class="stat-grid stat-grid-balanced" aria-label="Administrator system overview">
                         <article class="stat-card">
                             <div class="stat-card-icon stat-card-icon-success">
                                 <svg class="stat-card-icon-svg" viewBox="0 0 24 24">
@@ -141,7 +179,7 @@
                                  aria-hidden="true"></svg>
                         </article>
 
-                        <article class="stat-card">
+                        <article class="stat-card stat-card-critical">
                             <div class="stat-card-icon stat-card-icon-danger">
                                 <svg class="stat-card-icon-svg" viewBox="0 0 24 24">
                                     <circle cx="12" cy="12" r="10"/>

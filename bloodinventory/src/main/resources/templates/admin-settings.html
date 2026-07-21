@@ -25,7 +25,7 @@
     </th:block>
 
     <th:block layout:fragment="content">
-                <div class="main-stack">
+                <div class="main-stack" data-settings-scroll-content>
                     <section class="page-intro page-card">
                         <div>
                             <div class="page-kicker">System Settings</div>
@@ -44,7 +44,8 @@
                                     </div>
                                 </div>
 
-                                <form class="settings-form" th:action="@{/admin/settings/ui}" th:object="${uiSettings}" method="post">
+                                <form class="settings-form" th:action="@{/admin/settings/ui}" th:object="${uiSettings}"
+                                      method="post" data-interface-settings-form>
                                     <div class="interface-grid">
                                         <div class="settings-form-card">
                                             <div class="section-mini-head">
@@ -92,20 +93,6 @@
                                                     </div>
                                                 </div>
 
-                                                <div class="form-group full">
-                                                    <label for="systemLogo">System Logo</label>
-                                                    <div class="logo-upload-zone" data-logo-dropzone>
-                                                        <div class="logo-current" aria-hidden="true">
-                                                            <span data-logo-placeholder>BI</span>
-                                                            <img data-logo-preview alt="" hidden>
-                                                        </div>
-                                                        <div class="logo-upload-copy">
-                                                            <strong>Upload Logo</strong>
-                                                            <span>Drop a PNG or JPG here, or choose a file. Recommended size is 200 x 50px.</span>
-                                                            <input id="systemLogo" type="file" accept="image/png, image/jpeg" data-logo-input>
-                                                        </div>
-                                                    </div>
-                                                </div>
                                             </div>
                                         </div>
 
@@ -115,7 +102,10 @@
                                                 <p>See the selected accent and font scale before saving.</p>
                                             </div>
                                             <div class="preview-toolbar">
-                                                <span class="preview-logo-mark" data-preview-logo-mark>BI</span>
+                                                <span class="preview-logo-mark has-logo" data-preview-logo-mark>
+                                                    <img th:src="@{/images/blood-drop-logo.png}"
+                                                         alt="System logo">
+                                                </span>
                                                 <div>
                                                     <strong>Blood Inventory System</strong>
                                                     <span>Administrator workspace</span>
@@ -400,11 +390,6 @@
         const previewBox = document.querySelector("[data-ui-preview-box]");
         const previewButton = document.querySelector("[data-preview-button]");
         const previewAccent = document.querySelector("[data-preview-accent]");
-        const previewLogoMark = document.querySelector("[data-preview-logo-mark]");
-        const logoDropzone = document.querySelector("[data-logo-dropzone]");
-        const logoInput = document.querySelector("[data-logo-input]");
-        const logoPreview = document.querySelector("[data-logo-preview]");
-        const logoPlaceholder = document.querySelector("[data-logo-placeholder]");
 
         function updateFontScaleLabel() {
             if (!fontScale || !fontScaleLabel) {
@@ -457,60 +442,6 @@
                 }
             });
         });
-
-        function showLogoPreview(file) {
-            if (!file || !file.type.startsWith("image/") || !logoPreview) {
-                return;
-            }
-
-            const reader = new FileReader();
-            reader.addEventListener("load", () => {
-                logoPreview.src = reader.result;
-                logoPreview.hidden = false;
-
-                if (logoPlaceholder) {
-                    logoPlaceholder.hidden = true;
-                }
-            });
-            reader.readAsDataURL(file);
-        }
-
-        if (logoInput) {
-            logoInput.addEventListener("change", () => {
-                showLogoPreview(logoInput.files?.[0]);
-            });
-        }
-
-        if (logoDropzone) {
-            ["dragenter", "dragover"].forEach((eventName) => {
-                logoDropzone.addEventListener(eventName, (event) => {
-                    event.preventDefault();
-                    logoDropzone.classList.add("is-dragging");
-                });
-            });
-
-            ["dragleave", "drop"].forEach((eventName) => {
-                logoDropzone.addEventListener(eventName, (event) => {
-                    event.preventDefault();
-                    logoDropzone.classList.remove("is-dragging");
-                });
-            });
-
-            logoDropzone.addEventListener("drop", (event) => {
-                const file = event.dataTransfer?.files?.[0];
-                if (!file) {
-                    return;
-                }
-
-                if (logoInput && window.DataTransfer) {
-                    const transfer = new DataTransfer();
-                    transfer.items.add(file);
-                    logoInput.files = transfer.files;
-                }
-
-                showLogoPreview(file);
-            });
-        }
 
         updateLivePreview();
     })();

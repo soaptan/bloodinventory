@@ -31,7 +31,7 @@
                             <div class="page-kicker">Audit Trail</div>
                             <h1>Database Audit Trail</h1>
                             <p>
-                                Review immutable PostgreSQL trigger history for inserts, updates, deletes, and recorded system actions.
+                                Review the latest PostgreSQL trigger history for inserted, updated, and deleted records.
                             </p>
                         </div>
                         <div class="report-actions" data-report-actions>
@@ -72,8 +72,8 @@
                             <div class="value" th:text="${auditSummary.recentEvents}">0</div>
                         </div>
                         <div class="summary-card">
-                            <div class="label">Component Events</div>
-                            <div class="value" th:text="${auditSummary.componentEvents}">0</div>
+                            <div class="label">Data Changes</div>
+                            <div class="value" th:text="${auditSummary.dataChangeEvents}">0</div>
                         </div>
                         <div class="summary-card">
                             <div class="label">Active Actors</div>
@@ -86,16 +86,19 @@
                             <div class="report-card-header">
                                 <div>
                                     <h2>Audit Records</h2>
-                                    <p>Trigger-captured data changes plus user views, searches, downloads, authentication, and security events.</p>
+                                    <p>Latest insert, update, and delete records captured by immutable database triggers.</p>
                                 </div>
                             </div>
 
                             <form class="audit-filter-grid" method="get" th:action="@{/admin/audit}">
+                                <input type="hidden" name="sortBy" value="newest">
+                                <input type="hidden" name="limit" value="20">
+
                                 <div class="audit-filter-wide">
                                     <label for="audit-search">Search Audit</label>
                                     <input id="audit-search" name="search" type="search"
                                            th:value="${auditSearch}"
-                                           placeholder="Search actor, operation, action, table, component, donation, location, or device">
+                                           placeholder="Search actor, activity, action, table, request, IP, or details">
                                 </div>
 
                                 <div>
@@ -142,27 +145,6 @@
                                     </select>
                                 </div>
 
-                                <div>
-                                    <label for="audit-sort">Sort By</label>
-                                    <select id="audit-sort" name="sortBy">
-                                        <option value="newest" th:selected="${auditSortBy == 'newest'}">Newest first</option>
-                                        <option value="oldest" th:selected="${auditSortBy == 'oldest'}">Oldest first</option>
-                                        <option value="actor" th:selected="${auditSortBy == 'actor'}">Actor A-Z</option>
-                                        <option value="table" th:selected="${auditSortBy == 'table'}">Table A-Z</option>
-                                        <option value="component" th:selected="${auditSortBy == 'component'}">Component ID</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label for="audit-limit">Rows</label>
-                                    <select id="audit-limit" name="limit">
-                                        <option value="50" th:selected="${auditLimit == 50}">50 rows</option>
-                                        <option value="100" th:selected="${auditLimit == 100}">100 rows</option>
-                                        <option value="200" th:selected="${auditLimit == 200}">200 rows</option>
-                                        <option value="500" th:selected="${auditLimit == 500}">500 rows</option>
-                                    </select>
-                                </div>
-
                                 <div class="audit-filter-actions">
                                     <button type="submit" class="download-footer-btn primary">Apply Filters</button>
                                     <a th:href="@{/admin/audit}" class="report-download-btn">Reset</a>
@@ -170,7 +152,7 @@
                             </form>
 
                             <div class="audit-meta">
-                                <span th:text="'Showing ' + ${#lists.size(auditRecords)} + ' audit records.'">Showing 0 audit records.</span>
+                                <span th:text="'Showing latest ' + ${#lists.size(auditRecords)} + ' of ' + ${auditLimit} + ' audit records.'">Showing latest 0 of 20 audit records.</span>
                             </div>
 
                             <div class="table-wrap">
@@ -179,56 +161,45 @@
                                     <tr>
                                         <th>Time</th>
                                         <th>Actor</th>
-                                        <th>Category</th>
-                                        <th>Operation</th>
-                                        <th>Action</th>
-                                        <th>Object</th>
-                                        <th>Component</th>
-                                        <th>Donation</th>
-                                        <th>Location</th>
-                                        <th>Device</th>
-                                        <th>Snapshot</th>
+                                        <th>Activity</th>
+                                        <th>Change</th>
+                                        <th>Target</th>
+                                        <th>Request</th>
+                                        <th>Details</th>
                                     </tr>
                                     </thead>
                                     <tbody>
                                     <tr th:if="${auditRecords == null or #lists.isEmpty(auditRecords)}">
-                                        <td colspan="11" class="audit-empty">No audit records match the current filters.</td>
+                                        <td colspan="7" class="audit-empty">No audit records match the current filters.</td>
                                     </tr>
                                     <tr th:each="record : ${auditRecords}">
                                         <td>
                                             <span th:text="${record.eventTimestampUtc != null ? record.eventTimestampUtc : '-'}">2026-06-12T12:00:00Z</span>
-                                            <small th:text="${record.sourceIp != null ? record.sourceIp : '-'}">127.0.0.1</small>
                                         </td>
                                         <td>
                                             <span th:text="${record.actorLabel}">admin</span>
-                                            <small th:text="${record.role != null ? record.role : '-'}">BLOOD_ADMINISTRATOR</small>
+                                            <small th:text="${record.roleLabel != '-' ? 'Role: ' + record.roleLabel : 'Role: -'}">Role: Blood Administrator</small>
                                         </td>
                                         <td>
                                             <span class="action-pill"
                                                   th:classappend="${record.eventCategory != null ? #strings.toLowerCase(record.eventCategory) : ''}"
-                                                  th:text="${record.eventCategory != null ? record.eventCategory : '-'}">DATA_CHANGE</span>
+                                                  th:text="${record.eventCategoryLabel}">Data Change</span>
                                             <small th:text="${record.workflowPhase != null ? record.workflowPhase : '-'}">Inventory Control</small>
                                         </td>
                                         <td>
                                             <span class="action-pill"
                                                   th:classappend="${record.operationType != null ? #strings.toLowerCase(record.operationType) : ''}"
-                                                  th:text="${record.operationType != null ? record.operationType : '-'}">UPDATE</span>
+                                                  th:text="${record.operationTypeLabel}">Update</span>
+                                            <small th:text="${record.actionTypeLabel}">Update</small>
                                         </td>
                                         <td>
-                                            <span class="action-pill"
-                                                  th:classappend="${record.actionType != null ? #strings.toLowerCase(record.actionType) : ''}"
-                                                  th:text="${record.actionType != null ? record.actionType : '-'}">UPDATE</span>
+                                            <span th:text="${record.targetLabel}">Blood Component</span>
+                                            <small th:text="${record.rowPk != null ? 'Record ' + record.rowPk : '-'}">Record 1</small>
                                         </td>
                                         <td>
-                                            <span th:text="${record.tableName != null ? record.tableName : '-'}">blood_component</span>
-                                            <small th:text="${record.rowPk != null ? record.rowPk : '-'}">component_id=1</small>
-                                            <small th:if="${record.requestPath != null}"
-                                                   th:text="${(record.httpMethod != null ? record.httpMethod + ' ' : '') + record.requestPath}">GET /admin/audit</small>
+                                            <span th:text="${record.requestLabel}">GET /admin/audit</span>
+                                            <small th:text="${record.sourceIp != null ? 'IP ' + record.sourceIp : '-'}">IP 127.0.0.1</small>
                                         </td>
-                                        <td th:text="${record.componentId != null ? record.componentId : '-'}">1</td>
-                                        <td th:text="${record.donationId != null ? record.donationId : '-'}">1</td>
-                                        <td th:text="${record.location != null ? record.location : '-'}">RBC Refrigerator</td>
-                                        <td th:text="${record.deviceId != null ? record.deviceId : '-'}">web</td>
                                         <td>
                                             <details class="audit-snapshot">
                                                 <summary>View JSON</summary>

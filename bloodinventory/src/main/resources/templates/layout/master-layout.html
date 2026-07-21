@@ -12,9 +12,11 @@
     <link rel="stylesheet" th:href="@{/css/dashboard-layout.css}">
     <link rel="stylesheet" th:href="@{/css/components.css}">
     <link rel="stylesheet" th:href="@{/css/chatbot.css}">
+    <link rel="stylesheet" th:href="@{/css/system-preferences.css}">
     <th:block layout:fragment="custom-css"></th:block>
 </head>
 <body th:attr="data-language=${currentLanguage != null ? currentLanguage : 'en'}">
+<a class="skip-link" href="#main-content">Skip to main content</a>
 <div class="dashboard-scene">
     <div class="dashboard-app">
         <header class="app-header">
@@ -25,14 +27,13 @@
                     <span class="sr-only" data-sidebar-toggle-label>Collapse menu</span>
                 </button>
 
+                <img class="app-system-logo"
+                     th:src="@{/images/blood-drop-logo.png}"
+                     alt="System logo"
+                     data-system-logo>
+
                 <div class="app-brand-copy">
-                    <div class="app-kicker">Blood Bank Digital Platform</div>
-                    <div class="app-title">Blood Inventory Management System</div>
-                    <div class="app-subtitle">
-                        <th:block layout:fragment="app-subtitle">
-                            Secure workspace for blood inventory operations.
-                        </th:block>
-                    </div>
+                    <div class="app-title">Blood Inventory Management System With Eligible Control</div>
                 </div>
             </div>
 
@@ -59,8 +60,12 @@
             <th:block layout:fragment="sidebar"></th:block>
             <button type="button" class="sidebar-overlay" data-sidebar-close aria-label="Close sidebar"></button>
 
-            <main class="main">
+            <main id="main-content" class="main" tabindex="-1">
                 <th:block layout:fragment="content"></th:block>
+
+                <footer class="system-footer">
+                    <p>Copyright &copy; 2026 Tsn Wei Zhao. All Rights Reserved.</p>
+                </footer>
             </main>
         </div>
     </div>
@@ -70,16 +75,18 @@
     <button type="button"
             class="chatbot-toggle"
             data-chatbot-toggle
+            data-chatbot-draggable
             aria-controls="chatbot-panel"
             aria-expanded="false"
             aria-label="Open assistant"
-            title="Assistant">
+            aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight"
+            title="Assistant - drag to move">
         <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path>
             <path d="M8 9h8"></path>
             <path d="M8 13h5"></path>
         </svg>
-        <span class="sr-only">Assistant</span>
+        <span class="sr-only">Assistant. Drag to move, or use Alt and the arrow keys.</span>
     </button>
 
     <section id="chatbot-panel"
@@ -102,8 +109,8 @@
                     </svg>
                 </span>
                 <span>
-                    <strong>Assistant</strong>
-                    <span>Ready</span>
+                    <strong>Pulse AI</strong>
+                    <span data-chatbot-mode-status>Chat mode - Ready</span>
                 </span>
             </div>
             <div class="chatbot-header-actions">
@@ -152,7 +159,7 @@
                     data-chatbot-chat-tab
                     role="tab"
                     aria-selected="true"
-                    aria-controls="chatbot-chat-view">Chat</button>
+                    aria-controls="chatbot-chat-view">Assistant</button>
             <button type="button"
                     id="chatbot-feedback-tab"
                     class="chatbot-tab"
@@ -251,6 +258,62 @@
                         <path d="M22 2 11 13"></path>
                     </svg>
                 </button>
+            </div>
+            <div class="chatbot-composer-footer">
+                <div class="chatbot-mode-picker" data-chatbot-mode-picker>
+                    <button type="button"
+                            class="chatbot-mode-toggle"
+                            data-chatbot-mode-toggle
+                            aria-haspopup="listbox"
+                            aria-expanded="false"
+                            aria-controls="chatbot-mode-menu">
+                        <span class="chatbot-mode-toggle-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M12 3 4 7v5c0 5 3.4 7.9 8 9 4.6-1.1 8-4 8-9V7Z"></path>
+                                <path d="m9 12 2 2 4-4"></path>
+                            </svg>
+                        </span>
+                        <span data-chatbot-mode-label>Chat</span>
+                        <svg class="chatbot-mode-chevron" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="m7 10 5 5 5-5"></path>
+                        </svg>
+                    </button>
+                    <div id="chatbot-mode-menu"
+                         class="chatbot-mode-menu"
+                         data-chatbot-mode-menu
+                         role="listbox"
+                         aria-label="Assistant mode"
+                         hidden>
+                        <button type="button"
+                                class="chatbot-mode-option is-selected"
+                                data-chatbot-mode-option="chat"
+                                role="option"
+                                aria-selected="true">
+                            <span class="chatbot-mode-option-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path>
+                                </svg>
+                            </span>
+                            <span><strong>Chat</strong><small>Quick answers and guidance</small></span>
+                            <span class="chatbot-mode-check" aria-hidden="true">✓</span>
+                        </button>
+                        <button type="button"
+                                class="chatbot-mode-option"
+                                data-chatbot-mode-option="agent"
+                                role="option"
+                                aria-selected="false">
+                            <span class="chatbot-mode-option-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M12 3 4 7v5c0 5 3.4 7.9 8 9 4.6-1.1 8-4 8-9V7Z"></path>
+                                    <path d="m9 12 2 2 4-4"></path>
+                                </svg>
+                            </span>
+                            <span><strong>Agent</strong><small>Plans multi-step work safely</small></span>
+                            <span class="chatbot-mode-check" aria-hidden="true">✓</span>
+                        </button>
+                    </div>
+                </div>
+                <span class="chatbot-mode-summary" data-chatbot-mode-summary>Quick answers</span>
             </div>
         </form>
     </section>

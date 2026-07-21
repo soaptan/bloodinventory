@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/master-layout}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Storage Location</title>
+</head>
+<body>
+
+    <th:block layout:fragment="app-subtitle">
+        Administrative workspace for staffing, storage, monitoring, and reporting.
+    </th:block>
+
+    <th:block layout:fragment="sidebar">
+        <div th:replace="~{fragments/sidebar :: sidebar(
+            'Blood Administrator Panel',
+            'Centralized navigation for staff, storage, inventory monitoring, alerts, and reports.',
+            'storage-config'
+        )}"></div>
+    </th:block>
+
+    <th:block layout:fragment="content">
+        <div class="main-stack admin-form-page-stack" data-storage-create-page>
+            <section class="page-intro page-card admin-form-page-intro">
+                <div>
+                    <div class="page-kicker">Storage Setup</div>
+                    <h1>Create Storage Location</h1>
+                    <p>Add a controlled storage location for blood component placement and monitoring.</p>
+                </div>
+                <a class="btn btn-tertiary"
+                   th:href="@{/admin/storage}"
+                   data-back-to-storage-locations>
+                    Back to Storage Locations
+                </a>
+            </section>
+
+            <section class="standalone-admin-form-layout">
+                <article class="module-card standalone-admin-form-card">
+                    <h2>Storage Summary &amp; Create Location</h2>
+                    <p>Review current storage capacity indicators before creating the new location.</p>
+
+                    <div class="summary-list admin-form-summary-list">
+                        <div class="summary-item">
+                            <div class="label">Active Storage Locations</div>
+                            <div class="value" th:text="${locationCount}">0</div>
+                        </div>
+
+                        <div class="summary-item">
+                            <div class="label">Available Components</div>
+                            <div class="value" th:text="${stats.availableComponents}">0</div>
+                        </div>
+
+                        <div class="summary-item">
+                            <div class="label">Near Expiry Components</div>
+                            <div class="value" th:text="${stats.nearExpiryComponents}">0</div>
+                        </div>
+                    </div>
+
+                    <form class="needs-validation admin-create-form"
+                          th:action="@{/admin/storage/add}"
+                          th:object="${locationRequest}"
+                          method="post"
+                          novalidate
+                          data-storage-create-form
+                          data-action-confirm
+                          data-action-label="create storage location"
+                          data-action-confirm-text="Confirm Create">
+                        <div class="form-grid single">
+                            <div class="form-group full">
+                                <label for="storage-description">Description</label>
+                                <input id="storage-description"
+                                       type="text"
+                                       th:field="*{description}"
+                                       placeholder="Enter storage description"
+                                       required>
+                                <div class="invalid-feedback">Please enter a storage description.</div>
+                            </div>
+
+                            <div class="admin-form-actions">
+                                <button type="submit" class="btn btn-primary" data-create-storage-location>
+                                    Create Location
+                                </button>
+                                <a class="btn btn-tertiary" th:href="@{/admin/storage}">Cancel</a>
+                            </div>
+                        </div>
+                    </form>
+                </article>
+            </section>
+        </div>
+    </th:block>
+
+</body>
+</html>

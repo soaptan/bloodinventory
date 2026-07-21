@@ -39,6 +39,13 @@ public class MedicalWorkflowController {
         return "medical-donor-eligibility";
     }
 
+    @GetMapping("/medical/donor-eligibility/assessment")
+    public String donorAssessment(@RequestParam(value = "donorId", required = false) Long donorId,
+                                  Model model) {
+        populateDonorAssessment(donorId, model);
+        return "medical-donor-assessment";
+    }
+
     @PostMapping("/medical/donor-eligibility/donors")
     public String saveDonor(@ModelAttribute("donorRequest") MedicalDonorRequest request,
                             Principal principal,
@@ -56,7 +63,10 @@ public class MedicalWorkflowController {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
         }
 
-        return "redirect:/medical/donor-eligibility";
+        if (request.getDonorId() != null) {
+            return "redirect:/medical/donor-eligibility/assessment?donorId=" + request.getDonorId();
+        }
+        return "redirect:/medical/donor-eligibility/assessment";
     }
 
     @PostMapping("/medical/donor-eligibility/deferrals")
@@ -76,7 +86,10 @@ public class MedicalWorkflowController {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
         }
 
-        return "redirect:/medical/donor-eligibility";
+        if (request.getDonorId() != null) {
+            return "redirect:/medical/donor-eligibility/assessment?donorId=" + request.getDonorId();
+        }
+        return "redirect:/medical/donor-eligibility/assessment";
     }
 
     @PostMapping("/medical/donor-eligibility/clear")
@@ -125,6 +138,12 @@ public class MedicalWorkflowController {
         return "medical-donations";
     }
 
+    @GetMapping("/medical/donations/record")
+    public String donationRecord(Model model) {
+        populateDonationForm(model);
+        return "medical-donation-record";
+    }
+
     @PostMapping("/medical/donations")
     public String recordDonation(@Valid @ModelAttribute("donationRequest") MedicalDonationRequest request,
                                  BindingResult bindingResult,
@@ -137,7 +156,7 @@ public class MedicalWorkflowController {
                     BindingResult.MODEL_KEY_PREFIX + "donationRequest",
                     bindingResult
             );
-            return "redirect:/medical/donations";
+            return "redirect:/medical/donations/record";
         }
 
         try {
@@ -153,7 +172,7 @@ public class MedicalWorkflowController {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
         }
 
-        return "redirect:/medical/donations";
+        return "redirect:/medical/donations/record";
     }
 
     @PostMapping("/medical/donations/update")
@@ -204,6 +223,12 @@ public class MedicalWorkflowController {
         return "medical-transfusion";
     }
 
+    @GetMapping("/medical/transfusion/record")
+    public String transfusionRecord(Model model) {
+        populateTransfusionForm(model);
+        return "medical-transfusion-record";
+    }
+
     @PostMapping("/medical/transfusion")
     public String recordTransfusion(@ModelAttribute("transfusionRequest") MedicalTransfusionRequest request,
                                     Principal principal,
@@ -221,7 +246,7 @@ public class MedicalWorkflowController {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
         }
 
-        return "redirect:/medical/transfusion";
+        return "redirect:/medical/transfusion/record";
     }
 
     @PostMapping("/medical/transfusion/update")
@@ -313,21 +338,55 @@ public class MedicalWorkflowController {
 
     private void populateDonorEligibility(Model model) {
         model.addAttribute("donors", medicalWorkflowService.getDonors());
+        model.addAttribute("bloodGroups", MedicalWorkflowService.BLOOD_GROUPS);
+    }
+
+    private void populateDonorAssessment(Long donorId, Model model) {
+        var donors = medicalWorkflowService.getDonors();
+        model.addAttribute("donors", donors);
         model.addAttribute("deferralReasons", medicalWorkflowService.getDeferralReasons());
         model.addAttribute("bloodGroups", MedicalWorkflowService.BLOOD_GROUPS);
+
+        MedicalDonorRequest donorRequest = new MedicalDonorRequest();
+        MedicalDeferralRequest deferralRequest = new MedicalDeferralRequest();
+        String selectedDonorName = "";
+
+        if (donorId != null) {
+            var selectedDonor = donors.stream()
+                    .filter(donor -> Objects.equals(donor.getDonorId(), donorId))
+                    .findFirst()
+                    .orElse(null);
+
+            if (selectedDonor == null) {
+                model.addAttribute("errorMessage", "The selected donor record could not be found.");
+            } else {
+                donorRequest.setDonorId(selectedDonor.getDonorId());
+                donorRequest.setFullName(selectedDonor.getFullName());
+                donorRequest.setIcNumber(selectedDonor.getIcNumber());
+                donorRequest.setBloodGroup(selectedDonor.getBloodGroup());
+                deferralRequest.setDonorId(selectedDonor.getDonorId());
+                selectedDonorName = selectedDonor.getFullName();
+            }
+        }
+
         if (!model.containsAttribute("donorRequest")) {
-            model.addAttribute("donorRequest", new MedicalDonorRequest());
+            model.addAttribute("donorRequest", donorRequest);
         }
         if (!model.containsAttribute("deferralRequest")) {
-            model.addAttribute("deferralRequest", new MedicalDeferralRequest());
+            model.addAttribute("deferralRequest", deferralRequest);
         }
+        model.addAttribute("selectedDonorName", selectedDonorName);
     }
 
     private void populateDonations(Model model) {
         model.addAttribute("donations", medicalWorkflowService.getDonationSessions());
-        model.addAttribute("eligibleDonors", medicalWorkflowService.getEligibleDonors());
         model.addAttribute("storageLocations", medicalWorkflowService.getStorageLocations());
         model.addAttribute("bloodGroups", MedicalWorkflowService.BLOOD_GROUPS);
+    }
+
+    private void populateDonationForm(Model model) {
+        model.addAttribute("donationDonors", medicalWorkflowService.getDonors());
+        model.addAttribute("storageLocations", medicalWorkflowService.getStorageLocations());
         model.addAttribute("componentTypes", MedicalWorkflowService.COMPONENT_TYPES);
         if (!model.containsAttribute("donationRequest")) {
             model.addAttribute("donationRequest", new MedicalDonationRequest());
@@ -335,11 +394,14 @@ public class MedicalWorkflowController {
     }
 
     private void populateTransfusion(Model model) {
-        model.addAttribute("patients", medicalWorkflowService.getPatients());
-        model.addAttribute("components", medicalWorkflowService.getTransfusionReadyComponents());
         model.addAttribute("transfusionRecords", medicalWorkflowService.getTransfusionRecords());
         model.addAttribute("bloodGroups", MedicalWorkflowService.BLOOD_GROUPS);
         model.addAttribute("componentTypes", MedicalWorkflowService.COMPONENT_TYPES);
+    }
+
+    private void populateTransfusionForm(Model model) {
+        model.addAttribute("patients", medicalWorkflowService.getPatients());
+        model.addAttribute("components", medicalWorkflowService.getTransfusionReadyComponents());
         if (!model.containsAttribute("transfusionRequest")) {
             model.addAttribute("transfusionRequest", new MedicalTransfusionRequest());
         }

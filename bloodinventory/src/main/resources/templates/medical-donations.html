@@ -34,7 +34,7 @@
                         </div>
                     </section>
 
-                    <section class="workflow-grid">
+                    <section class="workflow-grid workflow-grid-single">
                         <article id="update" class="workflow-card page-card">
                             <div class="section-title">
                                 <div>
@@ -102,6 +102,16 @@
                                     </svg>
                                     Reset Filters
                                 </button>
+
+                                <a class="btn btn-primary table-filter-reset"
+                                   th:href="@{/medical/donations/record}"
+                                   data-record-collection-link>
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M12 5v14"></path>
+                                        <path d="M5 12h14"></path>
+                                    </svg>
+                                    Record Collection
+                                </a>
                             </div>
 
                             <div th:if="${!#lists.isEmpty(donations)}" class="form-help table-results-summary" data-donation-results-summary>
@@ -179,103 +189,6 @@
                                 </table>
                             </div>
                         </article>
-
-                        <aside id="add" class="form-card page-card">
-                            <div class="section-title">
-                                <div>
-                                    <h2>Record Collection</h2>
-                                    <p>Donation and component storage</p>
-                                </div>
-                            </div>
-
-                            <form class="needs-validation"
-                                  data-action-confirm
-                                  data-action-label="create donation session"
-                                  data-action-confirm-text="Confirm Create"
-                                  th:action="@{/medical/donations}"
-                                  th:object="${donationRequest}"
-                                  method="post"
-                                  novalidate>
-                                <div th:if="${#fields.hasAnyErrors()}" class="alert-error">
-                                    Please correct the highlighted donation fields.
-                                </div>
-
-                                <div class="form-grid">
-                                    <div class="form-group full">
-                                        <label for="donorId">Eligible Donor</label>
-                                        <select id="donorId"
-                                                th:field="*{donorId}"
-                                                th:classappend="${#fields.hasErrors('donorId')} ? ' is-invalid' : ''"
-                                                required>
-                                            <option value="">Select donor</option>
-                                            <option th:each="donor : ${eligibleDonors}"
-                                                    th:value="${donor.donorId}"
-                                                    th:text="${donor.fullName} + ' - ' + ${donor.bloodGroup}">Donor</option>
-                                        </select>
-                                        <div class="field-error"
-                                             th:if="${#fields.hasErrors('donorId')}"
-                                             th:errors="*{donorId}">Donor error</div>
-                                        <div class="invalid-feedback">
-                                            Please select an eligible donor.
-                                        </div>
-                                    </div>
-                                    <div class="form-group full">
-                                        <label for="collectionTimestamp">Collection Timestamp</label>
-                                        <input id="collectionTimestamp"
-                                               type="datetime-local"
-                                               th:field="*{collectionTimestamp}"
-                                               th:classappend="${#fields.hasErrors('collectionTimestamp')} ? ' is-invalid' : ''"
-                                               required>
-                                        <div class="field-error"
-                                             th:if="${#fields.hasErrors('collectionTimestamp')}"
-                                             th:errors="*{collectionTimestamp}">Collection timestamp error</div>
-                                        <div class="invalid-feedback">
-                                            Please enter the collection date and time.
-                                        </div>
-                                    </div>
-                                    <div class="form-group full">
-                                        <label for="locationId">Storage Location</label>
-                                        <select id="locationId"
-                                                th:field="*{locationId}"
-                                                th:classappend="${#fields.hasErrors('locationId')} ? ' is-invalid' : ''"
-                                                required>
-                                            <option value="">Select location</option>
-                                            <option th:each="location : ${storageLocations}"
-                                                    th:value="${location.locationId}"
-                                                    th:text="${location.locationId} + ' - ' + ${location.description}">Location</option>
-                                        </select>
-                                        <div class="field-error"
-                                             th:if="${#fields.hasErrors('locationId')}"
-                                             th:errors="*{locationId}">Storage location error</div>
-                                        <div class="invalid-feedback">
-                                            Please select the storage location.
-                                        </div>
-                                    </div>
-                                    <div class="form-group full">
-                                        <label>Component Types</label>
-                                        <div class="choice-row"
-                                             data-required-checkbox-group
-                                             data-required-message="Please select at least one component type."
-                                             th:classappend="${#fields.hasErrors('componentTypes')} ? ' is-invalid' : ''">
-                                            <label class="check-chip" th:each="type : ${componentTypes}">
-                                                <input type="checkbox" th:field="*{componentTypes}" th:value="${type}"
-                                                       aria-label="Component type" title="Component type">
-                                                <span th:text="${type}">RBC</span>
-                                            </label>
-                                        </div>
-                                        <div class="field-error"
-                                             th:if="${#fields.hasErrors('componentTypes')}"
-                                             th:errors="*{componentTypes}">Component type error</div>
-                                        <div class="invalid-feedback">
-                                            Please select at least one component type.
-                                        </div>
-                                    </div>
-                                    <div class="form-group full">
-                                        <button type="submit" class="submit-btn">Create Donation</button>
-                                    </div>
-                                </div>
-                            </form>
-                        </aside>
                     </section>
                 </div>
     </th:block>

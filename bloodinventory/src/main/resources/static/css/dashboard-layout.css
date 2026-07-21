@@ -128,8 +128,25 @@ body.theme-dark::after {
     box-shadow: var(--shadow-shell);
 }
 
+.system-footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 52px;
+    padding: 12px 24px;
+    margin: 28px -32px -28px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-body);
+    text-align: center;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
 .app-header {
     position: relative;
+    z-index: 100;
+    isolation: isolate;
     overflow: visible;
     display: grid;
     grid-template-columns: minmax(220px, auto) minmax(280px, 520px) auto;
@@ -168,11 +185,22 @@ body.theme-dark::after {
     min-width: 0;
 }
 
+.app-system-logo {
+    width: auto;
+    max-width: 112px;
+    height: 42px;
+    flex: 0 0 auto;
+    object-fit: contain;
+    padding: 3px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.96);
+}
+
 .app-brand-copy {
     min-width: 0;
+    flex: 1 1 auto;
     display: flex;
-    flex-direction: column;
-    gap: 2px;
+    align-items: center;
 }
 
 .app-kicker {
@@ -772,7 +800,11 @@ body.theme-dark .theme-toggle-sun {
 
 .notification-menu {
     position: relative;
-    z-index: 5;
+    z-index: 110;
+}
+
+.notification-menu.open {
+    z-index: 120;
 }
 
 .notification-badge {
@@ -806,7 +838,7 @@ body.theme-dark .theme-toggle-sun {
     background: #ffffff;
     border: 1px solid #eceff3;
     box-shadow: 0 24px 54px rgba(15, 23, 42, 0.16);
-    z-index: 40;
+    z-index: 130;
 }
 
 .notification-menu.open .notification-dropdown {
@@ -1517,7 +1549,7 @@ body::after,
 }
 
 .app-header {
-    grid-template-columns: minmax(260px, 1fr) minmax(360px, 520px) minmax(260px, 1fr);
+    grid-template-columns: minmax(420px, 1fr) minmax(360px, 520px) auto;
     min-height: var(--header-height);
     padding: 16px 28px;
     background: #ffffff;
@@ -2029,11 +2061,11 @@ body.theme-dark .notification-read-all:hover {
 
 @media (max-width: 1320px) {
     .app-header {
-        grid-template-columns: minmax(220px, 1fr) minmax(300px, 460px) minmax(220px, 1fr);
+        grid-template-columns: minmax(360px, 1fr) minmax(300px, 420px) auto;
     }
 
     .app-search {
-        max-width: 460px;
+        max-width: 420px;
     }
 }
 
@@ -2073,6 +2105,10 @@ body.theme-dark .notification-read-all:hover {
 
     .main {
         padding: 10px 12px;
+    }
+
+    .system-footer {
+        margin: 10px -12px -10px;
     }
 }
 
@@ -2158,6 +2194,10 @@ body.theme-dark .notification-read-all:hover {
         overflow: auto;
         padding: 14px;
     }
+
+    .system-footer {
+        margin: 14px -14px -14px;
+    }
 }
 
 @media (max-width: 640px) {
@@ -2184,5 +2224,82 @@ body.theme-dark .notification-read-all:hover {
 
     .main {
         padding: 12px;
+    }
+
+    .system-footer {
+        margin: 12px -12px -12px;
+    }
+}
+
+/* Shared interaction and accessibility refinements */
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+}
+
+body.theme-dark {
+    color-scheme: dark;
+}
+
+::selection {
+    background: color-mix(in srgb, var(--color-primary, #2f80ed) 30%, transparent);
+    color: var(--text-strong, #0f172a);
+}
+
+.skip-link {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 999;
+    padding: 10px 14px;
+    border: 2px solid #ffffff;
+    border-radius: 10px;
+    background: var(--color-primary, #2f80ed);
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 800;
+    text-decoration: none;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, .28);
+    transform: translateY(calc(-100% - 24px));
+    transition: transform .18s ease;
+}
+
+.skip-link:focus {
+    transform: translateY(0);
+}
+
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 3px solid #60a5fa;
+    outline-color: color-mix(in srgb, var(--color-primary, #2f80ed) 72%, #ffffff);
+    outline-offset: 3px;
+}
+
+.main:focus {
+    outline: none;
+}
+
+button,
+input,
+select,
+textarea {
+    font: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
     }
 }

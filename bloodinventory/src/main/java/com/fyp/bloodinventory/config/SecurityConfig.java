@@ -94,6 +94,10 @@ public class SecurityConfig {
         return (request, response, exception) -> {
             String username = request.getParameter("username");
             String attemptedPassword = request.getParameter("password");
+            if (username == null || username.isBlank() || attemptedPassword == null || attemptedPassword.isBlank()) {
+                response.sendRedirect("/login?validation");
+                return;
+            }
             if (PasswordHashSupport.isBcryptHash(attemptedPassword)) {
                 auditEventService.recordLoginFailure(request, username, "HASHED_PASSWORD_SUBMITTED");
                 response.sendRedirect("/login?hashPassword");
@@ -122,7 +126,7 @@ public class SecurityConfig {
         http
                 .userDetailsService(customUserDetailsService)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login", "/forgot-username", "/forgot-password", "/css/**", "/js/**", "/images/**", "/webjars/**", "/error").permitAll()
+                        .requestMatchers("/login", "/forgot-username", "/forgot-password", "/reset-password", "/css/**", "/js/**", "/images/**", "/webjars/**", "/error").permitAll()
                         .requestMatchers("/access-denied", "/", "/dashboard").authenticated()
                         .requestMatchers("/profile/**", "/admin/staff/profile", "/admin/staff/profile/**").authenticated()
                         .requestMatchers("/api/chatbot/**", "/api/smart-search/**").authenticated()

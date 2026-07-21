@@ -5,6 +5,7 @@ public class DeferralRuleRequest {
     private Long reasonId;
     private String description;
     private Integer defaultCoolingPeriodDays;
+    private String lockType = "TEMPORARY";
     private Long staffId;
 
     public Long getReasonId() {
@@ -29,6 +30,14 @@ public class DeferralRuleRequest {
 
     public void setDefaultCoolingPeriodDays(Integer defaultCoolingPeriodDays) {
         this.defaultCoolingPeriodDays = defaultCoolingPeriodDays;
+    }
+
+    public String getLockType() {
+        return lockType;
+    }
+
+    public void setLockType(String lockType) {
+        this.lockType = lockType;
     }
 
     public Long getStaffId() {

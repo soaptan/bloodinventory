@@ -16,6 +16,7 @@
                     <ul class="nav-menu">
                         <li th:if="${#lists.contains(accessibleModules, 'admin_dashboard')}">
                             <a th:href="@{/admin/dashboard}"
+                               th:attr="aria-current=${activeMenu == 'admin-dashboard'} ? 'page' : null"
                                th:classappend="${activeMenu == 'admin-dashboard'} ? ' active'">
                                 <span class="nav-icon" aria-hidden="true">
                                     <svg viewBox="0 0 24 24">
@@ -32,6 +33,7 @@
                         </li>
                         <li th:if="${#lists.contains(accessibleModules, 'staff_management')}">
                             <a th:href="@{/admin/staff/management}"
+                               th:attr="aria-current=${activeMenu == 'staff-management'} ? 'page' : null"
                                th:classappend="${activeMenu == 'staff-management'} ? ' active'">
                                 <span class="nav-icon" aria-hidden="true">
                                     <svg viewBox="0 0 24 24">
@@ -49,6 +51,7 @@
                         </li>
                         <li th:if="${#lists.contains(accessibleModules, 'storage_config')}">
                             <a th:href="@{/admin/storage}"
+                               th:attr="aria-current=${activeMenu == 'storage-config'} ? 'page' : null"
                                th:classappend="${activeMenu == 'storage-config'} ? ' active'">
                                 <span class="nav-icon" aria-hidden="true">
                                     <svg viewBox="0 0 24 24">
@@ -66,6 +69,7 @@
                         </li>
                         <li th:if="${#lists.contains(accessibleModules, 'deferral_rules')}">
                             <a th:href="@{/admin/deferral-rules}"
+                               th:attr="aria-current=${activeMenu == 'deferral-rules'} ? 'page' : null"
                                th:classappend="${activeMenu == 'deferral-rules'} ? ' active'">
                                 <span class="nav-icon" aria-hidden="true">
                                     <svg viewBox="0 0 24 24">
@@ -82,6 +86,7 @@
                         </li>
                         <li th:if="${#lists.contains(accessibleModules, 'audit_trail')}">
                             <a th:href="@{/admin/audit}"
+                               th:attr="aria-current=${activeMenu == 'audit-trail'} ? 'page' : null"
                                th:classappend="${activeMenu == 'audit-trail'} ? ' active'">
                                 <span class="nav-icon" aria-hidden="true">
                                     <svg viewBox="0 0 24 24">
@@ -154,6 +159,7 @@
                     <ul class="nav-menu">
                         <li th:if="${#lists.contains(accessibleModules, 'medical_dashboard')}">
                             <a th:href="@{/medical/dashboard}"
+                               th:attr="aria-current=${activeMenu == 'medical-dashboard'} ? 'page' : null"
                                th:classappend="${activeMenu == 'medical-dashboard'} ? ' active'">
                                 <span class="nav-icon" aria-hidden="true">
                                     <svg viewBox="0 0 24 24">
@@ -170,6 +176,7 @@
                         </li>
                         <li th:if="${#lists.contains(accessibleModules, 'donor_eligibility')}">
                             <a th:href="@{/medical/donor-eligibility}"
+                               th:attr="aria-current=${activeMenu == 'donor-eligibility'} ? 'page' : null"
                                th:classappend="${activeMenu == 'donor-eligibility'} ? ' active'">
                                 <span class="nav-icon" aria-hidden="true">
                                     <svg viewBox="0 0 24 24">
@@ -186,6 +193,7 @@
                         </li>
                         <li th:if="${#lists.contains(accessibleModules, 'blood_collection')}">
                             <a th:href="@{/medical/donations}"
+                               th:attr="aria-current=${activeMenu == 'blood-collection'} ? 'page' : null"
                                th:classappend="${activeMenu == 'blood-collection'} ? ' active'">
                                 <span class="nav-icon" aria-hidden="true">
                                     <svg viewBox="0 0 24 24">
@@ -200,6 +208,7 @@
                         </li>
                         <li th:if="${#lists.contains(accessibleModules, 'transfusion_request')}">
                             <a th:href="@{/medical/transfusion}"
+                               th:attr="aria-current=${activeMenu == 'transfusion'} ? 'page' : null"
                                th:classappend="${activeMenu == 'transfusion'} ? ' active'">
                                 <span class="nav-icon" aria-hidden="true">
                                     <svg viewBox="0 0 24 24">
@@ -217,6 +226,7 @@
                         </li>
                         <li th:if="${#lists.contains(accessibleModules, 'safe_blood_match')}">
                             <a th:href="@{/medical/components}"
+                               th:attr="aria-current=${activeMenu == 'safe-match'} ? 'page' : null"
                                th:classappend="${activeMenu == 'safe-match'} ? ' active'">
                                 <span class="nav-icon" aria-hidden="true">
                                     <svg viewBox="0 0 24 24">
@@ -240,6 +250,7 @@
                     <ul class="nav-menu">
                         <li th:if="${#lists.contains(accessibleModules, 'lab_dashboard')}">
                             <a th:href="@{/lab/dashboard}"
+                               th:attr="aria-current=${activeMenu == 'lab-dashboard'} ? 'page' : null"
                                th:classappend="${activeMenu == 'lab-dashboard'} ? ' active'">
                                 <span class="nav-icon" aria-hidden="true">
                                     <svg viewBox="0 0 24 24">
@@ -256,6 +267,7 @@
                         </li>
                         <li th:if="${#lists.contains(accessibleModules, 'pending_tests') or #lists.contains(accessibleModules, 'tti_screening')}">
                             <a th:href="@{/lab/tti-screening}"
+                               th:attr="aria-current=${activeMenu == 'pending-tests' or activeMenu == 'tti-screening'} ? 'page' : null"
                                th:classappend="${activeMenu == 'pending-tests' or activeMenu == 'tti-screening'} ? ' active'">
                                 <span class="nav-icon" aria-hidden="true">
                                     <svg viewBox="0 0 24 24">
@@ -272,6 +284,7 @@
                         </li>
                         <li th:if="${#lists.contains(accessibleModules, 'component_status')}">
                             <a th:href="@{/lab/component-status}"
+                               th:attr="aria-current=${activeMenu == 'component-status'} ? 'page' : null"
                                th:classappend="${activeMenu == 'component-status'} ? ' active'">
                                 <span class="nav-icon" aria-hidden="true">
                                     <svg viewBox="0 0 24 24">
@@ -288,6 +301,7 @@
                         </li>
                         <li th:if="${#lists.contains(accessibleModules, 'traceability')}">
                             <a th:href="@{/lab/traceability}"
+                               th:attr="aria-current=${activeMenu == 'traceability'} ? 'page' : null"
                                th:classappend="${activeMenu == 'traceability'} ? ' active'">
                                 <span class="nav-icon" aria-hidden="true">
                                     <svg viewBox="0 0 24 24">

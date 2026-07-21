@@ -34,7 +34,7 @@
                         </div>
                     </section>
 
-                    <section class="workflow-grid">
+                    <section class="workflow-grid workflow-grid-single">
                         <article id="update" class="workflow-card page-card">
                             <div class="section-title">
                                 <div>
@@ -90,6 +90,17 @@
                                     </svg>
                                     Reset Filters
                                 </button>
+
+                                <a class="btn btn-primary table-filter-reset"
+                                   th:href="@{/medical/donor-eligibility/assessment}"
+                                   data-assessment-controls-link
+                                   aria-label="Open Assessment Controls form page">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M12 5v14"></path>
+                                        <path d="M5 12h14"></path>
+                                    </svg>
+                                    Assessment Controls
+                                </a>
                             </div>
 
                             <div th:if="${!#lists.isEmpty(donors)}" class="form-help table-results-summary" data-donor-results-summary>
@@ -119,6 +130,7 @@
                                         th:data-donor-group="${donor.bloodGroup}"
                                         th:attr="data-status=${donor.eligible ? 'eligible' : 'deferred'},
                                                  data-deferral-reason=${donor.latestDeferralReason != null ? donor.latestDeferralReason : 'None'},
+                                                 data-deferral-lock=${donor.permanentDeferral ? 'permanent' : 'temporary'},
                                                  data-deferral-expiry=${donor.deferralExpiryDate != null ? donor.deferralExpiryDate : ''}">
                                         <td th:text="${donor.donorId}">1</td>
                                         <td th:text="${donor.fullName}">Donor Name</td>
@@ -126,16 +138,19 @@
                                         <td><span class="status-pill neutral" th:text="${donor.bloodGroup}">A+</span></td>
                                         <td>
                                             <span class="status-pill"
-                                                  th:classappend="${donor.eligible} ? ' good' : ' deferred'"
+                                                  th:classappend="${donor.eligible ? ' good' : (donor.permanentDeferral ? ' bad' : ' deferred')}"
                                                   th:text="${donor.eligibilityStatus}">ELIGIBLE</span>
                                         </td>
                                         <td>
-                                            <span th:if="${donor.deferralExpiryDate != null}"
-                                                  th:text="${donor.latestDeferralReason} + ' until ' + ${donor.deferralExpiryDate}">Deferred</span>
-                                            <span th:unless="${donor.deferralExpiryDate != null}">None</span>
+                                            <span th:if="${donor.permanentDeferral}"
+                                                  th:text="${donor.latestDeferralReason + ' - Permanent lock'}">Permanent lock</span>
+                                            <span th:if="${!donor.permanentDeferral and donor.deferralExpiryDate != null}"
+                                                  th:text="${donor.latestDeferralReason + ' until ' + donor.deferralExpiryDate}">Deferred</span>
+                                            <span th:if="${!donor.permanentDeferral and donor.deferralExpiryDate == null}">None</span>
                                         </td>
                                         <td>
-                                            <button type="button" class="secondary-btn" data-donor-edit>Edit</button>
+                                            <a class="secondary-btn"
+                                               th:href="@{/medical/donor-eligibility/assessment(donorId=${donor.donorId})}">Edit</a>
                                             <form th:if="${!donor.eligible}" class="compact-form"
                                                   data-action-confirm
                                                   data-action-label="clear donor deferral"
@@ -161,78 +176,6 @@
                                 </table>
                             </div>
                         </article>
-
-                        <aside id="add" class="form-card page-card">
-                            <div class="section-title">
-                                <div>
-                                    <h2>Assessment Controls</h2>
-                                    <p>Identity details and deferral events</p>
-                                </div>
-                            </div>
-
-                            <form th:action="@{/medical/donor-eligibility/donors}"
-                                  data-action-confirm
-                                  data-action-label="save donor record"
-                                  data-action-confirm-text="Confirm Save"
-                                  th:object="${donorRequest}" method="post">
-                                <div class="form-grid">
-                                    <input id="donorRecordId" type="hidden" th:field="*{donorId}">
-                                    <div class="form-group full">
-                                        <label for="fullName">Full Name</label>
-                                        <input id="fullName" type="text" th:field="*{fullName}" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="icNumber">IC Number</label>
-                                        <input id="icNumber" type="text" th:field="*{icNumber}" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="bloodGroup">Blood Group</label>
-                                        <select id="bloodGroup" th:field="*{bloodGroup}" required>
-                                            <option value="">Select</option>
-                                            <option th:each="group : ${bloodGroups}" th:value="${group}" th:text="${group}">A+</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group full">
-                                        <div class="button-row">
-                                            <button type="submit" class="submit-btn">Save Donor</button>
-                                            <button type="button" class="text-btn" data-donor-reset>New Donor</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </form>
-
-                            <hr class="form-separator">
-
-                            <form th:action="@{/medical/donor-eligibility/deferrals}"
-                                  data-action-confirm
-                                  data-action-label="record donor deferral"
-                                  data-action-confirm-text="Confirm Deferral"
-                                  th:object="${deferralRequest}" method="post">
-                                <div class="form-grid">
-                                    <div class="form-group full">
-                                        <label for="donorId">Donor</label>
-                                        <select id="donorId" th:field="*{donorId}" required>
-                                            <option value="">Select donor</option>
-                                            <option th:each="donor : ${donors}"
-                                                    th:value="${donor.donorId}"
-                                                    th:text="${donor.fullName} + ' - ' + ${donor.bloodGroup}">Donor</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group full">
-                                        <label for="reasonId">Deferral Reason</label>
-                                        <select id="reasonId" th:field="*{reasonId}" required>
-                                            <option value="">Select reason</option>
-                                            <option th:each="reason : ${deferralReasons}"
-                                                    th:value="${reason.reasonId}"
-                                                    th:text="${reason.description} + ' (' + ${reason.defaultCoolingPeriodDays} + ' days)'">Reason</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group full">
-                                        <button type="submit" class="secondary-btn">Record Deferral</button>
-                                    </div>
-                                </div>
-                            </form>
-                        </aside>
                     </section>
                 </div>
     </th:block>
@@ -240,34 +183,6 @@
     <th:block layout:fragment="custom-js">
         <script>
             (() => {
-                const donorId = document.getElementById("donorRecordId");
-                const fullName = document.getElementById("fullName");
-                const icNumber = document.getElementById("icNumber");
-                const bloodGroup = document.getElementById("bloodGroup");
-
-                document.querySelectorAll("[data-donor-edit]").forEach((button) => {
-                    button.addEventListener("click", () => {
-                        const row = button.closest("tr");
-                        if (!row) {
-                            return;
-                        }
-
-                        donorId.value = row.dataset.donorId || "";
-                        fullName.value = row.dataset.donorName || "";
-                        icNumber.value = row.dataset.donorIc || "";
-                        bloodGroup.value = row.dataset.donorGroup || "";
-                        document.getElementById("add")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                    });
-                });
-
-                document.querySelector("[data-donor-reset]")?.addEventListener("click", () => {
-                    donorId.value = "";
-                    fullName.value = "";
-                    icNumber.value = "";
-                    bloodGroup.value = "";
-                    fullName.focus();
-                });
-
                 const tableBody = document.querySelector("[data-donor-table-body]");
                 const rows = tableBody ? Array.from(tableBody.querySelectorAll("[data-donor-row]")) : [];
 
@@ -293,6 +208,7 @@
                     bloodGroup: row.dataset.donorGroup || "",
                     status: row.dataset.status || "eligible",
                     deferralReason: row.dataset.deferralReason || "None",
+                    deferralLock: row.dataset.deferralLock || "temporary",
                     deferralExpiry: row.dataset.deferralExpiry || ""
                 });
 
@@ -309,7 +225,10 @@
                         (statusOrder[left.status] ?? 99) - (statusOrder[right.status] ?? 99)
                         || collator.compare(left.name, right.name),
                     "deferral-asc": (left, right) =>
-                        collator.compare(left.deferralExpiry || "9999-12-31", right.deferralExpiry || "9999-12-31")
+                        collator.compare(
+                            left.deferralLock === "permanent" ? "0000-00-00" : left.deferralExpiry || "9999-12-31",
+                            right.deferralLock === "permanent" ? "0000-00-00" : right.deferralExpiry || "9999-12-31"
+                        )
                         || collator.compare(left.name, right.name)
                 };
 
@@ -329,6 +248,7 @@
                                 details.bloodGroup,
                                 details.status,
                                 details.deferralReason,
+                                details.deferralLock,
                                 details.deferralExpiry
                             ].join(" ").toLowerCase();
 

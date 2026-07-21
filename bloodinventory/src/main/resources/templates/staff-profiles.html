@@ -23,12 +23,12 @@
 
     <th:block layout:fragment="content">
                 <div class="section gap-md">
-                    <section class="section gap-md card card-lg">
+                    <section id="add" class="section gap-md card card-lg" data-staff-management-summary>
                         <div>
                             <div class="section-subtitle">Staff Management</div>
                             <h1 class="section-title">Staff Management</h1>
                             <p>
-                                Review staff accounts, edit role-specific profile details, update account status, and add new staff from the action button when needed.
+                                Review staff accounts, edit role-specific profile details, archive accounts safely, and add new staff when needed.
                             </p>
                         </div>
 
@@ -46,10 +46,8 @@
                                 <div class="stat-card-value" th:text="${labCount}">0</div>
                             </article>
                         </div>
-                    </section>
 
-                    <section id="add" class="card card-lg gap-md">
-                        <div class="gap-md">
+                        <div class="section staff-records-overview" data-staff-records-overview>
                             <div>
                                 <div class="section-subtitle">People Workspace</div>
                                 <h2 class="section-title">Manage Staff Records</h2>
@@ -60,17 +58,16 @@
 
                             <div class="flex flex-col gap-sm">
                                 <article class="card card-sm">
-                                    <span class="stat-card-label">Inactive Accounts</span>
-                                    <strong class="stat-card-value" th:text="${inactiveCount}">0</strong>
+                                    <span class="stat-card-label">Archived Accounts</span>
+                                    <strong class="stat-card-value" th:text="${archivedCount}">0</strong>
                                 </article>
 
                                 <article class="card card-sm">
                                     <span class="stat-card-label">Account Protection</span>
-                                    <p class="form-help-text">Inactive accounts are locked by the database procedure and blocked from signing in.</p>
+                                    <p class="form-help-text">Archived accounts stay in the audit history and cannot sign in. To reactivate one, filter to Archived, select the account, and click Restore.</p>
                                 </article>
                             </div>
                         </div>
-
                     </section>
 
                     <section id="update" class="card card-lg gap-md">
@@ -109,7 +106,7 @@
                                         <select id="staff-status-filter" class="form-select" data-staff-status-filter>
                                             <option value="all">All statuses</option>
                                             <option value="active">Active</option>
-                                            <option value="inactive">Inactive</option>
+                                            <option value="archived">Archived</option>
                                             <option value="locked">Locked</option>
                                         </select>
                                     </div>
@@ -134,30 +131,53 @@
                                         Reset Filters
                                     </button>
                                     <form method="post"
-                                          id="delete"
-                                          th:action="@{/admin/staff/delete-selected}"
-                                          class="staff-toolbar-delete-form"
+                                          id="restore"
+                                          th:action="@{/admin/staff/restore-selected}"
+                                          class="staff-toolbar-restore-form"
                                           data-action-confirm
-                                          data-action-label="delete selected staff records"
-                                          data-action-variant="danger"
-                                          data-selected-staff-delete-form>
+                                          data-action-label="restore selected staff accounts"
+                                          data-action-confirm-text="Confirm Restore"
+                                          data-selected-staff-restore-form>
                                         <input type="hidden"
                                                th:if="${_csrf != null}"
                                                th:name="${_csrf.parameterName}"
                                                th:value="${_csrf.token}">
-                                        <span data-selected-staff-delete-fields></span>
+                                        <span data-selected-staff-restore-fields></span>
                                         <button type="submit"
-                                                class="btn btn-danger"
-                                                data-selected-staff-delete-button
+                                                class="btn btn-secondary"
+                                                data-selected-staff-restore-button
                                                 disabled>
                                             <svg viewBox="0 0 24 24" aria-hidden="true">
-                                                <path d="M3 6h18"></path>
-                                                <path d="M8 6V4h8v2"></path>
-                                                <path d="m19 6-1 14H6L5 6"></path>
-                                                <path d="M10 11v5"></path>
-                                                <path d="M14 11v5"></path>
+                                                <path d="M3 12a9 9 0 1 0 3-6.7"></path>
+                                                <path d="M3 4v6h6"></path>
                                             </svg>
-                                            Delete
+                                            Restore
+                                        </button>
+                                    </form>
+                                    <form method="post"
+                                          id="archive"
+                                          th:action="@{/admin/staff/archive-selected}"
+                                          class="staff-toolbar-archive-form"
+                                          data-action-confirm
+                                          data-action-label="archive selected staff accounts"
+                                          data-action-variant="danger"
+                                          data-action-confirm-text="Confirm Archive"
+                                          data-selected-staff-archive-form>
+                                        <input type="hidden"
+                                               th:if="${_csrf != null}"
+                                               th:name="${_csrf.parameterName}"
+                                               th:value="${_csrf.token}">
+                                        <span data-selected-staff-archive-fields></span>
+                                        <button type="submit"
+                                                class="btn btn-danger"
+                                                data-selected-staff-archive-button
+                                                disabled>
+                                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                                <path d="M4 7h16v13H4z"></path>
+                                                <path d="M2 4h20v3H2z"></path>
+                                                <path d="M9 11h6"></path>
+                                            </svg>
+                                            Archive
                                         </button>
                                     </form>
                                     <a th:href="@{/admin/staff/register}" class="btn btn-primary staff-add-button staff-toolbar-add-button" data-register-open>
@@ -225,15 +245,17 @@
                                                 data-status-class=${profile.statusAccentClass},
                                                 data-photo-url=${profile.photoUrl},
                                                 data-initials=${profile.initials},
-                                                data-self=${currentUsername == profile.username}">
+                                                data-self=${currentUsername == profile.username},
+                                                data-archivable=${profile.active and currentUsername != profile.username},
+                                                data-restorable=${!profile.active and currentUsername != profile.username}">
                                 <tr class="staff-row">
                                     <td class="table-cell-checkbox">
                                         <label class="row-select">
                                             <input type="checkbox"
                                                    data-staff-row-check
-                                                   aria-label="Select staff row"
-                                                   title="Select staff row"
-                                                   th:attr="aria-label=${'Select ' + profile.fullName}">
+                                                   th:disabled="${currentUsername == profile.username}"
+                                                   th:attr="aria-label=${currentUsername == profile.username ? profile.fullName + ' cannot be selected' : 'Select ' + profile.fullName + (profile.active ? ' for archive' : ' for restore')},
+                                                            title=${currentUsername == profile.username ? 'Your own account cannot be selected' : (profile.active ? 'Select staff account for archive' : 'Select archived account for restore')}">
                                         </label>
                                     </td>
 
@@ -429,9 +451,9 @@
                                             <label for="modal-edit-status" class="form-label">Account Status</label>
                                             <select id="modal-edit-status" class="form-select" name="active" required data-modal-field="active">
                                                 <option value="true">Active</option>
-                                                <option value="false">Inactive</option>
+                                                <option value="false">Archived (Inactive)</option>
                                             </select>
-                                            <div class="form-help">Inactive accounts are locked by the database trigger and blocked from sign-in.</div>
+                                            <div class="form-help">Archived accounts retain their history, are locked automatically, and cannot sign in.</div>
                                         </div>
 
                                         <div class="role-panel card card-sm form-group-full" data-role-section="MEDICAL_STAFF">
@@ -535,6 +557,7 @@
                             <div class="staff-register-content">
                                 <div th:if="${openRegisterModal == true and #strings.isNotEmpty(errorMessage)}"
                                      class="card card-sm staff-register-error"
+                                     role="alert"
                                      th:text="${errorMessage}"></div>
 
                                 <div class="grid grid-2 staff-register-info">
@@ -548,8 +571,8 @@
                                     </article>
 
                                     <article class="card card-sm">
-                                        <h3 class="stat-card-label">Inactive account rule</h3>
-                                        <p class="form-help-text">The database procedure and trigger keep `is_active`, `is_locked`, and `locked_at` synchronized so inactive staff cannot sign in.</p>
+                                        <h3 class="stat-card-label">Archived account rule</h3>
+                                        <p class="form-help-text">The database procedure and trigger keep `is_active`, `is_locked`, and `locked_at` synchronized so archived staff cannot sign in.</p>
                                     </article>
                                 </div>
 
@@ -562,7 +585,8 @@
                                       data-action-confirm
                                       data-action-label="create staff account"
                                       data-action-confirm-text="Confirm Create"
-                                      data-role-form>
+                                      data-role-form
+                                      data-register-form>
                                     <div th:if="${#fields.hasAnyErrors()}"
                                          class="card card-sm staff-register-validation">
                                         Please correct the highlighted staff registration fields.
@@ -577,6 +601,9 @@
                                                    type="text"
                                                    th:field="*{fullName}"
                                                    placeholder="Full legal name"
+                                                   minlength="2"
+                                                   maxlength="100"
+                                                   pattern="[A-Za-zÀ-ž][A-Za-zÀ-ž .'-]*"
                                                    required>
                                             <div class="form-error-text"
                                                  th:if="${#fields.hasErrors('fullName')}"
@@ -591,6 +618,9 @@
                                                    type="text"
                                                    th:field="*{username}"
                                                    placeholder="Unique username"
+                                                   minlength="4"
+                                                   maxlength="50"
+                                                   pattern="[A-Za-z0-9._-]+"
                                                    required>
                                             <div class="form-error-text"
                                                  th:if="${#fields.hasErrors('username')}"
@@ -606,6 +636,8 @@
                                                    th:field="*{password}"
                                                    placeholder="Minimum 8 characters"
                                                    autocomplete="new-password"
+                                                   minlength="8"
+                                                   maxlength="72"
                                                    required>
                                             <div class="form-error-text"
                                                  th:if="${#fields.hasErrors('password')}"
@@ -620,6 +652,8 @@
                                                    type="text"
                                                    th:field="*{icNumber}"
                                                    placeholder="000000-00-0000"
+                                                   maxlength="14"
+                                                   pattern="[0-9]{6}-?[0-9]{2}-?[0-9]{4}"
                                                    required>
                                             <div class="form-error-text"
                                                  th:if="${#fields.hasErrors('icNumber')}"
@@ -634,6 +668,7 @@
                                                    type="email"
                                                    th:field="*{email}"
                                                    placeholder="staff@bloodbank.my"
+                                                   maxlength="100"
                                                    required>
                                             <div class="form-error-text"
                                                  th:if="${#fields.hasErrors('email')}"
@@ -647,6 +682,8 @@
                                                    th:classappend="${#fields.hasErrors('phoneNo')} ? 'form-error' : ''"
                                                    type="text"
                                                    th:field="*{phoneNo}"
+                                                   maxlength="20"
+                                                   pattern="(?:\+?60|0)1[0-9](?:[ -]?[0-9]){7,8}"
                                                    placeholder="01x-xxxxxxx">
                                             <div class="form-error-text"
                                                  th:if="${#fields.hasErrors('phoneNo')}"
@@ -691,7 +728,11 @@
                                         <div class="form-group form-group-full">
                                             <label for="register-photo" class="form-label">Profile Photo</label>
                                             <input id="register-photo" class="form-input" type="file" name="photoFile" accept="image/*">
-                                            <div class="form-help">Optional. Supported formats include JPG and PNG.</div>
+                                            <div class="form-help">Optional. JPG or PNG, maximum 2 MB.</div>
+                                            <div class="form-error-text" data-register-photo-error
+                                                 th:if="${#fields.hasGlobalErrors()}"
+                                                 th:each="error : ${#fields.globalErrors()}"
+                                                 th:text="${error}">Photo error</div>
                                         </div>
 
                                         <div class="role-panel card card-sm form-group-full" data-role-section="MEDICAL_STAFF">
@@ -703,6 +744,7 @@
                                                            th:classappend="${#fields.hasErrors('licenseNo')} ? 'form-error' : ''"
                                                            type="text"
                                                            th:field="*{licenseNo}"
+                                                           maxlength="50"
                                                            placeholder="e.g. APC-12345">
                                                     <div class="form-error-text"
                                                          th:if="${#fields.hasErrors('licenseNo')}"
@@ -715,6 +757,7 @@
                                                            th:classappend="${#fields.hasErrors('position')} ? 'form-error' : ''"
                                                            type="text"
                                                            th:field="*{position}"
+                                                           maxlength="50"
                                                            placeholder="e.g. Senior Nurse">
                                                     <div class="form-error-text"
                                                          th:if="${#fields.hasErrors('position')}"
@@ -731,6 +774,7 @@
                                                        th:classappend="${#fields.hasErrors('certificationNo')} ? 'form-error' : ''"
                                                        type="text"
                                                        th:field="*{certificationNo}"
+                                                       maxlength="50"
                                                        placeholder="e.g. LAB-2048">
                                                 <div class="form-error-text"
                                                      th:if="${#fields.hasErrors('certificationNo')}"
@@ -746,6 +790,7 @@
                                                        th:classappend="${#fields.hasErrors('department')} ? 'form-error' : ''"
                                                        type="text"
                                                        th:field="*{department}"
+                                                       maxlength="100"
                                                        placeholder="e.g. Eligibility Management">
                                                 <div class="form-error-text"
                                                      th:if="${#fields.hasErrors('department')}"
@@ -807,9 +852,82 @@
 
             const selectedRole = roleSelect.value;
             rolePanels.forEach((panel) => {
-                panel.classList.toggle("is-visible", panel.getAttribute("data-role-section") === selectedRole);
+                const active = panel.getAttribute("data-role-section") === selectedRole;
+                panel.classList.toggle("is-visible", active);
+                panel.querySelectorAll("input").forEach((input) => {
+                    input.required = active;
+                    input.disabled = !active;
+                });
             });
         };
+
+        const registrationMessage = (field) => {
+            if (field.validity.valueMissing) return `${field.labels?.[0]?.textContent.trim() || "This field"} is required.`;
+            if (field.validity.typeMismatch) return "Enter a valid email address.";
+            if (field.validity.tooShort || field.validity.tooLong) return "The value has an invalid length.";
+            if (field.validity.patternMismatch) {
+                if (field.id === "register-ic") return "Enter a 12-digit IC number, for example 850101-10-2001.";
+                if (field.id === "register-phone") return "Enter a valid Malaysian mobile number.";
+                if (field.id === "register-username") return "Use only letters, numbers, dots, underscores, or hyphens.";
+                return "Enter a valid value.";
+            }
+            return "";
+        };
+
+        const showRegistrationError = (field, message) => {
+            const group = field.closest(".form-group");
+            if (!group) return;
+            let error = group.querySelector(".form-error-text");
+            if (!error) {
+                error = document.createElement("div");
+                error.className = "form-error-text";
+                group.appendChild(error);
+            }
+            error.textContent = message;
+            error.hidden = !message;
+            field.classList.toggle("form-error", Boolean(message));
+            field.setAttribute("aria-invalid", String(Boolean(message)));
+        };
+
+        const validateRegistrationField = (field) => {
+            if (field.disabled) return true;
+            const message = registrationMessage(field);
+            showRegistrationError(field, message);
+            return !message;
+        };
+
+        const registerForm = document.querySelector("[data-register-form]");
+        if (registerForm) {
+            const fields = Array.from(registerForm.querySelectorAll("input, select"));
+            fields.forEach((field) => {
+                field.addEventListener("blur", () => validateRegistrationField(field));
+                field.addEventListener("input", () => {
+                    if (field.getAttribute("aria-invalid") === "true") validateRegistrationField(field);
+                });
+            });
+
+            registerForm.addEventListener("submit", (event) => {
+                syncRolePanels(registerForm);
+                let firstInvalid = null;
+                fields.forEach((field) => {
+                    if (!validateRegistrationField(field) && !firstInvalid) firstInvalid = field;
+                });
+                const photo = registerForm.querySelector("#register-photo");
+                if (photo?.files?.length) {
+                    const file = photo.files[0];
+                    let photoMessage = "";
+                    if (file.size > 2 * 1024 * 1024) photoMessage = "Profile photo must not exceed 2 MB.";
+                    else if (!["image/jpeg", "image/png"].includes(file.type)) photoMessage = "Profile photo must be a JPG or PNG image.";
+                    showRegistrationError(photo, photoMessage);
+                    if (photoMessage && !firstInvalid) firstInvalid = photo;
+                }
+                if (firstInvalid) {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    firstInvalid.focus();
+                }
+            }, true);
+        }
 
         const cardData = (card) => ({
             element: card,
@@ -832,7 +950,9 @@
             statusClass: (card.getAttribute("data-status-class") || "").toLowerCase(),
             photoUrl: card.getAttribute("data-photo-url") || "",
             initials: card.getAttribute("data-initials") || "SP",
-            self: card.getAttribute("data-self") === "true"
+            self: card.getAttribute("data-self") === "true",
+            archivable: card.getAttribute("data-archivable") === "true",
+            restorable: card.getAttribute("data-restorable") === "true"
         });
 
         const setStaffEditModalOpen = (isOpen) => {
@@ -936,15 +1056,18 @@
             const resultsSummary = document.querySelector("[data-staff-results-summary]");
             const selectionSummary = document.querySelector("[data-staff-selection-summary]");
             const selectAll = document.querySelector("[data-staff-select-all]");
-            const selectedDeleteForm = document.querySelector("[data-selected-staff-delete-form]");
-            const selectedDeleteButton = document.querySelector("[data-selected-staff-delete-button]");
-            const selectedDeleteFields = document.querySelector("[data-selected-staff-delete-fields]");
+            const selectedRestoreForm = document.querySelector("[data-selected-staff-restore-form]");
+            const selectedRestoreButton = document.querySelector("[data-selected-staff-restore-button]");
+            const selectedRestoreFields = document.querySelector("[data-selected-staff-restore-fields]");
+            const selectedArchiveForm = document.querySelector("[data-selected-staff-archive-form]");
+            const selectedArchiveButton = document.querySelector("[data-selected-staff-archive-button]");
+            const selectedArchiveFields = document.querySelector("[data-selected-staff-archive-fields]");
             const rowChecks = cards
                 .map((card) => card.querySelector("[data-staff-row-check]"))
                 .filter(Boolean);
             const totalCount = cards.length;
             const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
-            const statusOrder = { active: 0, locked: 1, inactive: 2 };
+            const statusOrder = { active: 0, locked: 1, archived: 2 };
 
             const sortComparators = {
                 "name-asc": (left, right) =>
@@ -967,18 +1090,18 @@
                 .filter((card) => card.querySelector("[data-staff-row-check]")?.checked)
                 .map(cardData);
 
-            const syncSelectedDeleteFields = (selectedDetails) => {
-                if (!selectedDeleteFields) {
+            const syncSelectedFields = (fieldContainer, selectedDetails) => {
+                if (!fieldContainer) {
                     return;
                 }
 
-                selectedDeleteFields.innerHTML = "";
+                fieldContainer.innerHTML = "";
                 selectedDetails.forEach((details) => {
                     const input = document.createElement("input");
                     input.type = "hidden";
                     input.name = "staffIds";
                     input.value = String(details.staffId);
-                    selectedDeleteFields.appendChild(input);
+                    fieldContainer.appendChild(input);
                 });
             };
 
@@ -986,6 +1109,8 @@
                 const selectedDetails = selectedStaffDetails();
                 const selectedCount = selectedDetails.length;
                 const containsSelf = selectedDetails.some((details) => details.self);
+                const containsUnarchivable = selectedDetails.some((details) => !details.archivable);
+                const containsUnrestorable = selectedDetails.some((details) => !details.restorable);
 
                 cards.forEach((card) => {
                     const checkbox = card.querySelector("[data-staff-row-check]");
@@ -996,19 +1121,39 @@
                     selectionSummary.textContent = `${selectedCount} row${selectedCount === 1 ? "" : "s"} selected`;
                 }
 
-                if (selectedDeleteForm && selectedDeleteButton) {
-                    syncSelectedDeleteFields(selectedDetails);
+                if (selectedArchiveForm && selectedArchiveButton) {
+                    syncSelectedFields(selectedArchiveFields, selectedDetails);
 
-                    if (selectedCount > 0 && !containsSelf) {
-                        selectedDeleteButton.disabled = false;
-                        selectedDeleteButton.title = selectedCount === 1
-                            ? `Delete ${selectedDetails[0].name || "selected staff"}`
-                            : `Delete ${selectedCount} selected staff records`;
+                    if (selectedCount > 0 && !containsSelf && !containsUnarchivable) {
+                        selectedArchiveButton.disabled = false;
+                        selectedArchiveButton.title = selectedCount === 1
+                            ? `Archive ${selectedDetails[0].name || "selected staff"}`
+                            : `Archive ${selectedCount} selected staff accounts`;
                     } else {
-                        selectedDeleteButton.disabled = true;
-                        selectedDeleteButton.title = containsSelf
-                            ? "Deselect your own account before deleting staff records."
-                            : "Select one or more staff rows to delete.";
+                        selectedArchiveButton.disabled = true;
+                        selectedArchiveButton.title = containsSelf
+                            ? "Deselect your own account before archiving staff accounts."
+                            : (containsUnarchivable
+                                ? "Only active staff accounts can be archived."
+                                : "Select one or more active staff accounts to archive.");
+                    }
+                }
+
+                if (selectedRestoreForm && selectedRestoreButton) {
+                    syncSelectedFields(selectedRestoreFields, selectedDetails);
+
+                    if (selectedCount > 0 && !containsSelf && !containsUnrestorable) {
+                        selectedRestoreButton.disabled = false;
+                        selectedRestoreButton.title = selectedCount === 1
+                            ? `Restore ${selectedDetails[0].name || "selected staff"}`
+                            : `Restore ${selectedCount} selected staff accounts`;
+                    } else {
+                        selectedRestoreButton.disabled = true;
+                        selectedRestoreButton.title = containsSelf
+                            ? "Your own account cannot be restored from this selection."
+                            : (containsUnrestorable
+                                ? "Only archived staff accounts can be restored."
+                                : "Select one or more archived staff accounts to restore.");
                     }
                 }
 
@@ -1019,7 +1164,7 @@
                 const visibleChecks = cards
                     .filter((card) => !card.hidden)
                     .map((card) => card.querySelector("[data-staff-row-check]"))
-                    .filter(Boolean);
+                    .filter((input) => input && !input.disabled);
                 const selectedVisibleCount = visibleChecks.filter((input) => input.checked).length;
 
                 selectAll.checked = visibleChecks.length > 0 && selectedVisibleCount === visibleChecks.length;
@@ -1108,7 +1253,7 @@
                     .filter((card) => !card.hidden)
                     .forEach((card) => {
                         const checkbox = card.querySelector("[data-staff-row-check]");
-                        if (checkbox) {
+                        if (checkbox && !checkbox.disabled) {
                             checkbox.checked = selectAll.checked;
                         }
                     });
@@ -1136,22 +1281,42 @@
                 applyListControls();
             });
 
-            selectedDeleteForm?.addEventListener("submit", (event) => {
+            selectedArchiveForm?.addEventListener("submit", (event) => {
                 const selectedDetails = selectedStaffDetails();
                 const containsSelf = selectedDetails.some((details) => details.self);
+                const containsUnarchivable = selectedDetails.some((details) => !details.archivable);
 
-                if (!selectedDetails.length || containsSelf || selectedDeleteButton?.disabled) {
+                if (!selectedDetails.length || containsSelf || containsUnarchivable || selectedArchiveButton?.disabled) {
                     event.preventDefault();
                     return;
                 }
 
-                syncSelectedDeleteFields(selectedDetails);
+                syncSelectedFields(selectedArchiveFields, selectedDetails);
 
-                const deleteLabel = selectedDetails.length === 1
+                const archiveLabel = selectedDetails.length === 1
                     ? selectedDetails[0].name || "this staff profile"
                     : `${selectedDetails.length} selected staff profiles`;
-                selectedDeleteForm.dataset.actionLabel = `delete ${deleteLabel}`;
-                selectedDeleteForm.dataset.actionFinalMessage = `This will delete ${deleteLabel} permanently. Continue?`;
+                selectedArchiveForm.dataset.actionLabel = `archive ${archiveLabel}`;
+                selectedArchiveForm.dataset.actionFinalMessage = `This will archive ${archiveLabel}, end active sessions, and block future sign-ins. Continue?`;
+            });
+
+            selectedRestoreForm?.addEventListener("submit", (event) => {
+                const selectedDetails = selectedStaffDetails();
+                const containsSelf = selectedDetails.some((details) => details.self);
+                const containsUnrestorable = selectedDetails.some((details) => !details.restorable);
+
+                if (!selectedDetails.length || containsSelf || containsUnrestorable || selectedRestoreButton?.disabled) {
+                    event.preventDefault();
+                    return;
+                }
+
+                syncSelectedFields(selectedRestoreFields, selectedDetails);
+
+                const restoreLabel = selectedDetails.length === 1
+                    ? selectedDetails[0].name || "this staff profile"
+                    : `${selectedDetails.length} selected staff profiles`;
+                selectedRestoreForm.dataset.actionLabel = `restore ${restoreLabel}`;
+                selectedRestoreForm.dataset.actionFinalMessage = `This will restore ${restoreLabel}, unlock the account, and allow sign-in again. Continue?`;
             });
 
             document.querySelectorAll("[data-editor-toggle]").forEach((button) => {

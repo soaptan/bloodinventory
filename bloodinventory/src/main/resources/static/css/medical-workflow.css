@@ -78,6 +78,72 @@
     gap: 14px;
 }
 
+.workflow-grid-single {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.assessment-form-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1320px);
+    justify-content: center;
+}
+
+.assessment-page-stack {
+    gap: 12px;
+}
+
+.assessment-page-intro {
+    align-items: center;
+    padding-block: 16px;
+}
+
+.assessment-form-card {
+    width: 100%;
+}
+
+.standalone-workflow-form-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 980px);
+    justify-content: center;
+}
+
+.standalone-workflow-form-card {
+    width: 100%;
+}
+
+.assessment-controls-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+    align-items: start;
+}
+
+.assessment-control-panel {
+    min-width: 0;
+}
+
+.assessment-deferral-panel {
+    padding-left: 24px;
+    border-left: 1px solid var(--border);
+}
+
+.assessment-panel-heading {
+    margin-bottom: 14px;
+}
+
+.assessment-panel-heading h3 {
+    margin: 0 0 4px;
+    color: var(--text-strong);
+    font-size: 18px;
+}
+
+.assessment-panel-heading p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.45;
+}
+
 .two-column-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -222,6 +288,111 @@
     color: var(--text-strong);
     font-size: 13px;
     font-weight: 800;
+}
+
+.patient-mode-fieldset {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.patient-mode-fieldset legend {
+    margin-bottom: 8px;
+    color: var(--text-strong);
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.patient-mode-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.patient-mode-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid var(--border-strong);
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--text-strong);
+    cursor: pointer;
+    transition: border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.patient-mode-card:hover {
+    border-color: var(--color-primary);
+}
+
+.patient-mode-card:has(input:checked) {
+    border-color: var(--color-primary);
+    background: color-mix(in srgb, var(--color-primary) 9%, var(--surface));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 16%, transparent);
+}
+
+.patient-mode-card:has(input:disabled) {
+    cursor: not-allowed;
+    opacity: 0.58;
+}
+
+.form-group .patient-mode-card input[type="radio"] {
+    flex: 0 0 auto;
+    width: 18px;
+    min-height: 18px;
+    margin: 2px 0 0;
+    padding: 0;
+    accent-color: var(--color-primary);
+}
+
+.patient-mode-copy {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+}
+
+.patient-mode-copy strong {
+    font-size: 14px;
+}
+
+.patient-mode-copy small,
+.patient-details-heading p {
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.45;
+}
+
+.patient-details-panel {
+    display: grid;
+    gap: 12px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--surface) 92%, var(--color-primary) 8%);
+}
+
+.patient-details-panel[hidden] {
+    display: none;
+}
+
+.patient-details-heading h3 {
+    margin: 0 0 3px;
+    color: var(--text-strong);
+    font-size: 15px;
+}
+
+.patient-details-heading p {
+    margin: 0;
+}
+
+.optional-label {
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 700;
 }
 
 .form-group input,
@@ -419,6 +590,18 @@ body.theme-dark .data-table select {
     color: var(--text-strong);
 }
 
+body.theme-dark .patient-mode-card {
+    background: #0f1c2a;
+}
+
+body.theme-dark .patient-mode-card:has(input:checked) {
+    background: #142c47;
+}
+
+body.theme-dark .patient-details-panel {
+    background: #0f1c2a;
+}
+
 body.theme-dark .check-chip,
 body.theme-dark .empty-state {
     background: #122132;
@@ -459,6 +642,17 @@ body.theme-dark .text-btn {
     .two-column-grid {
         grid-template-columns: 1fr;
     }
+
+    .assessment-controls-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .assessment-deferral-panel {
+        padding-top: 20px;
+        padding-left: 0;
+        border-top: 1px solid var(--border);
+        border-left: 0;
+    }
 }
 
 @media (max-width: 680px) {
@@ -472,7 +666,8 @@ body.theme-dark .text-btn {
     }
 
     .medical-stat-grid,
-    .form-grid {
+    .form-grid,
+    .patient-mode-options {
         grid-template-columns: 1fr;
     }
 }

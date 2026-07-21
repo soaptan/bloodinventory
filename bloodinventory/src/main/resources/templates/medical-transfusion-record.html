@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/master-layout}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Record Transfusion Event</title>
+    <th:block layout:fragment="custom-css">
+        <link rel="stylesheet" th:href="@{/css/medical-workflow.css}">
+    </th:block>
+</head>
+<body>
+
+    <th:block layout:fragment="app-subtitle">
+        Clinical workspace for eligibility review, collection, and transfusion support.
+    </th:block>
+
+    <th:block layout:fragment="sidebar">
+        <div th:replace="~{fragments/sidebar :: sidebar(
+            'Medical Staff Panel',
+            'Clinical workflows for donor eligibility, blood collection, and transfusion requests.',
+            'transfusion'
+        )}"></div>
+    </th:block>
+
+    <th:block layout:fragment="content">
+        <div class="main-stack assessment-page-stack" data-transfusion-form-page>
+            <section class="page-intro page-card assessment-page-intro">
+                <div>
+                    <div class="page-kicker">Transfusion Request</div>
+                    <h1>Record Transfusion Event</h1>
+                    <p>Select the patient and released blood component, then save the clinical event.</p>
+                </div>
+                <a class="btn btn-tertiary" th:href="@{/medical/transfusion}" data-back-to-transfusion-records>
+                    Back to Transfusion Records
+                </a>
+            </section>
+
+            <section class="standalone-workflow-form-layout">
+                <article class="form-card page-card standalone-workflow-form-card">
+                    <div class="section-title">
+                        <div>
+                            <h2>Event Details</h2>
+                            <p>Patient information and compatible released component selection</p>
+                        </div>
+                    </div>
+
+                    <form class="needs-validation"
+                          th:action="@{/medical/transfusion}"
+                          data-action-confirm
+                          data-action-label="save transfusion event"
+                          data-action-confirm-text="Confirm Save"
+                          data-transfusion-form
+                          th:object="${transfusionRequest}"
+                          method="post"
+                          novalidate>
+                        <div class="form-grid">
+                            <fieldset class="patient-mode-fieldset full">
+                                <legend>Patient Type</legend>
+                                <div class="patient-mode-options" data-patient-mode-options>
+                                    <label class="patient-mode-card">
+                                        <input type="radio"
+                                               name="patientMode"
+                                               value="existing"
+                                               data-patient-mode
+                                               th:checked="${!#lists.isEmpty(patients)}"
+                                               th:disabled="${#lists.isEmpty(patients)}">
+                                        <span class="patient-mode-copy">
+                                            <strong>Existing Patient</strong>
+                                            <small th:text="${#lists.isEmpty(patients) ? 'No registered patients available' : 'Choose a patient already in the system'}">
+                                                Choose a patient already in the system
+                                            </small>
+                                        </span>
+                                    </label>
+
+                                    <label class="patient-mode-card">
+                                        <input type="radio"
+                                               name="patientMode"
+                                               value="new"
+                                               data-patient-mode
+                                               th:checked="${#lists.isEmpty(patients)}">
+                                        <span class="patient-mode-copy">
+                                            <strong>Register New Patient</strong>
+                                            <small>Create a patient record for this transfusion</small>
+                                        </span>
+                                    </label>
+                                </div>
+                            </fieldset>
+
+                            <section class="patient-details-panel full"
+                                     data-patient-panel="existing"
+                                     aria-labelledby="existingPatientHeading"
+                                     th:hidden="${#lists.isEmpty(patients)}">
+                                <div class="patient-details-heading">
+                                    <h3 id="existingPatientHeading">Select Existing Patient</h3>
+                                    <p>Use a patient record that is already registered.</p>
+                                </div>
+                                <div class="form-group">
+                                    <label for="patientId">Patient</label>
+                                    <select id="patientId"
+                                            th:field="*{patientId}"
+                                            data-required-when-active>
+                                        <option value="">Select existing patient</option>
+                                        <option th:each="patient : ${patients}"
+                                                th:value="${patient.patientId}"
+                                                th:text="${patient.condition == null || patient.condition == '' ? patient.name : patient.name + ' - ' + patient.condition}">
+                                            Patient
+                                        </option>
+                                    </select>
+                                    <div class="invalid-feedback">Please select an existing patient.</div>
+                                </div>
+                            </section>
+
+                            <section class="patient-details-panel full"
+                                     data-patient-panel="new"
+                                     aria-labelledby="newPatientHeading"
+                                     th:hidden="${!#lists.isEmpty(patients)}">
+                                <div class="patient-details-heading">
+                                    <h3 id="newPatientHeading">New Patient Details</h3>
+                                    <p>The patient will be registered when this transfusion is saved.</p>
+                                </div>
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label for="patientName">Patient Name</label>
+                                        <input id="patientName"
+                                               type="text"
+                                               th:field="*{patientName}"
+                                               autocomplete="name"
+                                               data-required-when-active>
+                                        <div class="invalid-feedback">Please enter the patient name.</div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="condition">Condition <span class="optional-label">(Optional)</span></label>
+                                        <input id="condition"
+                                               type="text"
+                                               th:field="*{condition}"
+                                               placeholder="e.g. Anaemia">
+                                    </div>
+                                </div>
+                            </section>
+
+                            <div class="form-group full">
+                                <label for="componentId">Component</label>
+                                <select id="componentId" th:field="*{componentId}" required>
+                                    <option value="">Select component</option>
+                                    <option th:each="component : ${components}"
+                                            th:value="${component.componentId}"
+                                            th:text="${component.componentId} + ' - ' + ${component.componentType} + ' - ' + ${component.donorBloodGroup} + ' - ' + ${component.status}">
+                                        Component
+                                    </option>
+                                </select>
+                                <div class="invalid-feedback">Please select a released blood component.</div>
+                            </div>
+
+                            <div class="form-group full">
+                                <button type="submit" class="submit-btn" data-create-transfusion>Save Transfusion</button>
+                            </div>
+                        </div>
+                    </form>
+                </article>
+            </section>
+        </div>
+    </th:block>
+
+    <th:block layout:fragment="custom-js">
+        <script>
+            (() => {
+                const form = document.querySelector("[data-transfusion-form]");
+                if (!form) {
+                    return;
+                }
+
+                const modeInputs = Array.from(form.querySelectorAll("[data-patient-mode]"));
+                const panels = Array.from(form.querySelectorAll("[data-patient-panel]"));
+
+                const syncPatientMode = () => {
+                    const selectedMode = modeInputs.find((input) => input.checked)?.value;
+
+                    panels.forEach((panel) => {
+                        const isActive = panel.dataset.patientPanel === selectedMode;
+                        panel.hidden = !isActive;
+                        panel.setAttribute("aria-hidden", String(!isActive));
+
+                        panel.querySelectorAll("input, select").forEach((field) => {
+                            field.disabled = !isActive;
+                            if (field.hasAttribute("data-required-when-active")) {
+                                field.required = isActive;
+                            }
+                        });
+                    });
+
+                    form.classList.remove("was-validated");
+                };
+
+                modeInputs.forEach((input) => input.addEventListener("change", syncPatientMode));
+                syncPatientMode();
+            })();
+        </script>
+    </th:block>
+</body>
+</html>

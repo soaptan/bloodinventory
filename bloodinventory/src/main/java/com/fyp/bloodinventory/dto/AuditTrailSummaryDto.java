@@ -4,7 +4,7 @@ public class AuditTrailSummaryDto {
 
     private long totalEvents;
     private long recentEvents;
-    private long componentEvents;
+    private long dataChangeEvents;
     private long activeActors;
 
     public long getTotalEvents() {
@@ -23,12 +23,12 @@ public class AuditTrailSummaryDto {
         this.recentEvents = recentEvents;
     }
 
-    public long getComponentEvents() {
-        return componentEvents;
+    public long getDataChangeEvents() {
+        return dataChangeEvents;
     }
 
-    public void setComponentEvents(long componentEvents) {
-        this.componentEvents = componentEvents;
+    public void setDataChangeEvents(long dataChangeEvents) {
+        this.dataChangeEvents = dataChangeEvents;
     }
 
     public long getActiveActors() {

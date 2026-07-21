@@ -21,7 +21,7 @@
     </th:block>
 
     <th:block layout:fragment="content">
-                <div class="main-stack" data-profile-dashboard>
+                <div class="main-stack" data-profile-dashboard data-initial-tab="edit-profile">
                     <section class="page-intro page-card">
                         <div>
                             <div class="page-kicker">My Account</div>
@@ -33,15 +33,40 @@
 
                     <section class="profile-dashboard">
                         <aside class="profile-id-card module-card">
-                            <div class="profile-avatar-large">
-                                <img th:if="${!#strings.isEmpty(profile.photoUrl)}"
-                                     th:src="${profile.photoUrl}"
-                                     alt="Staff profile photo"
-                                     onerror="this.hidden=true; this.nextElementSibling.hidden=false;">
-                                <div class="profile-avatar-fallback"
-                                     th:hidden="${!#strings.isEmpty(profile.photoUrl)}"
-                                     th:text="${profile.initials}">SP</div>
-                            </div>
+                            <form th:action="@{/profile/photo}" method="post" enctype="multipart/form-data"
+                                  class="profile-photo-upload"
+                                  data-profile-photo-form>
+                                <div class="profile-avatar-large">
+                                    <img th:if="${!#strings.isEmpty(profile.photoUrl)}"
+                                         th:src="${profile.photoUrl}"
+                                         alt="Staff profile photo"
+                                         data-profile-photo-preview
+                                         onerror="this.hidden=true; this.nextElementSibling.hidden=false;">
+                                    <div class="profile-avatar-fallback"
+                                         th:hidden="${!#strings.isEmpty(profile.photoUrl)}"
+                                         th:text="${profile.initials}">SP</div>
+                                    <button type="button"
+                                            class="profile-photo-camera"
+                                            data-photo-menu-toggle
+                                            aria-label="Change profile photo"
+                                            aria-haspopup="menu"
+                                            aria-expanded="false"
+                                            aria-controls="profile-photo-menu">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                            <path d="M14.5 5 13 3H9L7.5 5H5a3 3 0 0 0-3 3v9a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3V8a3 3 0 0 0-3-3h-4.5Z"></path>
+                                            <circle cx="12" cy="13" r="4"></circle>
+                                        </svg>
+                                    </button>
+                                </div>
+                                <input id="profile-photo" type="file" name="photoFile" accept="image/*"
+                                       data-photo-file-input
+                                       aria-label="Upload profile photo"
+                                       required hidden>
+                                <div id="profile-photo-menu" class="profile-photo-menu" data-photo-menu role="menu" hidden>
+                                    <button type="button" role="menuitem" data-photo-upload-trigger>Upload photo</button>
+                                    <button type="button" role="menuitem" data-photo-menu-close>Cancel</button>
+                                </div>
+                            </form>
 
                             <div class="profile-identity">
                                 <h2 data-profile-name th:text="${profile.fullName}">Staff Name</h2>
@@ -76,13 +101,6 @@
                                 </div>
                             </div>
 
-                            <form th:action="@{/profile/photo}" method="post" enctype="multipart/form-data"
-                                  class="profile-photo-form needs-validation" novalidate>
-                                <label for="profile-photo">Profile Photo</label>
-                                <input id="profile-photo" type="file" name="photoFile" accept="image/*" required>
-                                <div class="invalid-feedback">Please choose an image file.</div>
-                                <button type="submit" class="btn btn-secondary btn-sm">Update Photo</button>
-                            </form>
                         </aside>
 
                         <article class="profile-action-card module-card">
@@ -257,6 +275,7 @@
         dashboard.querySelectorAll("[data-profile-tab]").forEach((tab) => {
             tab.addEventListener("click", () => activateTab(tab.getAttribute("data-profile-tab")));
         });
+        activateTab(dashboard.getAttribute("data-initial-tab") || "edit-profile");
 
         function setButtonLoading(button, isLoading) {
             if (!(button instanceof HTMLButtonElement)) {
@@ -280,6 +299,111 @@
             if (window.Toast) {
                 window.Toast.fire({ icon, title });
             }
+        }
+
+        const photoForm = dashboard.querySelector("[data-profile-photo-form]");
+        if (photoForm instanceof HTMLFormElement) {
+            const menu = photoForm.querySelector("[data-photo-menu]");
+            const toggleButton = photoForm.querySelector("[data-photo-menu-toggle]");
+            const uploadButton = photoForm.querySelector("[data-photo-upload-trigger]");
+            const closeButton = photoForm.querySelector("[data-photo-menu-close]");
+            const fileInput = photoForm.querySelector("[data-photo-file-input]");
+
+            function closePhotoMenu() {
+                if (menu instanceof HTMLElement) {
+                    menu.hidden = true;
+                }
+                if (toggleButton instanceof HTMLButtonElement) {
+                    toggleButton.setAttribute("aria-expanded", "false");
+                }
+            }
+
+            function openPhotoMenu() {
+                if (menu instanceof HTMLElement) {
+                    menu.hidden = false;
+                }
+                if (toggleButton instanceof HTMLButtonElement) {
+                    toggleButton.setAttribute("aria-expanded", "true");
+                }
+            }
+
+            function previewSelectedPhoto(file) {
+                if (!(file instanceof File)) {
+                    return;
+                }
+
+                let preview = photoForm.querySelector("[data-profile-photo-preview]");
+                const fallback = photoForm.querySelector(".profile-avatar-fallback");
+                if (!(preview instanceof HTMLImageElement)) {
+                    preview = document.createElement("img");
+                    preview.alt = "Staff profile photo";
+                    preview.setAttribute("data-profile-photo-preview", "");
+                    fallback?.insertAdjacentElement("beforebegin", preview);
+                }
+
+                preview.src = URL.createObjectURL(file);
+                preview.hidden = false;
+                if (fallback instanceof HTMLElement) {
+                    fallback.hidden = true;
+                }
+            }
+
+            if (toggleButton instanceof HTMLButtonElement) {
+                toggleButton.addEventListener("click", (event) => {
+                    event.stopPropagation();
+                    const isOpen = toggleButton.getAttribute("aria-expanded") === "true";
+                    if (isOpen) {
+                        closePhotoMenu();
+                    } else {
+                        openPhotoMenu();
+                    }
+                });
+            }
+
+            if (menu instanceof HTMLElement) {
+                menu.addEventListener("click", (event) => event.stopPropagation());
+            }
+
+            if (uploadButton instanceof HTMLButtonElement && fileInput instanceof HTMLInputElement) {
+                uploadButton.addEventListener("click", () => {
+                    closePhotoMenu();
+                    fileInput.click();
+                });
+            }
+
+            if (closeButton instanceof HTMLButtonElement) {
+                closeButton.addEventListener("click", closePhotoMenu);
+            }
+
+            if (fileInput instanceof HTMLInputElement) {
+                fileInput.addEventListener("change", () => {
+                    const selectedFile = fileInput.files?.[0];
+                    if (!selectedFile) {
+                        return;
+                    }
+
+                    if (!selectedFile.type.startsWith("image/")) {
+                        fileInput.value = "";
+                        toast("error", "Please choose an image file.");
+                        return;
+                    }
+
+                    previewSelectedPhoto(selectedFile);
+                    photoForm.classList.add("is-uploading");
+                    if (typeof photoForm.requestSubmit === "function") {
+                        photoForm.requestSubmit();
+                    } else {
+                        photoForm.submit();
+                    }
+                });
+            }
+
+            document.addEventListener("click", closePhotoMenu);
+            document.addEventListener("keydown", (event) => {
+                if (event.key === "Escape") {
+                    closePhotoMenu();
+                }
+            });
         }
 
         async function submitAjax(form, successFallback, onSuccess) {
@@ -359,6 +483,7 @@
                 });
             });
         }
+
     })();
 </script>
     </th:block>

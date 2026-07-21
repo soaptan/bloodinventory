@@ -12,6 +12,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.init.ScriptUtils;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -73,7 +74,12 @@ public class SystemSettingsService {
         return request;
     }
 
+    @Transactional
     public void updateUiSettings(SystemUiSettingsRequest request) {
+        persistUiSettings(request);
+    }
+
+    private void persistUiSettings(SystemUiSettingsRequest request) {
         double fontScale = clamp(request.getFontScale(), 0.9, 1.25);
         String accentColor = sanitizeColor(request.getAccentColor());
         upsertSetting("ui_font_scale", String.format(Locale.US, "%.2f", fontScale));
@@ -275,16 +281,40 @@ public class SystemSettingsService {
                     --system-accent-color: %s;
                     --primary-start: %s;
                     --primary-end: color-mix(in srgb, %s 68%%, white);
+                    --color-primary: %s;
+                    --color-primary-dark: color-mix(in srgb, %s 74%%, black);
+                    --color-primary-light: color-mix(in srgb, %s 18%%, white);
                 }
 
                 body .dashboard-app {
                     font-size: calc(14px * var(--system-font-scale));
                 }
 
-                body .app-title,
-                body .sidebar-title,
+                body .app-header {
+                    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+                    text-rendering: optimizeLegibility;
+                    -webkit-font-smoothing: antialiased;
+                }
+
+                body .app-title {
+                    font-size: clamp(16px, calc(18px * var(--system-font-scale)), 23px);
+                    font-weight: 800;
+                    line-height: 1.2;
+                    letter-spacing: -0.01em;
+                }
+
+                body .app-search-input,
+                body .profile-trigger-label {
+                    font-size: clamp(14px, calc(14px * var(--system-font-scale)), 18px);
+                    line-height: 1.4;
+                }
+
+                body .sidebar-title {
+                    font-size: calc(18px * var(--system-font-scale));
+                }
+
                 body .nav-title {
-                    font-size: calc(1em * var(--system-font-scale));
+                    font-size: calc(15px * var(--system-font-scale));
                 }
 
                 body .page-intro h1,
@@ -299,8 +329,11 @@ public class SystemSettingsService {
 
                 body .submit-btn,
                 body .login-btn,
-                body .action-button.primary {
+                body .action-button.primary,
+                body .btn-primary,
+                body .primary-btn {
                     background: linear-gradient(90deg, var(--system-accent-color) 0%%, color-mix(in srgb, var(--system-accent-color) 72%%, white) 100%%);
+                    border-color: var(--system-accent-color);
                 }
 
                 body .module-card a,
@@ -313,8 +346,20 @@ public class SystemSettingsService {
                 body .nav-menu a.active,
                 body .nav-submenu a.active {
                     border-left-color: var(--system-accent-color);
+                    background: color-mix(in srgb, var(--system-accent-color) 12%%, transparent);
                 }
-                """.formatted(fontScale, accent, accent, accent);
+
+                body input:focus,
+                body select:focus,
+                body textarea:focus {
+                    border-color: var(--system-accent-color);
+                    box-shadow: 0 0 0 3px color-mix(in srgb, var(--system-accent-color) 18%%, transparent);
+                }
+
+                body.theme-dark .app-header {
+                    border-bottom-color: color-mix(in srgb, var(--system-accent-color) 55%%, #2a3342);
+                }
+                """.formatted(fontScale, accent, accent, accent, accent, accent, accent);
     }
 
     @Scheduled(initialDelay = 30000, fixedDelay = 60000)

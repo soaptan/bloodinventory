@@ -2,13 +2,19 @@
     "configurations": [
         {
             "type": "java",
-            "name": "Spring Boot-BloodinventoryApplication<bloodinventory>",
+            "name": "Start Blood Inventory Web App",
             "request": "launch",
-            "cwd": "${workspaceFolder}",
+            "cwd": "${workspaceFolder}/bloodinventory",
             "mainClass": "com.fyp.bloodinventory.BloodinventoryApplication",
             "projectName": "bloodinventory",
             "args": "",
-            "envFile": "${workspaceFolder}/.env"
+            "envFile": "${workspaceFolder}/bloodinventory/.env",
+            "console": "integratedTerminal",
+            "serverReadyAction": {
+                "action": "openExternally",
+                "pattern": "Tomcat started on port ([0-9]+)",
+                "uriFormat": "http://localhost:%s/login"
+            }
         }
     ]
 }

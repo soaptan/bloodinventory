@@ -15,8 +15,16 @@ import java.util.Locale;
 @Service
 public class AuditTrailService {
 
-    private static final int DEFAULT_LIMIT = 200;
+    private static final int DEFAULT_LIMIT = 20;
+    private static final int DISPLAY_LIMIT = 20;
     private static final int MAX_LIMIT = 500;
+    private static final String DEFAULT_SORT = "newest";
+    private static final String MUTATION_RECORD_FILTER = """
+            UPPER(at.operation_type) IN ('INSERT', 'UPDATE', 'DELETE')
+            AND LOWER(COALESCE(at.table_name, '')) <> 'staff_login_session'
+            """;
+    private static final String ACTOR_USERNAME_EXPRESSION = "COALESCE(NULLIF(at.username, ''), NULLIF(actor.username, ''))";
+    private static final String ACTOR_ROLE_EXPRESSION = "COALESCE(NULLIF(at.role, ''), actor.staff_type::TEXT)";
 
     private final JdbcTemplate jdbcTemplate;
 
@@ -29,15 +37,17 @@ public class AuditTrailService {
         return jdbcTemplate.queryForObject("""
                 SELECT
                     COUNT(*)::BIGINT AS total_events,
-                    COUNT(*) FILTER (WHERE event_timestamp >= CURRENT_TIMESTAMP - INTERVAL '24 hours')::BIGINT AS recent_events,
-                    COUNT(*) FILTER (WHERE component_id IS NOT NULL)::BIGINT AS component_events,
-                    COUNT(DISTINCT COALESCE(username, user_id::TEXT))::BIGINT AS active_actors
-                FROM audit_trail
-                """, (rs, rowNum) -> {
+                    COUNT(*) FILTER (WHERE at.event_timestamp >= CURRENT_TIMESTAMP - INTERVAL '24 hours')::BIGINT AS recent_events,
+                    COUNT(*) FILTER (WHERE at.event_category = 'DATA_CHANGE')::BIGINT AS data_change_events,
+                    COUNT(DISTINCT COALESCE(%s, at.user_id::TEXT))::BIGINT AS active_actors
+                FROM audit_trail at
+                LEFT JOIN staff actor ON actor.staff_id = at.user_id
+                WHERE %s
+                """.formatted(ACTOR_USERNAME_EXPRESSION, MUTATION_RECORD_FILTER), (rs, rowNum) -> {
             AuditTrailSummaryDto dto = new AuditTrailSummaryDto();
             dto.setTotalEvents(rs.getLong("total_events"));
             dto.setRecentEvents(rs.getLong("recent_events"));
-            dto.setComponentEvents(rs.getLong("component_events"));
+            dto.setDataChangeEvents(rs.getLong("data_change_events"));
             dto.setActiveActors(rs.getLong("active_actors"));
             return dto;
         });
@@ -54,68 +64,65 @@ public class AuditTrailService {
         List<Object> params = new ArrayList<>();
         StringBuilder sql = new StringBuilder("""
                 SELECT
-                    audit_id,
-                    event_timestamp,
-                    TO_CHAR(event_timestamp AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS event_timestamp_utc,
-                    user_id,
-                    username,
-                    role,
-                    component_id,
-                    donation_id,
-                    event_category,
-                    operation_type,
-                    action_type,
-                    table_name,
-                    row_pk,
-                    old_value::TEXT AS old_value,
-                    new_value::TEXT AS new_value,
-                    device_id,
-                    source_ip,
-                    location,
-                    workflow_phase,
-                    request_path,
-                    http_method,
-                    session_id_hash,
-                    process_context::TEXT AS process_context,
-                    previous_hash,
-                    integrity_hash
-                FROM audit_trail
-                WHERE 1 = 1
-                """);
+                    at.audit_id,
+                    at.event_timestamp,
+                    TO_CHAR(at.event_timestamp AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS event_timestamp_utc,
+                    at.user_id,
+                    %s AS username,
+                    %s AS role,
+                    at.component_id,
+                    at.donation_id,
+                    at.event_category,
+                    at.operation_type,
+                    at.action_type,
+                    at.table_name,
+                    at.row_pk,
+                    at.old_value::TEXT AS old_value,
+                    at.new_value::TEXT AS new_value,
+                    at.device_id,
+                    at.source_ip,
+                    at.location,
+                    at.workflow_phase,
+                    at.request_path,
+                    at.http_method,
+                    at.session_id_hash,
+                    at.process_context::TEXT AS process_context,
+                    at.previous_hash,
+                    at.integrity_hash
+                FROM audit_trail at
+                LEFT JOIN staff actor ON actor.staff_id = at.user_id
+                WHERE %s
+                """.formatted(ACTOR_USERNAME_EXPRESSION, ACTOR_ROLE_EXPRESSION, MUTATION_RECORD_FILTER));
 
         String normalizedSearch = trimToNull(search);
         if (normalizedSearch != null) {
             sql.append("""
                     AND (
-                        LOWER(COALESCE(username, '')) LIKE ?
-                        OR LOWER(COALESCE(role, '')) LIKE ?
-                        OR LOWER(COALESCE(event_category, '')) LIKE ?
-                        OR LOWER(COALESCE(operation_type, '')) LIKE ?
-                        OR LOWER(COALESCE(action_type, '')) LIKE ?
-                        OR LOWER(COALESCE(table_name, '')) LIKE ?
-                        OR COALESCE(component_id::TEXT, '') LIKE ?
-                        OR COALESCE(donation_id::TEXT, '') LIKE ?
-                        OR LOWER(COALESCE(row_pk, '')) LIKE ?
-                        OR LOWER(COALESCE(location, '')) LIKE ?
-                        OR LOWER(COALESCE(device_id, '')) LIKE ?
-                        OR LOWER(COALESCE(source_ip, '')) LIKE ?
-                        OR LOWER(COALESCE(workflow_phase, '')) LIKE ?
-                        OR LOWER(COALESCE(request_path, '')) LIKE ?
-                        OR LOWER(COALESCE(http_method, '')) LIKE ?
-                        OR LOWER(COALESCE(process_context::TEXT, '')) LIKE ?
-                        OR LOWER(COALESCE(integrity_hash, '')) LIKE ?
+                        LOWER(COALESCE(%s, '')) LIKE ?
+                        OR LOWER(COALESCE(%s, '')) LIKE ?
+                        OR LOWER(COALESCE(at.event_category, '')) LIKE ?
+                        OR LOWER(COALESCE(at.operation_type, '')) LIKE ?
+                        OR LOWER(COALESCE(at.action_type, '')) LIKE ?
+                        OR LOWER(COALESCE(at.table_name, '')) LIKE ?
+                        OR LOWER(COALESCE(at.row_pk, '')) LIKE ?
+                        OR LOWER(COALESCE(at.source_ip, '')) LIKE ?
+                        OR LOWER(COALESCE(at.workflow_phase, '')) LIKE ?
+                        OR LOWER(COALESCE(at.request_path, '')) LIKE ?
+                        OR LOWER(COALESCE(at.http_method, '')) LIKE ?
+                        OR LOWER(COALESCE(at.process_context::TEXT, '')) LIKE ?
+                        OR LOWER(COALESCE(at.integrity_hash, '')) LIKE ?
                     )
-                    """);
+                    """.formatted(ACTOR_USERNAME_EXPRESSION, ACTOR_ROLE_EXPRESSION));
             String like = "%" + normalizedSearch.toLowerCase(Locale.ROOT) + "%";
-            for (int index = 0; index < 17; index++) {
+            for (int index = 0; index < 13; index++) {
                 params.add(like);
             }
         }
 
-        addExactFilter(sql, params, "table_name", tableName);
-        addExactFilter(sql, params, "operation_type", operationType);
-        addExactFilter(sql, params, "action_type", actionType);
-        addExactFilter(sql, params, "role", role);
+        addExactFilter(sql, params, "at.table_name", tableName);
+        addExactFilter(sql, params, "at.operation_type", operationType);
+        addExactFilter(sql, params, "at.action_type", actionType);
+        addExactFilter(sql, params, ACTOR_ROLE_EXPRESSION, role);
 
         sql.append(" ORDER BY ").append(orderBy(sortBy));
         sql.append(" LIMIT ?");
@@ -128,37 +135,37 @@ public class AuditTrailService {
     public List<String> getTableNames() {
         return jdbcTemplate.queryForList("""
                 SELECT DISTINCT table_name
-                FROM audit_trail
+                FROM audit_trail at
+                WHERE %s
                 ORDER BY table_name ASC
-                """, String.class);
+                """.formatted(MUTATION_RECORD_FILTER), String.class);
     }
 
     @Transactional(readOnly = true)
     public List<String> getActionTypes() {
         return jdbcTemplate.queryForList("""
                 SELECT DISTINCT action_type
-                FROM audit_trail
+                FROM audit_trail at
+                WHERE %s
                 ORDER BY action_type ASC
-                """, String.class);
+                """.formatted(MUTATION_RECORD_FILTER), String.class);
     }
 
     @Transactional(readOnly = true)
     public List<String> getOperationTypes() {
-        return jdbcTemplate.queryForList("""
-                SELECT DISTINCT operation_type
-                FROM audit_trail
-                ORDER BY operation_type ASC
-                """, String.class);
+        return List.of("INSERT", "UPDATE", "DELETE");
     }
 
     @Transactional(readOnly = true)
     public List<String> getRoles() {
         return jdbcTemplate.queryForList("""
-                SELECT DISTINCT role
-                FROM audit_trail
-                WHERE role IS NOT NULL
+                SELECT DISTINCT %s AS role
+                FROM audit_trail at
+                LEFT JOIN staff actor ON actor.staff_id = at.user_id
+                WHERE %s IS NOT NULL
+                  AND %s
                 ORDER BY role ASC
-                """, String.class);
+                """.formatted(ACTOR_ROLE_EXPRESSION, ACTOR_ROLE_EXPRESSION, MUTATION_RECORD_FILTER), String.class);
     }
 
     public int normalizeLimit(Integer limit) {
@@ -166,17 +173,25 @@ public class AuditTrailService {
             return DEFAULT_LIMIT;
         }
 
-        return Math.min(MAX_LIMIT, Math.max(25, limit));
+        return Math.min(MAX_LIMIT, Math.max(1, limit));
+    }
+
+    public int latestDisplayLimit() {
+        return DISPLAY_LIMIT;
+    }
+
+    public String latestDisplaySort() {
+        return DEFAULT_SORT;
     }
 
     public String normalizeSort(String sortBy) {
         if (sortBy == null) {
-            return "newest";
+            return DEFAULT_SORT;
         }
 
         return switch (sortBy) {
-            case "newest", "oldest", "actor", "table", "component" -> sortBy;
-            default -> "newest";
+            case "newest", "oldest", "actor", "table" -> sortBy;
+            default -> DEFAULT_SORT;
         };
     }
 
@@ -192,11 +207,10 @@ public class AuditTrailService {
 
     private String orderBy(String sortBy) {
         return switch (normalizeSort(sortBy)) {
-            case "oldest" -> "event_timestamp ASC, audit_id ASC";
-            case "actor" -> "username ASC NULLS LAST, event_timestamp DESC, audit_id DESC";
-            case "table" -> "table_name ASC, event_timestamp DESC, audit_id DESC";
-            case "component" -> "component_id ASC NULLS LAST, event_timestamp DESC, audit_id DESC";
-            default -> "event_timestamp DESC, audit_id DESC";
+            case "oldest" -> "at.event_timestamp ASC, at.audit_id ASC";
+            case "actor" -> "username ASC NULLS LAST, at.event_timestamp DESC, at.audit_id DESC";
+            case "table" -> "at.table_name ASC, at.event_timestamp DESC, at.audit_id DESC";
+            default -> "at.event_timestamp DESC, at.audit_id DESC";
         };
     }
 

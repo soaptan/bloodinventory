@@ -504,6 +504,43 @@
     gap: 14px;
 }
 
+.admin-records-grid {
+    display: grid;
+    min-width: 0;
+}
+
+.admin-form-page-intro {
+    align-items: center;
+}
+
+.standalone-admin-form-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 980px);
+    justify-content: center;
+}
+
+.standalone-admin-form-card {
+    width: 100%;
+}
+
+.admin-form-summary-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: 16px 0;
+}
+
+.admin-create-form {
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+
+.admin-form-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    grid-column: 1 / -1;
+}
+
 body.theme-dark .module-card,
 body.theme-dark .workflow-card,
 body.theme-dark .form-card,
@@ -642,6 +679,10 @@ body.theme-dark .pill-neutral {
     .two-col-equal,
     .two-column-grid,
     .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-form-summary-list {
         grid-template-columns: 1fr;
     }
 
@@ -944,14 +985,16 @@ body.theme-dark .pill-neutral {
 
 .staff-add-button,
 .staff-filter-reset,
-.staff-toolbar-delete-form .btn {
+.staff-toolbar-restore-form .btn,
+.staff-toolbar-archive-form .btn {
     min-height: 40px;
     border-radius: 12px;
 }
 
 .staff-add-button svg,
 .staff-filter-reset svg,
-.staff-toolbar-delete-form .btn svg {
+.staff-toolbar-restore-form .btn svg,
+.staff-toolbar-archive-form .btn svg {
     width: 17px;
     height: 17px;
     stroke: currentColor;
@@ -980,7 +1023,13 @@ body.theme-dark .pill-neutral {
     margin-bottom: 0;
 }
 
-.staff-toolbar-delete-form {
+.staff-records-overview {
+    padding-top: var(--gap-md);
+    border-top: 1px solid var(--border);
+}
+
+.staff-toolbar-archive-form,
+.staff-toolbar-restore-form {
     display: inline-flex;
     align-items: flex-end;
     margin: 0;
@@ -1284,8 +1333,10 @@ body.theme-dark .staff-edit-profile-card .staff-avatar-fallback {
     .table-search-col,
     .staff-filter-reset,
     .table-filter-reset,
-    .staff-toolbar-delete-form,
-    .staff-toolbar-delete-form .btn,
+    .staff-toolbar-restore-form,
+    .staff-toolbar-restore-form .btn,
+    .staff-toolbar-archive-form,
+    .staff-toolbar-archive-form .btn,
     .staff-toolbar-add-button {
         width: 100%;
     }

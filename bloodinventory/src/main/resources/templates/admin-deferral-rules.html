@@ -28,12 +28,12 @@
                             <div class="page-kicker">Deferral Rules</div>
                             <h1>Eligibility Deferral Rules</h1>
                             <p>
-                                Review and maintain donor deferral reasons and cooling-off periods used in the eligibility control process.
+                                Review and maintain donor deferral reasons, temporary cooling-off periods, and permanent lock rules used in the eligibility control process.
                             </p>
                         </div>
                     </section>
 
-                    <section class="two-col">
+                    <section class="admin-records-grid">
                         <article id="update" class="module-card">
                             <h2>Configured Deferral Rules</h2>
                             <p>Live data from the <code>deferral_reason</code> table using PostgreSQL function.</p>
@@ -44,7 +44,7 @@
                                     <input id="deferral-search"
                                            class="form-input"
                                            type="search"
-                                           placeholder="Search by ID, reason, period, or staff ID"
+                                           placeholder="Search by ID, reason, lock, period, or staff ID"
                                            data-deferral-search>
                                 </div>
 
@@ -61,9 +61,19 @@
                                     <label for="deferral-period-filter" class="form-label">Period Filter</label>
                                     <select id="deferral-period-filter" class="form-select" data-deferral-period-filter>
                                         <option value="all">All periods</option>
+                                        <option value="permanent">Permanent</option>
                                         <option value="short">0-14 days</option>
                                         <option value="medium">15-90 days</option>
                                         <option value="long">91+ days</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group table-filter-col">
+                                    <label for="deferral-lock-filter" class="form-label">Lock Filter</label>
+                                    <select id="deferral-lock-filter" class="form-select" data-deferral-lock-filter>
+                                        <option value="all">All locks</option>
+                                        <option value="temporary">Temporary</option>
+                                        <option value="permanent">Permanent</option>
                                     </select>
                                 </div>
 
@@ -74,6 +84,7 @@
                                         <option value="id-desc">ID High-Low</option>
                                         <option value="reason-asc">Reason A-Z</option>
                                         <option value="reason-desc">Reason Z-A</option>
+                                        <option value="lock-asc">Lock Type</option>
                                         <option value="period-asc">Period Low-High</option>
                                         <option value="period-desc">Period High-Low</option>
                                         <option value="staff-asc">Updated By Low-High</option>
@@ -89,6 +100,16 @@
                                     </svg>
                                     Reset Filters
                                 </button>
+
+                                <a class="btn btn-primary table-filter-reset"
+                                   th:href="@{/admin/deferral-rules/create}"
+                                   data-create-deferral-rule-link>
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M12 5v14"></path>
+                                        <path d="M5 12h14"></path>
+                                    </svg>
+                                    Create Rule
+                                </a>
                             </div>
 
                             <div th:if="${!#lists.isEmpty(rules)}" class="form-help table-results-summary" data-deferral-results-summary>
@@ -101,6 +122,7 @@
                                     <tr>
                                         <th>ID</th>
                                         <th>Reason</th>
+                                        <th>Lock Type</th>
                                         <th>Cooling-off Period</th>
                                         <th>Updated By</th>
                                         <th>Status</th>
@@ -113,6 +135,7 @@
                                         th:attr="data-id=${rule.reasonId},
                                                  data-reason=${rule.description},
                                                  data-period=${rule.defaultCoolingPeriodDays},
+                                                 data-lock-type=${rule.permanentLock ? 'permanent' : 'temporary'},
                                                  data-staff-id=${rule.staffId},
                                                  data-status=${rule.active ? 'active' : 'archived'}">
                                         <td th:text="${rule.reasonId}">1</td>
@@ -123,12 +146,28 @@
                                                   data-action-confirm-text="Confirm Update">
                                                 <input type="text" name="description" th:value="${rule.description}" required
                                                        aria-label="Deferral reason description" title="Deferral reason description">
-                                                <input type="number" name="defaultCoolingPeriodDays" th:value="${rule.defaultCoolingPeriodDays}" min="0" required
-                                                       aria-label="Default cooling-off period in days" title="Default cooling-off period in days">
+                                                <input type="number" name="defaultCoolingPeriodDays"
+                                                       th:value="${rule.permanentLock ? '' : rule.defaultCoolingPeriodDays}"
+                                                       th:placeholder="${rule.permanentLock ? 'Not used for permanent' : 'Enter days'}"
+                                                       th:required="${!rule.permanentLock}"
+                                                       th:disabled="${rule.permanentLock}"
+                                                       min="0"
+                                                       aria-label="Default cooling-off period in days" title="Default cooling-off period in days"
+                                                       data-cooling-days-input>
+                                                <select name="lockType" aria-label="Deferral lock type" title="Deferral lock type"
+                                                        data-lock-type-select>
+                                                    <option value="TEMPORARY" th:selected="${!rule.permanentLock}">Temporary</option>
+                                                    <option value="PERMANENT" th:selected="${rule.permanentLock}">Permanent</option>
+                                                </select>
                                                 <button type="submit" class="secondary-btn">Update</button>
                                             </form>
                                         </td>
-                                        <td th:text="${rule.defaultCoolingPeriodDays} + ' days'">30 days</td>
+                                        <td>
+                                            <span class="pill"
+                                                  th:classappend="${rule.permanentLock} ? ' pill-danger' : ' pill-default'"
+                                                  th:text="${rule.lockTypeLabel}">Temporary</span>
+                                        </td>
+                                        <td th:text="${rule.permanentLock ? 'Permanent lock' : rule.defaultCoolingPeriodDays + ' days'}">30 days</td>
                                         <td th:text="${rule.staffId}">41</td>
                                         <td>
                                             <span class="pill"
@@ -152,55 +191,13 @@
                                         </td>
                                     </tr>
                                     <tr data-deferral-empty hidden>
-                                        <td colspan="6">No deferral rules match the selected filters.</td>
+                                        <td colspan="7">No deferral rules match the selected filters.</td>
                                     </tr>
                                     </tbody>
                                 </table>
                             </div>
                         </article>
 
-                        <article id="add" class="module-card">
-                            <h2>Rule Summary & Create Rule</h2>
-                            <p>Uses PostgreSQL function for count and procedure for insertion.</p>
-
-                            <div class="summary-list">
-                                <div class="summary-item">
-                                    <div class="label">Active Deferral Rules</div>
-                                    <div class="value" th:text="${ruleCount}">0</div>
-                                </div>
-
-                                <div class="summary-item">
-                                    <div class="label">Total Staff</div>
-                                    <div class="value" th:text="${stats.totalStaff}">0</div>
-                                </div>
-
-                                <div class="summary-item">
-                                    <div class="label">Total Donors</div>
-                                    <div class="value" th:text="${stats.totalDonors}">0</div>
-                                </div>
-                            </div>
-
-                            <form class="needs-validation" th:action="@{/admin/deferral-rules/add}" th:object="${ruleRequest}" method="post" novalidate
-                                  data-action-confirm
-                                  data-action-label="create deferral rule"
-                                  data-action-confirm-text="Confirm Create">
-                                <div class="form-grid single">
-                                    <div class="form-group full">
-                                        <label>Description</label>
-                                        <input type="text" th:field="*{description}" placeholder="Enter deferral reason" required>
-                                        <div class="invalid-feedback">Please enter the deferral reason.</div>
-                                    </div>
-
-                                    <div class="form-group full">
-                                        <label>Cooling-off Period (Days)</label>
-                                        <input type="number" th:field="*{defaultCoolingPeriodDays}" placeholder="Enter days" required min="0">
-                                        <div class="invalid-feedback">Please enter a valid cooling-off period.</div>
-                                    </div>
-
-                                    <button type="submit" class="btn btn-primary">Create Rule</button>
-                                </div>
-                            </form>
-                        </article>
                     </section>
                 </div>
     </th:block>
@@ -208,6 +205,35 @@
     <th:block layout:fragment="custom-js">
         <script>
             (() => {
+                document.querySelectorAll("[data-lock-type-select]").forEach((select) => {
+                    const form = select.closest("form");
+                    const coolingInput = form?.querySelector("[data-cooling-days-input]");
+                    if (!coolingInput) {
+                        return;
+                    }
+
+                    const syncCoolingInput = () => {
+                        const isPermanent = select.value === "PERMANENT";
+                        coolingInput.disabled = isPermanent;
+                        coolingInput.required = !isPermanent;
+
+                        if (isPermanent) {
+                            coolingInput.value = "";
+                            coolingInput.removeAttribute("required");
+                            coolingInput.setAttribute("aria-disabled", "true");
+                            coolingInput.placeholder = "Not used for permanent";
+                            return;
+                        }
+
+                        coolingInput.setAttribute("required", "required");
+                        coolingInput.removeAttribute("aria-disabled");
+                        coolingInput.placeholder = "Enter days";
+                    };
+
+                    select.addEventListener("change", syncCoolingInput);
+                    syncCoolingInput();
+                });
+
                 const tableBody = document.querySelector("[data-deferral-table-body]");
                 if (!tableBody) {
                     return;
@@ -221,23 +247,31 @@
                 const searchInput = document.querySelector("[data-deferral-search]");
                 const statusFilter = document.querySelector("[data-deferral-status-filter]");
                 const periodFilter = document.querySelector("[data-deferral-period-filter]");
+                const lockFilter = document.querySelector("[data-deferral-lock-filter]");
                 const sortSelect = document.querySelector("[data-deferral-sort]");
                 const clearButton = document.querySelector("[data-clear-deferral-filters]");
                 const emptyRow = document.querySelector("[data-deferral-empty]");
                 const resultsSummary = document.querySelector("[data-deferral-results-summary]");
                 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
                 const statusOrder = { active: 0, archived: 1 };
+                const lockOrder = { temporary: 0, permanent: 1 };
 
                 const rowData = (row) => ({
                     element: row,
                     id: Number(row.getAttribute("data-id") || "0"),
                     reason: row.getAttribute("data-reason") || "",
                     period: Number(row.getAttribute("data-period") || "0"),
+                    lockType: row.getAttribute("data-lock-type") || "temporary",
                     staffId: Number(row.getAttribute("data-staff-id") || "0"),
                     status: row.getAttribute("data-status") || "active"
                 });
 
-                const periodBucket = (period) => {
+                const periodBucket = (details) => {
+                    if (details.lockType === "permanent") {
+                        return "permanent";
+                    }
+
+                    const period = details.period;
                     if (period <= 14) {
                         return "short";
                     }
@@ -256,6 +290,8 @@
                         collator.compare(left.reason, right.reason) || left.id - right.id,
                     "reason-desc": (left, right) =>
                         collator.compare(right.reason, left.reason) || left.id - right.id,
+                    "lock-asc": (left, right) =>
+                        (lockOrder[left.lockType] ?? 99) - (lockOrder[right.lockType] ?? 99) || left.id - right.id,
                     "period-asc": (left, right) => left.period - right.period || left.id - right.id,
                     "period-desc": (left, right) => right.period - left.period || left.id - right.id,
                     "staff-asc": (left, right) => left.staffId - right.staffId || left.id - right.id,
@@ -268,6 +304,7 @@
                     const query = (searchInput?.value || "").trim().toLowerCase();
                     const statusValue = statusFilter?.value || "all";
                     const periodValue = periodFilter?.value || "all";
+                    const lockValue = lockFilter?.value || "all";
                     const sortValue = sortSelect?.value || "id-asc";
 
                     const visibleRows = rows
@@ -276,6 +313,7 @@
                             const searchHaystack = [
                                 details.id,
                                 details.reason,
+                                details.lockType,
                                 `${details.period} days`,
                                 details.staffId,
                                 details.status
@@ -283,9 +321,10 @@
 
                             const matchesQuery = !query || searchHaystack.includes(query);
                             const matchesStatus = statusValue === "all" || details.status === statusValue;
-                            const matchesPeriod = periodValue === "all" || periodBucket(details.period) === periodValue;
+                            const matchesPeriod = periodValue === "all" || periodBucket(details) === periodValue;
+                            const matchesLock = lockValue === "all" || details.lockType === lockValue;
 
-                            return matchesQuery && matchesStatus && matchesPeriod;
+                            return matchesQuery && matchesStatus && matchesPeriod && matchesLock;
                         })
                         .map(rowData)
                         .sort(sortComparators[sortValue] || sortComparators["id-asc"]);
@@ -324,6 +363,7 @@
                 searchInput?.addEventListener("input", applyDeferralControls);
                 statusFilter?.addEventListener("change", applyDeferralControls);
                 periodFilter?.addEventListener("change", applyDeferralControls);
+                lockFilter?.addEventListener("change", applyDeferralControls);
                 sortSelect?.addEventListener("change", applyDeferralControls);
                 clearButton?.addEventListener("click", () => {
                     if (searchInput) {
@@ -336,6 +376,10 @@
 
                     if (periodFilter) {
                         periodFilter.value = "all";
+                    }
+
+                    if (lockFilter) {
+                        lockFilter.value = "all";
                     }
 
                     if (sortSelect) {

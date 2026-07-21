@@ -35,6 +35,7 @@ public class MedicalWorkflowService {
 
     public static final List<String> BLOOD_GROUPS = List.of("A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-");
     public static final List<String> COMPONENT_TYPES = List.of("RBC", "PLASMA", "PLATELET");
+    private static final String PERMANENT_LOCK = "PERMANENT";
 
     private final JdbcTemplate jdbcTemplate;
     private final DatabaseAuditContextService auditContextService;
@@ -49,10 +50,12 @@ public class MedicalWorkflowService {
         return jdbcTemplate.queryForObject("""
                 SELECT
                     COUNT(*) FILTER (
-                        WHERE d.deferral_expiry_date IS NULL OR d.deferral_expiry_date < CURRENT_DATE
+                        WHERE COALESCE(d.permanent_deferral, FALSE) = FALSE
+                          AND (d.deferral_expiry_date IS NULL OR d.deferral_expiry_date < CURRENT_DATE)
                     )::BIGINT AS eligible_donors,
                     COUNT(*) FILTER (
-                        WHERE d.deferral_expiry_date >= CURRENT_DATE
+                        WHERE COALESCE(d.permanent_deferral, FALSE) = TRUE
+                           OR d.deferral_expiry_date >= CURRENT_DATE
                     )::BIGINT AS deferred_donors,
                     (SELECT COUNT(*) FROM donation WHERE collection_timestamp::DATE = CURRENT_DATE)::BIGINT AS today_donations,
                     (SELECT COUNT(*) FROM blood_component WHERE UPPER(status) = 'QUARANTINED')::BIGINT AS quarantined_components,
@@ -79,11 +82,13 @@ public class MedicalWorkflowService {
                     d.full_name,
                     d.blood_group,
                     d.deferral_expiry_date,
+                    d.permanent_deferral,
                     latest.description AS latest_deferral_reason,
-                    latest.date_recorded AS latest_deferral_date
+                    latest.date_recorded AS latest_deferral_date,
+                    latest.lock_type AS latest_deferral_lock_type
                 FROM donor d
                 LEFT JOIN LATERAL (
-                    SELECT dr.description, ddh.date_recorded
+                    SELECT dr.description, ddh.date_recorded, dr.lock_type
                     FROM donor_deferral_history ddh
                     JOIN deferral_reason dr ON dr.reason_id = ddh.reason_id
                     WHERE ddh.donor_id = d.donor_id
@@ -91,7 +96,7 @@ public class MedicalWorkflowService {
                     LIMIT 1
                 ) latest ON TRUE
                 ORDER BY
-                    CASE WHEN d.deferral_expiry_date >= CURRENT_DATE THEN 1 ELSE 0 END DESC,
+                    CASE WHEN COALESCE(d.permanent_deferral, FALSE) = TRUE OR d.deferral_expiry_date >= CURRENT_DATE THEN 1 ELSE 0 END DESC,
                     d.full_name ASC
                 """, this::mapDonor);
     }
@@ -104,7 +109,7 @@ public class MedicalWorkflowService {
 
     public List<MedicalDeferralReasonDto> getDeferralReasons() {
         return jdbcTemplate.query("""
-                SELECT reason_id, description, default_cooling_period_days
+                SELECT reason_id, description, default_cooling_period_days, lock_type
                 FROM deferral_reason
                 WHERE is_active = TRUE
                 ORDER BY description ASC
@@ -113,6 +118,7 @@ public class MedicalWorkflowService {
             dto.setReasonId(rs.getLong("reason_id"));
             dto.setDescription(rs.getString("description"));
             dto.setDefaultCoolingPeriodDays(rs.getInt("default_cooling_period_days"));
+            dto.setLockType(rs.getString("lock_type"));
             return dto;
         });
     }
@@ -301,37 +307,54 @@ public class MedicalWorkflowService {
         Long reasonId = requireId(request.getReasonId(), "Please select a deferral reason.");
         Long staffId = requireMedicalStaffId(username);
 
-        Integer coolingDays;
+        DeferralLockRule rule;
         try {
-            coolingDays = jdbcTemplate.queryForObject("""
-                    SELECT default_cooling_period_days
+            rule = jdbcTemplate.queryForObject("""
+                    SELECT default_cooling_period_days, lock_type
                     FROM deferral_reason
                     WHERE reason_id = ?
                       AND is_active = TRUE
-                    """, Integer.class, reasonId);
+                    """, (rs, rowNum) -> new DeferralLockRule(
+                    rs.getInt("default_cooling_period_days"),
+                    rs.getString("lock_type")
+            ), reasonId);
         } catch (EmptyResultDataAccessException ex) {
             throw new RuntimeException("Deferral reason was not found or has been archived.");
         }
-        if (coolingDays == null) {
+        if (rule == null) {
             throw new RuntimeException("Deferral reason was not found or has been archived.");
         }
 
-        LocalDate expiryDate = LocalDate.now().plusDays(coolingDays);
+        boolean permanentLock = rule.isPermanent();
+        if (!permanentLock && hasPermanentDeferral(donorId)) {
+            throw new RuntimeException("This donor already has a permanent deferral. Clear it before recording a temporary reason.");
+        }
+
+        LocalDate expiryDate = permanentLock ? null : LocalDate.now().plusDays(rule.coolingDays());
         jdbcTemplate.update("""
                 INSERT INTO donor_deferral_history (donor_id, staff_id, reason_id, date_recorded)
                 VALUES (?, ?, ?, CURRENT_DATE)
                 ON CONFLICT (donor_id, staff_id, reason_id)
                 DO UPDATE SET date_recorded = CURRENT_DATE
                 """, donorId, staffId, reasonId);
-        jdbcTemplate.update("UPDATE donor SET deferral_expiry_date = ? WHERE donor_id = ?",
-                Date.valueOf(expiryDate), donorId);
+        jdbcTemplate.update("""
+                UPDATE donor
+                SET permanent_deferral = ?,
+                    deferral_expiry_date = ?
+                WHERE donor_id = ?
+                """, permanentLock, expiryDate == null ? null : Date.valueOf(expiryDate), donorId);
     }
 
     @Transactional
     public void clearDeferral(Long donorId) {
         applyAuditContext();
         Long requiredDonorId = requireId(donorId, "Please select a donor.");
-        jdbcTemplate.update("UPDATE donor SET deferral_expiry_date = NULL WHERE donor_id = ?", requiredDonorId);
+        jdbcTemplate.update("""
+                UPDATE donor
+                SET permanent_deferral = FALSE,
+                    deferral_expiry_date = NULL
+                WHERE donor_id = ?
+                """, requiredDonorId);
     }
 
     @Transactional
@@ -547,12 +570,15 @@ public class MedicalWorkflowService {
         dto.setFullName(rs.getString("full_name"));
         dto.setBloodGroup(rs.getString("blood_group"));
         dto.setDeferralExpiryDate(toLocalDate(rs.getDate("deferral_expiry_date")));
+        dto.setPermanentDeferral(rs.getBoolean("permanent_deferral"));
         dto.setLatestDeferralReason(rs.getString("latest_deferral_reason"));
         dto.setLatestDeferralDate(toLocalDate(rs.getDate("latest_deferral_date")));
+        dto.setLatestDeferralLockType(rs.getString("latest_deferral_lock_type"));
 
-        boolean eligible = dto.getDeferralExpiryDate() == null || dto.getDeferralExpiryDate().isBefore(LocalDate.now());
+        boolean eligible = !dto.isPermanentDeferral()
+                && (dto.getDeferralExpiryDate() == null || dto.getDeferralExpiryDate().isBefore(LocalDate.now()));
         dto.setEligible(eligible);
-        dto.setEligibilityStatus(eligible ? "ELIGIBLE" : "DEFERRED");
+        dto.setEligibilityStatus(eligible ? "ELIGIBLE" : dto.isPermanentDeferral() ? "PERMANENT DEFERRAL" : "DEFERRED");
         return dto;
     }
 
@@ -672,7 +698,17 @@ public class MedicalWorkflowService {
 
     private boolean isDonorEligible(Long donorId) {
         Boolean result = jdbcTemplate.queryForObject("""
-                SELECT deferral_expiry_date IS NULL OR deferral_expiry_date < CURRENT_DATE
+                SELECT COALESCE(permanent_deferral, FALSE) = FALSE
+                       AND (deferral_expiry_date IS NULL OR deferral_expiry_date < CURRENT_DATE)
+                FROM donor
+                WHERE donor_id = ?
+                """, Boolean.class, donorId);
+        return Boolean.TRUE.equals(result);
+    }
+
+    private boolean hasPermanentDeferral(Long donorId) {
+        Boolean result = jdbcTemplate.queryForObject("""
+                SELECT COALESCE(permanent_deferral, FALSE)
                 FROM donor
                 WHERE donor_id = ?
                 """, Boolean.class, donorId);
@@ -803,5 +839,11 @@ public class MedicalWorkflowService {
     private Long nullableLong(ResultSet rs, String columnName) throws SQLException {
         long value = rs.getLong(columnName);
         return rs.wasNull() ? null : value;
+    }
+
+    private record DeferralLockRule(int coolingDays, String lockType) {
+        private boolean isPermanent() {
+            return PERMANENT_LOCK.equalsIgnoreCase(lockType);
+        }
     }
 }

@@ -89,24 +89,20 @@
                         <div class="lab-board-grid">
                             <article class="lab-board-panel">
                                 <header class="lab-board-panel-header">
-                                    <span>This Month (Lab)</span>
+                                    <span th:text="'This Month (Lab) · ' + ${labTrendMonthLabel}">This Month (Lab)</span>
                                     <strong>Queue and completed trend</strong>
                                 </header>
-                                <div class="empty-state" th:if="${#lists.isEmpty(pendingTrendTests) and #lists.isEmpty(recentLabTrendTests)}">No lab workflow trend data is available.</div>
-                                <div class="lab-chart-frame" th:if="${!#lists.isEmpty(pendingTrendTests) or !#lists.isEmpty(recentLabTrendTests)}">
+                                <div class="empty-state" th:if="${#lists.isEmpty(labMonthlyTrend)}">No lab workflow trend data is available.</div>
+                                <div class="lab-chart-frame" th:if="${!#lists.isEmpty(labMonthlyTrend)}">
                                     <svg class="lab-line-chart" data-lab-trend-chart role="img" aria-label="Pending and completed lab trend"></svg>
                                     <div class="lab-chart-legend" data-lab-trend-legend></div>
                                     <div hidden>
-                                        <span th:each="test : ${pendingTrendTests}"
-                                              th:if="${test.collectionTimestamp != null}"
+                                        <span th:each="point : ${labMonthlyTrend}"
                                               data-lab-trend-source
-                                              data-series="Pending"
-                                              th:attr="data-label=${#dates.format(test.collectionTimestamp, 'dd MMM')}, data-key=${#dates.format(test.collectionTimestamp, 'yyyyMMdd')}"></span>
-                                        <span th:each="test : ${recentLabTrendTests}"
-                                              th:if="${test.testDate != null}"
-                                              data-lab-trend-source
-                                              data-series="Completed"
-                                              th:attr="data-label=${#dates.format(test.testDate, 'dd MMM')}, data-key=${#dates.format(test.testDate, 'yyyyMMdd')}"></span>
+                                              th:attr="data-label=${point.dateLabel},
+                                                       data-key=${point.dateKey},
+                                                       data-pending=${point.pendingCount},
+                                                       data-completed=${point.completedCount}"></span>
                                     </div>
                                 </div>
                             </article>
@@ -271,24 +267,14 @@
                     const innerHeight = height - padding.top - padding.bottom;
                     const seriesNames = ["Completed", "Pending"];
                     const seriesTones = { Completed: "good", Pending: "warn" };
-                    const grouped = new Map();
-
-                    sources.forEach((source) => {
-                        const key = source.getAttribute("data-key") || source.getAttribute("data-label") || "0";
-                        const label = source.getAttribute("data-label") || key;
-                        const series = source.getAttribute("data-series") || "Pending";
-
-                        if (!grouped.has(key)) {
-                            grouped.set(key, { key, label, Completed: 0, Pending: 0 });
-                        }
-
-                        const point = grouped.get(key);
-                        point[series] = (point[series] || 0) + 1;
-                    });
-
-                    const points = Array.from(grouped.values())
-                        .sort((left, right) => String(left.key).localeCompare(String(right.key)))
-                        .slice(-8);
+                    const points = sources
+                        .map((source) => ({
+                            key: source.getAttribute("data-key") || source.getAttribute("data-label") || "0",
+                            label: source.getAttribute("data-label") || "",
+                            Completed: Number(source.getAttribute("data-completed") || "0"),
+                            Pending: Number(source.getAttribute("data-pending") || "0")
+                        }))
+                        .sort((left, right) => String(left.key).localeCompare(String(right.key)));
                     const maxValue = Math.max(1, ...points.flatMap((point) => seriesNames.map((name) => point[name] || 0)));
                     const xFor = (index) => points.length === 1
                         ? padding.left + innerWidth / 2
@@ -310,7 +296,12 @@
                         }));
                     });
 
+                    const labelStep = Math.max(1, Math.ceil(points.length / 8));
                     points.forEach((point, index) => {
+                        if (index % labelStep !== 0 && index !== points.length - 1) {
+                            return;
+                        }
+
                         const label = createSvgElement("text", {
                             x: xFor(index).toFixed(2),
                             y: (height - 14).toFixed(2),

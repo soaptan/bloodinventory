@@ -1,6 +1,7 @@
 package com.fyp.bloodinventory.dto;
 
 import java.sql.Timestamp;
+import java.util.Locale;
 
 public class AuditTrailDto {
 
@@ -232,7 +233,8 @@ public class AuditTrailDto {
 
     public String getActorLabel() {
         if (username != null && !username.isBlank()) {
-            return username;
+            String normalized = username.trim();
+            return "system".equalsIgnoreCase(normalized) ? "System" : normalized;
         }
 
         if (userId != null) {
@@ -242,11 +244,63 @@ public class AuditTrailDto {
         return "System";
     }
 
+    public String getRoleLabel() {
+        if ((role == null || role.isBlank()) && username != null && "system".equalsIgnoreCase(username.trim())) {
+            return "System";
+        }
+        return readableCode(role);
+    }
+
+    public String getEventCategoryLabel() {
+        return readableCode(eventCategory);
+    }
+
+    public String getOperationTypeLabel() {
+        return readableCode(operationType);
+    }
+
+    public String getActionTypeLabel() {
+        return readableCode(actionType);
+    }
+
+    public String getTargetLabel() {
+        return readableCode(tableName);
+    }
+
+    public String getRequestLabel() {
+        if (requestPath == null || requestPath.isBlank()) {
+            return "-";
+        }
+
+        String method = httpMethod == null || httpMethod.isBlank() ? "" : httpMethod.trim().toUpperCase(Locale.ROOT) + " ";
+        return method + requestPath.trim();
+    }
+
     public String getIntegrityHashShort() {
         if (integrityHash == null || integrityHash.isBlank()) {
             return "-";
         }
 
         return integrityHash.length() <= 12 ? integrityHash : integrityHash.substring(0, 12);
+    }
+
+    private String readableCode(String value) {
+        if (value == null || value.isBlank()) {
+            return "-";
+        }
+
+        String[] parts = value.trim().toLowerCase(Locale.ROOT).replace('-', '_').split("_+");
+        StringBuilder label = new StringBuilder();
+        for (String part : parts) {
+            if (part.isBlank()) {
+                continue;
+            }
+            if (!label.isEmpty()) {
+                label.append(' ');
+            }
+            label.append(Character.toUpperCase(part.charAt(0))).append(part.substring(1));
+        }
+
+        return label.isEmpty() ? value : label.toString();
     }
 }

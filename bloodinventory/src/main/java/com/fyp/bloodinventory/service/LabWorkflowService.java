@@ -2,6 +2,7 @@ package com.fyp.bloodinventory.service;
 
 import com.fyp.bloodinventory.dto.LabComponentStatusDto;
 import com.fyp.bloodinventory.dto.LabDashboardSummaryDto;
+import com.fyp.bloodinventory.dto.LabMonthlyTrendPointDto;
 import com.fyp.bloodinventory.dto.LabScreeningRequest;
 import com.fyp.bloodinventory.dto.LabTestQueueDto;
 import com.fyp.bloodinventory.dto.LabTraceabilityDto;
@@ -68,6 +69,65 @@ public class LabWorkflowService {
             dto.setSafeComponents(rs.getLong("safe_components"));
             dto.setDiscardedComponents(rs.getLong("discarded_components"));
             return dto;
+        });
+    }
+
+    public List<LabMonthlyTrendPointDto> getCurrentMonthTrend() {
+        return jdbcTemplate.query("""
+                WITH calendar AS (
+                    SELECT generate_series(
+                        date_trunc('month', CURRENT_DATE)::DATE,
+                        CURRENT_DATE,
+                        INTERVAL '1 day'
+                    )::DATE AS trend_date
+                ),
+                pending_by_day AS (
+                    SELECT
+                        dn.collection_timestamp::DATE AS trend_date,
+                        COUNT(DISTINCT dn.donation_id)::BIGINT AS pending_count
+                    FROM donation dn
+                    LEFT JOIN LATERAL (
+                        SELECT lt.final_status
+                        FROM lab_test lt
+                        WHERE lt.donation_id = dn.donation_id
+                        ORDER BY lt.test_date DESC, lt.test_id DESC
+                        LIMIT 1
+                    ) latest ON TRUE
+                    WHERE dn.collection_timestamp >= date_trunc('month', CURRENT_DATE)
+                      AND dn.collection_timestamp < CURRENT_DATE + INTERVAL '1 day'
+                      AND EXISTS (
+                          SELECT 1
+                          FROM blood_component bc
+                          WHERE bc.donation_id = dn.donation_id
+                            AND UPPER(bc.status) = 'QUARANTINED'
+                      )
+                      AND COALESCE(UPPER(latest.final_status), 'QUARANTINED') IN ('QUARANTINED', 'PENDING')
+                    GROUP BY dn.collection_timestamp::DATE
+                ),
+                completed_by_day AS (
+                    SELECT
+                        lt.test_date::DATE AS trend_date,
+                        COUNT(*)::BIGINT AS completed_count
+                    FROM lab_test lt
+                    WHERE lt.test_date >= date_trunc('month', CURRENT_DATE)
+                      AND lt.test_date < CURRENT_DATE + INTERVAL '1 day'
+                      AND UPPER(lt.final_status) IN ('PASSED', 'SAFE', 'FAILED', 'DISCARDED')
+                    GROUP BY lt.test_date::DATE
+                )
+                SELECT
+                    calendar.trend_date,
+                    COALESCE(pending_by_day.pending_count, 0)::BIGINT AS pending_count,
+                    COALESCE(completed_by_day.completed_count, 0)::BIGINT AS completed_count
+                FROM calendar
+                LEFT JOIN pending_by_day ON pending_by_day.trend_date = calendar.trend_date
+                LEFT JOIN completed_by_day ON completed_by_day.trend_date = calendar.trend_date
+                ORDER BY calendar.trend_date ASC
+                """, (rs, rowNum) -> {
+            LabMonthlyTrendPointDto point = new LabMonthlyTrendPointDto();
+            point.setDate(rs.getDate("trend_date").toLocalDate());
+            point.setPendingCount(rs.getLong("pending_count"));
+            point.setCompletedCount(rs.getLong("completed_count"));
+            return point;
         });
     }
 

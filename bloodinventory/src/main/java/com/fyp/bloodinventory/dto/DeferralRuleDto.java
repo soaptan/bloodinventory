@@ -5,6 +5,7 @@ public class DeferralRuleDto {
     private Long reasonId;
     private String description;
     private Integer defaultCoolingPeriodDays;
+    private String lockType;
     private Long staffId;
     private Boolean active;
 
@@ -30,6 +31,22 @@ public class DeferralRuleDto {
 
     public void setDefaultCoolingPeriodDays(Integer defaultCoolingPeriodDays) {
         this.defaultCoolingPeriodDays = defaultCoolingPeriodDays;
+    }
+
+    public String getLockType() {
+        return lockType;
+    }
+
+    public void setLockType(String lockType) {
+        this.lockType = lockType;
+    }
+
+    public boolean isPermanentLock() {
+        return "PERMANENT".equalsIgnoreCase(lockType);
+    }
+
+    public String getLockTypeLabel() {
+        return isPermanentLock() ? "Permanent" : "Temporary";
     }
 
     public Long getStaffId() {

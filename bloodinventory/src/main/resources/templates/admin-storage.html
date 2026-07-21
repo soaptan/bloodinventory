@@ -33,7 +33,7 @@
                         </div>
                     </section>
 
-                    <section class="two-col">
+                    <section class="admin-records-grid">
                         <article id="update" class="module-card">
                             <h2>Configured Storage Locations</h2>
                             <p>Live data from the <code>storage_location</code> table using PostgreSQL function.</p>
@@ -77,6 +77,16 @@
                                     </svg>
                                     Reset Filters
                                 </button>
+
+                                <a class="btn btn-primary table-filter-reset"
+                                   th:href="@{/admin/storage/create}"
+                                   data-create-storage-link>
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M12 5v14"></path>
+                                        <path d="M5 12h14"></path>
+                                    </svg>
+                                    Create Location
+                                </a>
                             </div>
 
                             <div th:if="${!#lists.isEmpty(locations)}" class="form-help table-results-summary" data-storage-results-summary>
@@ -142,42 +152,6 @@
                             </div>
                         </article>
 
-                        <article id="add" class="module-card">
-                            <h2>Storage Summary & Create Location</h2>
-                            <p>Uses PostgreSQL function for count and procedure for insertion.</p>
-
-                            <div class="summary-list">
-                                <div class="summary-item">
-                                    <div class="label">Active Storage Locations</div>
-                                    <div class="value" th:text="${locationCount}">0</div>
-                                </div>
-
-                                <div class="summary-item">
-                                    <div class="label">Available Components</div>
-                                    <div class="value" th:text="${stats.availableComponents}">0</div>
-                                </div>
-
-                                <div class="summary-item">
-                                    <div class="label">Near Expiry Components</div>
-                                    <div class="value" th:text="${stats.nearExpiryComponents}">0</div>
-                                </div>
-                            </div>
-
-                            <form class="needs-validation" th:action="@{/admin/storage/add}" th:object="${locationRequest}" method="post" novalidate
-                                  data-action-confirm
-                                  data-action-label="create storage location"
-                                  data-action-confirm-text="Confirm Create">
-                                <div class="form-grid single">
-                                    <div class="form-group full">
-                                        <label>Description</label>
-                                        <input type="text" th:field="*{description}" placeholder="Enter storage description" required>
-                                        <div class="invalid-feedback">Please enter a storage description.</div>
-                                    </div>
-
-                                    <button type="submit" class="btn btn-primary">Create Location</button>
-                                </div>
-                            </form>
-                        </article>
                     </section>
                 </div>
     </th:block>

@@ -111,6 +111,17 @@
 
         .brand-inner { position: relative; z-index: 1; }
 
+        .brand-system-logo {
+            display: block;
+            width: auto;
+            max-width: 200px;
+            height: 50px;
+            object-fit: contain;
+            padding: 0;
+            margin-bottom: 24px;
+            background: transparent;
+        }
+
         .brand-chip {
             display: inline-flex;
             align-items: center;

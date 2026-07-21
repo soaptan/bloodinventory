@@ -2,6 +2,7 @@ package com.fyp.bloodinventory.dto;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 import java.util.ArrayList;
@@ -31,6 +32,12 @@ public class ChatbotRequest {
 
     @Size(max = 40, message = "Image type is too long.")
     private String imageMimeType;
+
+    @Pattern(regexp = "(?i)chat|agent", message = "Assistant mode must be chat or agent.")
+    private String mode = "chat";
+
+    @Pattern(regexp = "(?i)en|ms|zh", message = "Assistant language must be English, Bahasa Malaysia, or Chinese.")
+    private String languageCode = "en";
 
     public String getMessage() {
         return message;
@@ -86,5 +93,22 @@ public class ChatbotRequest {
 
     public void setImageMimeType(String imageMimeType) {
         this.imageMimeType = imageMimeType;
+    }
+
+    public String getMode() {
+        return mode;
+    }
+
+    public void setMode(String mode) {
+        this.mode = mode == null || mode.isBlank() ? "chat" : mode.trim().toLowerCase();
+    }
+
+    public String getLanguageCode() {
+        return languageCode;
+    }
+
+    public void setLanguageCode(String languageCode) {
+        String normalized = languageCode == null ? "en" : languageCode.trim().toLowerCase();
+        this.languageCode = normalized.startsWith("zh") ? "zh" : normalized;
     }
 }

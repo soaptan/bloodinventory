@@ -4,6 +4,7 @@ public class MedicalDeferralReasonDto {
     private Long reasonId;
     private String description;
     private Integer defaultCoolingPeriodDays;
+    private String lockType;
 
     public Long getReasonId() {
         return reasonId;
@@ -27,5 +28,17 @@ public class MedicalDeferralReasonDto {
 
     public void setDefaultCoolingPeriodDays(Integer defaultCoolingPeriodDays) {
         this.defaultCoolingPeriodDays = defaultCoolingPeriodDays;
+    }
+
+    public String getLockType() {
+        return lockType;
+    }
+
+    public void setLockType(String lockType) {
+        this.lockType = lockType;
+    }
+
+    public boolean isPermanentLock() {
+        return "PERMANENT".equalsIgnoreCase(lockType);
     }
 }

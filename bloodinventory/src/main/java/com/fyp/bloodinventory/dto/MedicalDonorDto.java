@@ -10,6 +10,8 @@ public class MedicalDonorDto {
     private LocalDate deferralExpiryDate;
     private String latestDeferralReason;
     private LocalDate latestDeferralDate;
+    private String latestDeferralLockType;
+    private boolean permanentDeferral;
     private boolean eligible;
     private String eligibilityStatus;
 
@@ -67,6 +69,22 @@ public class MedicalDonorDto {
 
     public void setLatestDeferralDate(LocalDate latestDeferralDate) {
         this.latestDeferralDate = latestDeferralDate;
+    }
+
+    public String getLatestDeferralLockType() {
+        return latestDeferralLockType;
+    }
+
+    public void setLatestDeferralLockType(String latestDeferralLockType) {
+        this.latestDeferralLockType = latestDeferralLockType;
+    }
+
+    public boolean isPermanentDeferral() {
+        return permanentDeferral;
+    }
+
+    public void setPermanentDeferral(boolean permanentDeferral) {
+        this.permanentDeferral = permanentDeferral;
     }
 
     public boolean isEligible() {
