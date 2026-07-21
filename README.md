@@ -246,6 +246,35 @@ Linux or macOS:
 ./mvnw test
 ```
 
+## Deploy to Railway
+
+The repository root contains a multi-stage Dockerfile that builds the nested
+Spring Boot project and runs it with Java 21.
+
+1. Create a Railway project from this GitHub repository.
+2. Add a **PostgreSQL** service to the same Railway project.
+3. Open the `bloodinventory` application service and add these variables:
+
+```text
+PORT=8080
+DB_URL=jdbc:postgresql://${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}
+DB_USERNAME=${{Postgres.PGUSER}}
+DB_PASSWORD=${{Postgres.PGPASSWORD}}
+```
+
+The service name in each reference must match the PostgreSQL service name on
+the Railway canvas. If it is not named `Postgres`, replace `Postgres` in the
+references with its actual name.
+
+The NVIDIA NIM integration is optional. To enable the chatbot, also set
+`NVIDIA_NIM_API_KEY` as a sealed Railway variable. Mail variables are optional
+unless password-reset email delivery is required.
+
+After deployment, Flyway automatically creates and updates the PostgreSQL
+schema. In the application service, open **Settings**, find
+**Networking > Public Networking**, and select **Generate Domain**. The
+application listens on Railway's `PORT` value.
+
 ## Security Notes
 
 - Passwords must be stored as hashes, not plain text.

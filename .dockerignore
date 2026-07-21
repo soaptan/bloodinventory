@@ -1,0 +1,11 @@
+.git
+.github
+.vscode
+**/target
+**/backups
+**/logs
+**/uploads
+**/.env
+**/*.env
+**/application-local.properties
+**/.codex-*
