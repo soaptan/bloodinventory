@@ -29,7 +29,7 @@
 
 @REM Use a JDK compatible with Spring Boot 3 for this project when available.
 @IF "%BLOODINVENTORY_JAVA_HOME%"=="" (
-  @SET "BLOODINVENTORY_JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-21.0.1.12-hotspot"
+  @SET "BLOODINVENTORY_JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-25.0.0-hotspot"
 )
 @IF EXIST "%BLOODINVENTORY_JAVA_HOME%\bin\java.exe" (
   @SET "JAVA_HOME=%BLOODINVENTORY_JAVA_HOME%"
