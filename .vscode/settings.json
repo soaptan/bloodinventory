@@ -1,10 +1,18 @@
 {
     "java.compile.nullAnalysis.mode": "automatic",
     "java.configuration.updateBuildConfiguration": "automatic",
-    "java.jdt.ls.java.home": "C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.1.12-hotspot",
+    "java.jdt.ls.java.home": "C:\\Users\\User\\.jdk\\jdk-25.0.2",
+    "java.configuration.runtimes": [
+        {
+            "name": "JavaSE-25",
+            "path": "C:\\Users\\User\\.jdk\\jdk-25.0.2",
+            "default": true
+        }
+    ],
     "maven.terminal.useJavaHome": true,
     "terminal.integrated.env.windows": {
-        "JAVA_HOME": "C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.1.12-hotspot",
-        "Path": "C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.1.12-hotspot\\bin;${env:Path}"
-    }
+        "JAVA_HOME": "C:\\Users\\User\\.jdk\\jdk-25.0.2",
+        "Path": "C:\\Users\\User\\.jdk\\jdk-25.0.2\\bin;${env:Path}"
+    },
+    "java.debug.settings.onBuildFailureProceed": true
 }
