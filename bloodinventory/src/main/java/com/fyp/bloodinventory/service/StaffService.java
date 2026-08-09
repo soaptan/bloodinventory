@@ -1,6 +1,7 @@
 package com.fyp.bloodinventory.service;
 
 import com.fyp.bloodinventory.config.PasswordHashSupport;
+import com.fyp.bloodinventory.config.PasswordPolicy;
 import com.fyp.bloodinventory.dto.StaffManagementRequest;
 import com.fyp.bloodinventory.dto.StaffProfileDto;
 import com.fyp.bloodinventory.dto.StaffProfileUpdateRequest;
@@ -159,10 +160,12 @@ public class StaffService {
         Staff staff = findStaffByUsername(username);
 
         String normalizedCurrentPassword = requireText(currentPassword, "Please enter your current password.");
-        String normalizedNewPassword = requirePassword(newPassword, true);
-        String normalizedConfirmPassword = requirePassword(confirmPassword, true);
+        String normalizedNewPassword = PasswordPolicy.requireStrongPassword(newPassword);
+        if (confirmPassword == null || confirmPassword.isBlank()) {
+            throw new RuntimeException("Please confirm your new password.");
+        }
 
-        if (!normalizedNewPassword.equals(normalizedConfirmPassword)) {
+        if (!normalizedNewPassword.equals(confirmPassword)) {
             throw new RuntimeException("New password and confirmation do not match.");
         }
 
@@ -171,7 +174,11 @@ public class StaffService {
             throw new RuntimeException("Current password is incorrect.");
         }
 
-        staff.setPassword(prepareStoredPassword(normalizedNewPassword));
+        if (passwordEncoder.matches(normalizedNewPassword, storedPassword)) {
+            throw new RuntimeException("New password must be different from your current password.");
+        }
+
+        staff.setPassword(passwordEncoder.encode(normalizedNewPassword));
         staffRepository.save(staff);
     }
 
@@ -209,8 +216,8 @@ public class StaffService {
         validateRoleSpecificDetails(staffType, request.getLicenseNo(), request.getPosition(),
                 request.getCertificationNo(), request.getDepartment(), requiredStaffId);
 
-        String password = trimToNull(request.getPassword());
-        String storedPassword = password == null
+        String password = request.getPassword();
+        String storedPassword = password == null || password.isBlank()
                 ? staff.getPassword()
                 : prepareStoredPassword(requirePassword(password, false));
 
@@ -702,9 +709,17 @@ public class StaffService {
             return;
         }
 
-        File oldFile = Paths.get("uploads").resolve(normalizedPhotoPath).toAbsolutePath().normalize().toFile();
-        if (oldFile.exists()) {
-            oldFile.delete();
+        Path uploadRoot = Paths.get("uploads").toAbsolutePath().normalize();
+        Path staffUploadRoot = uploadRoot.resolve("staff").normalize();
+        Path oldPhoto = uploadRoot.resolve(normalizedPhotoPath).normalize();
+        if (!oldPhoto.startsWith(staffUploadRoot) || Files.isSymbolicLink(oldPhoto)) {
+            return;
+        }
+
+        try {
+            Files.deleteIfExists(oldPhoto);
+        } catch (Exception ignored) {
+            // A stale photo must not prevent the new profile photo from being saved.
         }
     }
 
@@ -747,28 +762,18 @@ public class StaffService {
     }
 
     private String requirePassword(String password, boolean required) {
-        String normalizedPassword = trimToNull(password);
-        if (normalizedPassword == null) {
+        if (password == null || password.isBlank()) {
             if (required) {
                 throw new RuntimeException("Please enter a password.");
             }
             return null;
         }
 
-        if (normalizedPassword.length() < 8) {
-            throw new RuntimeException("Password must contain at least 8 characters.");
-        }
-
-        return normalizedPassword;
+        return PasswordPolicy.requireStrongPassword(password);
     }
 
     private String prepareStoredPassword(String password) {
-        String normalizedPassword = PasswordHashSupport.normalizeStoredPassword(password);
-        if (PasswordHashSupport.isBcryptHash(normalizedPassword)) {
-            return normalizedPassword;
-        }
-
-        return passwordEncoder.encode(normalizedPassword);
+        return passwordEncoder.encode(password);
     }
 
     private String requireText(String value, String message) {

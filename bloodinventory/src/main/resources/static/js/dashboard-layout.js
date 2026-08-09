@@ -656,13 +656,40 @@
         });
     }
 
-    function syncState(app) {
-        if (mobileQuery.matches) {
-            updateButtons(app, app.classList.contains("sidebar-open"));
+    function animateSidebarToggle(button) {
+        if (!(button instanceof HTMLElement)) {
             return;
         }
 
-        updateButtons(app, !app.classList.contains("sidebar-collapsed"));
+        const animationSequence = String(Number(button.dataset.animationSequence || "0") + 1);
+        button.dataset.animationSequence = animationSequence;
+        button.classList.remove("is-animating");
+        void button.offsetWidth;
+        button.classList.add("is-animating");
+
+        window.setTimeout(() => {
+            if (button.dataset.animationSequence === animationSequence) {
+                button.classList.remove("is-animating");
+            }
+        }, 380);
+    }
+
+    function syncState(app) {
+        const expanded = mobileQuery.matches
+            ? app.classList.contains("sidebar-open")
+            : !app.classList.contains("sidebar-collapsed");
+        const sidebar = app.querySelector("#dashboard-sidebar");
+
+        updateButtons(app, expanded);
+        document.body.classList.toggle(
+            "dashboard-sidebar-open",
+            mobileQuery.matches && expanded
+        );
+
+        if (sidebar instanceof HTMLElement) {
+            sidebar.setAttribute("aria-hidden", String(!expanded));
+            sidebar.inert = !expanded;
+        }
     }
 
     function applySearch(app, query) {
@@ -1333,12 +1360,14 @@
                 if (mobileQuery.matches) {
                     app.classList.toggle("sidebar-open");
                     syncState(app);
+                    animateSidebarToggle(button);
                     return;
                 }
 
                 const collapsed = app.classList.toggle("sidebar-collapsed");
                 writeStoredCollapsed(collapsed);
                 syncState(app);
+                animateSidebarToggle(button);
             });
         });
 
@@ -1346,7 +1375,28 @@
             button.addEventListener("click", () => {
                 app.classList.remove("sidebar-open");
                 syncState(app);
+
+                const toggle = app.querySelector("[data-sidebar-toggle]");
+                if (toggle instanceof HTMLElement) {
+                    toggle.focus();
+                }
             });
+        });
+
+        document.addEventListener("keydown", (event) => {
+            if (event.key !== "Escape"
+                    || !mobileQuery.matches
+                    || !app.classList.contains("sidebar-open")) {
+                return;
+            }
+
+            app.classList.remove("sidebar-open");
+            syncState(app);
+
+            const toggle = app.querySelector("[data-sidebar-toggle]");
+            if (toggle instanceof HTMLElement) {
+                toggle.focus();
+            }
         });
     }
 

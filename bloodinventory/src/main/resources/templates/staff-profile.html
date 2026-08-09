@@ -217,24 +217,80 @@
                                     <div class="form-grid security-grid">
                                         <div class="form-group current-password">
                                             <label for="current-password">Current Password</label>
-                                            <input id="current-password" name="currentPassword" type="password"
-                                                   autocomplete="current-password" required>
-                                            <div class="invalid-feedback">Current password is required.</div>
+                                            <div class="password-input-wrap">
+                                                <input id="current-password" name="currentPassword" type="password"
+                                                       autocomplete="current-password" maxlength="72" required
+                                                       aria-describedby="current-password-error">
+                                                <button type="button" class="password-visibility-toggle"
+                                                        data-password-toggle="current-password"
+                                                        aria-label="Show current password" aria-pressed="false"
+                                                        title="Show current password">
+                                                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" data-password-eye>
+                                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                                        <circle cx="12" cy="12" r="3"></circle>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                            <div class="invalid-feedback" id="current-password-error">Enter your current password.</div>
                                         </div>
 
                                         <div class="form-group">
                                             <label for="new-password">New Password</label>
-                                            <input id="new-password" name="newPassword" type="password"
-                                                   autocomplete="new-password" minlength="8" required>
-                                            <div class="field-hint">Must be at least 8 characters long.</div>
-                                            <div class="invalid-feedback">Enter at least 8 characters.</div>
+                                            <div class="password-input-wrap">
+                                                <input id="new-password" name="newPassword" type="password"
+                                                       autocomplete="new-password" minlength="8" maxlength="72"
+                                                       pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9])\S{8,72}"
+                                                       required aria-describedby="new-password-error password-requirements">
+                                                <button type="button" class="password-visibility-toggle"
+                                                        data-password-toggle="new-password"
+                                                        aria-label="Show new password" aria-pressed="false"
+                                                        title="Show new password">
+                                                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" data-password-eye>
+                                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                                        <circle cx="12" cy="12" r="3"></circle>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                            <div class="invalid-feedback" id="new-password-error">Create a password that meets every requirement below.</div>
                                         </div>
 
                                         <div class="form-group">
                                             <label for="confirm-password">Confirm Password</label>
-                                            <input id="confirm-password" name="confirmPassword" type="password"
-                                                   autocomplete="new-password" minlength="8" required>
-                                            <div class="invalid-feedback">Confirm the new password.</div>
+                                            <div class="password-input-wrap">
+                                                <input id="confirm-password" name="confirmPassword" type="password"
+                                                       autocomplete="new-password" maxlength="72" required
+                                                       aria-describedby="confirm-password-error">
+                                                <button type="button" class="password-visibility-toggle"
+                                                        data-password-toggle="confirm-password"
+                                                        aria-label="Show confirmed password" aria-pressed="false"
+                                                        title="Show confirmed password">
+                                                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" data-password-eye>
+                                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                                        <circle cx="12" cy="12" r="3"></circle>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                            <div class="invalid-feedback" id="confirm-password-error">Re-enter the new password exactly.</div>
+                                        </div>
+
+                                        <div class="password-assurance" id="password-requirements">
+                                            <div class="password-strength" data-password-strength data-strength="empty">
+                                                <div class="password-strength-copy">
+                                                    <span>Password strength</span>
+                                                    <strong data-password-strength-label aria-live="polite">Not rated</strong>
+                                                </div>
+                                                <div class="password-strength-track" aria-hidden="true">
+                                                    <span data-password-strength-bar></span>
+                                                </div>
+                                            </div>
+                                            <ul class="password-requirements" aria-label="New password requirements">
+                                                <li data-password-rule="length"><span aria-hidden="true">&#10003;</span>8-72 characters</li>
+                                                <li data-password-rule="letterCase"><span aria-hidden="true">&#10003;</span>Uppercase and lowercase</li>
+                                                <li data-password-rule="number"><span aria-hidden="true">&#10003;</span>At least one number</li>
+                                                <li data-password-rule="symbol"><span aria-hidden="true">&#10003;</span>At least one symbol</li>
+                                                <li data-password-rule="noWhitespace"><span aria-hidden="true">&#10003;</span>No spaces</li>
+                                                <li data-password-rule="different"><span aria-hidden="true">&#10003;</span>Different from current password</li>
+                                            </ul>
                                         </div>
                                     </div>
 
@@ -475,11 +531,197 @@
 
         const passwordForm = dashboard.querySelector("[data-password-form]");
         if (passwordForm instanceof HTMLFormElement) {
+            const currentPassword = passwordForm.querySelector("#current-password");
+            const newPassword = passwordForm.querySelector("#new-password");
+            const confirmPassword = passwordForm.querySelector("#confirm-password");
+            const strength = passwordForm.querySelector("[data-password-strength]");
+            const strengthLabel = passwordForm.querySelector("[data-password-strength-label]");
+            const strengthBar = passwordForm.querySelector("[data-password-strength-bar]");
+            const touchedFields = new Set();
+
+            const visibleEye = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+            const hiddenEye = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+
+            function passwordRules(value) {
+                const currentValue = currentPassword instanceof HTMLInputElement ? currentPassword.value : "";
+                return {
+                    length: value.length >= 8 && value.length <= 72,
+                    letterCase: /[a-z]/.test(value) && /[A-Z]/.test(value),
+                    number: /[0-9]/.test(value),
+                    symbol: /[^A-Za-z0-9\s]/.test(value),
+                    noWhitespace: value.length > 0 && !/\s/.test(value),
+                    different: value.length > 0 && currentValue.length > 0 && value !== currentValue
+                };
+            }
+
+            function newPasswordMessage(value, rules) {
+                if (!value) {
+                    return "Enter a new password.";
+                }
+                if (!rules.length) {
+                    return "Use between 8 and 72 characters.";
+                }
+                if (!rules.noWhitespace) {
+                    return "Password cannot contain spaces.";
+                }
+                if (!rules.letterCase || !rules.number || !rules.symbol) {
+                    return "Include uppercase and lowercase letters, a number, and a symbol.";
+                }
+                if (currentPassword?.value && !rules.different) {
+                    return "Choose a password different from your current password.";
+                }
+                return "";
+            }
+
+            function setFieldMessage(input, message) {
+                if (!(input instanceof HTMLInputElement)) {
+                    return;
+                }
+
+                input.setCustomValidity(message);
+                const feedback = passwordForm.querySelector(`#${input.id}-error`);
+                if (feedback instanceof HTMLElement && message) {
+                    feedback.textContent = message;
+                }
+
+                const shouldReveal = touchedFields.has(input.id) || passwordForm.classList.contains("was-validated");
+                input.closest(".form-group")?.classList.toggle("is-invalid", shouldReveal && Boolean(message));
+            }
+
+            function updateStrength(value, rules) {
+                Object.entries(rules).forEach(([rule, isMet]) => {
+                    passwordForm.querySelector(`[data-password-rule='${rule}']`)?.classList.toggle("is-met", isMet);
+                });
+
+                if (!(strength instanceof HTMLElement) || !(strengthBar instanceof HTMLElement) ||
+                        !(strengthLabel instanceof HTMLElement)) {
+                    return;
+                }
+
+                if (!value) {
+                    strength.dataset.strength = "empty";
+                    strengthLabel.textContent = "Not rated";
+                    strengthBar.style.width = "0%";
+                    return;
+                }
+
+                const coreScore = [rules.length, rules.letterCase, rules.number, rules.symbol]
+                        .filter(Boolean).length;
+                const reusesCurrentPassword = Boolean(currentPassword?.value) && !rules.different;
+                const adjustedScore = !rules.noWhitespace || reusesCurrentPassword ? Math.min(coreScore, 1) : coreScore;
+                const levels = [
+                    { name: "Weak", className: "weak", width: "25%" },
+                    { name: "Fair", className: "fair", width: "50%" },
+                    { name: "Good", className: "good", width: "75%" },
+                    { name: "Strong", className: "strong", width: "100%" }
+                ];
+                const level = levels[Math.max(0, adjustedScore - 1)];
+                strength.dataset.strength = level.className;
+                strengthLabel.textContent = level.name;
+                strengthBar.style.width = level.width;
+            }
+
+            function validatePasswordFields() {
+                if (!(currentPassword instanceof HTMLInputElement) ||
+                        !(newPassword instanceof HTMLInputElement) ||
+                        !(confirmPassword instanceof HTMLInputElement)) {
+                    return;
+                }
+
+                const rules = passwordRules(newPassword.value);
+                const currentMessage = currentPassword.value ? "" : "Enter your current password.";
+                const candidateMessage = newPasswordMessage(newPassword.value, rules);
+                const confirmationMessage = !confirmPassword.value
+                        ? "Confirm your new password."
+                        : (confirmPassword.value !== newPassword.value ? "Passwords do not match." : "");
+
+                setFieldMessage(currentPassword, currentMessage);
+                setFieldMessage(newPassword, candidateMessage);
+                setFieldMessage(confirmPassword, confirmationMessage);
+                updateStrength(newPassword.value, rules);
+            }
+
+            function hidePassword(toggle) {
+                if (!(toggle instanceof HTMLButtonElement)) {
+                    return;
+                }
+
+                const input = passwordForm.querySelector(`#${toggle.dataset.passwordToggle}`);
+                if (!(input instanceof HTMLInputElement)) {
+                    return;
+                }
+
+                const fieldName = input.id === "current-password" ? "current password" :
+                        (input.id === "confirm-password" ? "confirmed password" : "new password");
+                input.type = "password";
+                toggle.setAttribute("aria-label", `Show ${fieldName}`);
+                toggle.setAttribute("aria-pressed", "false");
+                toggle.title = `Show ${fieldName}`;
+                const icon = toggle.querySelector("[data-password-eye]");
+                if (icon instanceof SVGElement) {
+                    icon.innerHTML = visibleEye;
+                }
+            }
+
+            passwordForm.querySelectorAll("[data-password-toggle]").forEach((toggle) => {
+                if (!(toggle instanceof HTMLButtonElement)) {
+                    return;
+                }
+
+                toggle.addEventListener("click", () => {
+                    const input = passwordForm.querySelector(`#${toggle.dataset.passwordToggle}`);
+                    if (!(input instanceof HTMLInputElement)) {
+                        return;
+                    }
+
+                    const willShow = input.type === "password";
+                    const fieldName = input.id === "current-password" ? "current password" :
+                            (input.id === "confirm-password" ? "confirmed password" : "new password");
+                    input.type = willShow ? "text" : "password";
+                    toggle.setAttribute("aria-label", `${willShow ? "Hide" : "Show"} ${fieldName}`);
+                    toggle.setAttribute("aria-pressed", String(willShow));
+                    toggle.title = `${willShow ? "Hide" : "Show"} ${fieldName}`;
+                    const icon = toggle.querySelector("[data-password-eye]");
+                    if (icon instanceof SVGElement) {
+                        icon.innerHTML = willShow ? hiddenEye : visibleEye;
+                    }
+                });
+            });
+
+            [currentPassword, newPassword, confirmPassword].forEach((input) => {
+                if (!(input instanceof HTMLInputElement)) {
+                    return;
+                }
+
+                input.addEventListener("blur", () => {
+                    touchedFields.add(input.id);
+                    validatePasswordFields();
+                });
+                input.addEventListener("input", validatePasswordFields);
+            });
+
+            function resetPasswordUi() {
+                touchedFields.clear();
+                passwordForm.classList.remove("was-validated");
+                passwordForm.querySelectorAll(".form-group.is-invalid").forEach((group) => {
+                    group.classList.remove("is-invalid");
+                });
+                passwordForm.querySelectorAll("[data-password-toggle]").forEach(hidePassword);
+                validatePasswordFields();
+            }
+
+            passwordForm.addEventListener("reset", () => window.setTimeout(resetPasswordUi, 0));
+            validatePasswordFields();
+
             passwordForm.addEventListener("submit", (event) => {
                 event.preventDefault();
+                touchedFields.add("current-password");
+                touchedFields.add("new-password");
+                touchedFields.add("confirm-password");
+                validatePasswordFields();
                 submitAjax(passwordForm, "Password updated successfully.", () => {
                     passwordForm.reset();
-                    passwordForm.classList.remove("was-validated");
+                    resetPasswordUi();
                 });
             });
         }

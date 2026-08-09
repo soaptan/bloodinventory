@@ -3,15 +3,16 @@ package com.fyp.bloodinventory.config;
 import com.fyp.bloodinventory.service.AuditEventService;
 import com.fyp.bloodinventory.service.CustomUserDetailsService;
 import com.fyp.bloodinventory.service.DatabaseSessionControlService;
+import com.fyp.bloodinventory.service.LoginAttemptService;
 import com.fyp.bloodinventory.service.StaffModuleAccessService;
 import com.fyp.bloodinventory.service.SystemNotificationService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.DisabledException;
-import org.springframework.security.authentication.LockedException;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.builders.WebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -19,7 +20,14 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.firewall.HttpFirewall;
+import org.springframework.security.web.firewall.StrictHttpFirewall;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy;
+import org.springframework.security.web.header.writers.StaticHeadersWriter;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
+
+import java.util.List;
 
 @Configuration
 public class SecurityConfig {
@@ -30,24 +38,30 @@ public class SecurityConfig {
     private final DatabaseSessionControlService sessionControlService;
     private final DatabaseSessionControlFilter databaseSessionControlFilter;
     private final AuditEventService auditEventService;
+    private final LoginAttemptService loginAttemptService;
+    private final LoginSecurityFilter loginSecurityFilter;
 
     public SecurityConfig(CustomUserDetailsService customUserDetailsService,
                           StaffModuleAccessService staffModuleAccessService,
                           SystemNotificationService notificationService,
                           DatabaseSessionControlService sessionControlService,
                           DatabaseSessionControlFilter databaseSessionControlFilter,
-                          AuditEventService auditEventService) {
+                          AuditEventService auditEventService,
+                          LoginAttemptService loginAttemptService,
+                          LoginSecurityFilter loginSecurityFilter) {
         this.customUserDetailsService = customUserDetailsService;
         this.staffModuleAccessService = staffModuleAccessService;
         this.notificationService = notificationService;
         this.sessionControlService = sessionControlService;
         this.databaseSessionControlFilter = databaseSessionControlFilter;
         this.auditEventService = auditEventService;
+        this.loginAttemptService = loginAttemptService;
+        this.loginSecurityFilter = loginSecurityFilter;
     }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        return new BCryptPasswordEncoder(12);
     }
 
     @Bean
@@ -55,6 +69,8 @@ public class SecurityConfig {
         return (request, response, authentication) -> {
             var authorities = authentication.getAuthorities();
             String username = authentication.getName();
+
+            loginAttemptService.recordSuccess(username, request.getRemoteAddr());
 
             boolean sessionAllowed = sessionControlService.registerSuccessfulLogin(username, request);
             if (!sessionAllowed) {
@@ -93,31 +109,14 @@ public class SecurityConfig {
     public AuthenticationFailureHandler customFailureHandler() {
         return (request, response, exception) -> {
             String username = request.getParameter("username");
-            String attemptedPassword = request.getParameter("password");
-            if (username == null || username.isBlank() || attemptedPassword == null || attemptedPassword.isBlank()) {
-                response.sendRedirect("/login?validation");
-                return;
-            }
-            if (PasswordHashSupport.isBcryptHash(attemptedPassword)) {
-                auditEventService.recordLoginFailure(request, username, "HASHED_PASSWORD_SUBMITTED");
-                response.sendRedirect("/login?hashPassword");
-                return;
-            }
-
-            if (exception instanceof DisabledException) {
-                auditEventService.recordLoginFailure(request, username, "ACCOUNT_INACTIVE");
-                response.sendRedirect("/login?inactive");
-                return;
-            }
-
-            if (exception instanceof LockedException) {
-                auditEventService.recordLoginFailure(request, username, "ACCOUNT_LOCKED");
-                response.sendRedirect("/login?locked");
-                return;
-            }
-
             auditEventService.recordLoginFailure(request, username, exception.getClass().getSimpleName());
-            response.sendRedirect("/login?error");
+            boolean blocked = loginAttemptService.recordFailure(username, request.getRemoteAddr());
+            if (blocked) {
+                response.setHeader("Retry-After", String.valueOf(loginAttemptService.retryAfterSeconds()));
+                response.sendRedirect("/login?throttled");
+            } else {
+                response.sendRedirect("/login?error");
+            }
         };
     }
 
@@ -173,6 +172,26 @@ public class SecurityConfig {
                         .sessionFixation(sessionFixation -> sessionFixation.migrateSession())
                         .invalidSessionUrl("/login?session=expired")
                 )
+                .headers(headers -> headers
+                        .contentSecurityPolicy(csp -> csp.policyDirectives(
+                                "default-src 'self'; "
+                                        + "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+                                        + "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+                                        + "font-src 'self' https://fonts.gstatic.com data:; "
+                                        + "img-src 'self' data: blob:; "
+                                        + "connect-src 'self'; object-src 'none'; base-uri 'self'; "
+                                        + "form-action 'self'; frame-ancestors 'none'"
+                        ))
+                        .referrerPolicy(referrer -> referrer.policy(ReferrerPolicy.SAME_ORIGIN))
+                        .addHeaderWriter(new StaticHeadersWriter(
+                                "Permissions-Policy",
+                                "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+                        ))
+                        .addHeaderWriter(new StaticHeadersWriter("Cross-Origin-Opener-Policy", "same-origin"))
+                        .addHeaderWriter(new StaticHeadersWriter("Cross-Origin-Resource-Policy", "same-origin"))
+                        .addHeaderWriter(new StaticHeadersWriter("X-Permitted-Cross-Domain-Policies", "none"))
+                )
+                .addFilterBefore(loginSecurityFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterAfter(databaseSessionControlFilter, AuthorizationFilter.class);
 
         return http.build();
@@ -186,5 +205,17 @@ public class SecurityConfig {
     @Bean
     public HttpSessionEventPublisher httpSessionEventPublisher() {
         return new HttpSessionEventPublisher();
+    }
+
+    @Bean
+    public HttpFirewall strictHttpFirewall() {
+        StrictHttpFirewall firewall = new StrictHttpFirewall();
+        firewall.setAllowedHttpMethods(List.of("GET", "POST", "HEAD", "OPTIONS"));
+        return firewall;
+    }
+
+    @Bean
+    public WebSecurityCustomizer webSecurityCustomizer(HttpFirewall httpFirewall) {
+        return (WebSecurity web) -> web.httpFirewall(httpFirewall);
     }
 }

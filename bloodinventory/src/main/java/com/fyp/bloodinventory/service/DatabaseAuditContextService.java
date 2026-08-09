@@ -19,7 +19,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
-import java.util.List;
 
 @Service
 public class DatabaseAuditContextService {
@@ -148,10 +147,7 @@ public class DatabaseAuditContextService {
             deviceId = "web-application";
         }
 
-        String sourceIp = firstForwardedIp(request.getHeader("X-Forwarded-For"));
-        if (sourceIp == null) {
-            sourceIp = safeTrim(request.getRemoteAddr());
-        }
+        String sourceIp = safeTrim(request.getRemoteAddr());
 
         String requestPath = safeTrim(request.getRequestURI());
         String httpMethod = safeTrim(request.getMethod());
@@ -171,19 +167,6 @@ public class DatabaseAuditContextService {
                 truncate(httpMethod, 12),
                 sessionIdHash
         );
-    }
-
-    private String firstForwardedIp(String forwardedFor) {
-        String normalized = safeTrim(forwardedFor);
-        if (normalized == null) {
-            return null;
-        }
-
-        return List.of(normalized.split(",")).stream()
-                .map(this::safeTrim)
-                .filter(value -> value != null)
-                .findFirst()
-                .orElse(null);
     }
 
     private boolean isSignedIn(Authentication authentication) {

@@ -10,9 +10,12 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.regex.Pattern;
 
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
+
+    private static final Pattern USERNAME_PATTERN = Pattern.compile("^[A-Za-z0-9._-]{3,50}$");
 
     private final StaffRepository staffRepository;
 
@@ -22,8 +25,13 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        Staff staff = staffRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+        String normalizedUsername = username == null ? "" : username.trim();
+        if (!USERNAME_PATTERN.matcher(normalizedUsername).matches()) {
+            throw new UsernameNotFoundException("Invalid credentials.");
+        }
+
+        Staff staff = staffRepository.findByUsername(normalizedUsername)
+                .orElseThrow(() -> new UsernameNotFoundException("Invalid credentials."));
 
         boolean isActive = !Boolean.FALSE.equals(staff.getActive());
         boolean isLocked = Boolean.TRUE.equals(staff.getLocked());
