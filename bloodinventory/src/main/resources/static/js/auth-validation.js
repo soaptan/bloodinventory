@@ -12,6 +12,9 @@ document.querySelectorAll('[data-validate-form]').forEach((form) => {
         if (input.validity.patternMismatch) {
             if (input.id === 'icNumber') return 'Enter a 12-digit IC number, for example 850101-10-2001.';
             if (input.id === 'verificationCode') return 'Enter the 6-digit verification code.';
+            if (input.id === 'newPassword') {
+                return 'Use uppercase and lowercase letters, a number, and a special character, with no spaces.';
+            }
             return 'Use only letters, numbers, dots, underscores, or hyphens.';
         }
         return '';

@@ -125,6 +125,93 @@ class StaffServiceTests {
         verify(staffRepository, never()).delete(staff);
     }
 
+    @Test
+    void updateOwnPasswordRejectsPasswordWithoutAllRequiredCharacterTypes() {
+        Staff staff = staff(26L, "secure.user", true);
+        staff.setPassword("stored-password-hash");
+        when(staffRepository.findByUsername("secure.user")).thenReturn(Optional.of(staff));
+
+        assertThatThrownBy(() -> staffService.updateOwnPassword(
+                "secure.user",
+                "Current1!",
+                "lowercase1!",
+                "lowercase1!"
+        ))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("Password must include uppercase and lowercase letters, a number, and a special character.");
+
+        verify(staffRepository, never()).save(staff);
+        verifyNoInteractions(passwordEncoder);
+    }
+
+    @Test
+    void updateOwnPasswordRejectsWhitespaceAndPasswordsLongerThanBcryptLimit() {
+        Staff whitespaceStaff = staff(27L, "space.user", true);
+        whitespaceStaff.setPassword("stored-password-hash");
+        when(staffRepository.findByUsername("space.user")).thenReturn(Optional.of(whitespaceStaff));
+
+        assertThatThrownBy(() -> staffService.updateOwnPassword(
+                "space.user",
+                "Current1!",
+                "New Password1!",
+                "New Password1!"
+        ))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("Password cannot contain spaces.");
+
+        String tooLongPassword = "Aa1!" + "x".repeat(69);
+        assertThatThrownBy(() -> staffService.updateOwnPassword(
+                "space.user",
+                "Current1!",
+                tooLongPassword,
+                tooLongPassword
+        ))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("Password must be between 8 and 72 characters.");
+
+        verify(staffRepository, never()).save(whitespaceStaff);
+        verifyNoInteractions(passwordEncoder);
+    }
+
+    @Test
+    void updateOwnPasswordRejectsReusingTheStoredPassword() {
+        Staff staff = staff(28L, "reuse.user", true);
+        staff.setPassword("stored-password-hash");
+        when(staffRepository.findByUsername("reuse.user")).thenReturn(Optional.of(staff));
+        when(passwordEncoder.matches("Current1!", "stored-password-hash")).thenReturn(true);
+
+        assertThatThrownBy(() -> staffService.updateOwnPassword(
+                "reuse.user",
+                "Current1!",
+                "Current1!",
+                "Current1!"
+        ))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("New password must be different from your current password.");
+
+        verify(staffRepository, never()).save(staff);
+    }
+
+    @Test
+    void updateOwnPasswordEncodesAndSavesAValidNewPassword() {
+        Staff staff = staff(29L, "change.user", true);
+        staff.setPassword("stored-password-hash");
+        when(staffRepository.findByUsername("change.user")).thenReturn(Optional.of(staff));
+        when(passwordEncoder.matches("OldPassword1!", "stored-password-hash")).thenReturn(true);
+        when(passwordEncoder.matches("NewPassword2!", "stored-password-hash")).thenReturn(false);
+        when(passwordEncoder.encode("NewPassword2!")).thenReturn("new-stored-password-hash");
+
+        staffService.updateOwnPassword(
+                "change.user",
+                "OldPassword1!",
+                "NewPassword2!",
+                "NewPassword2!"
+        );
+
+        assertThat(staff.getPassword()).isEqualTo("new-stored-password-hash");
+        verify(staffRepository).save(staff);
+    }
+
     private Staff staff(Long staffId, String username, boolean active) {
         Staff staff = new Staff();
         staff.setStaffId(staffId);

@@ -1,5 +1,7 @@
 package com.fyp.bloodinventory.service;
 
+import com.fyp.bloodinventory.config.PasswordHashSupport;
+import com.fyp.bloodinventory.config.PasswordPolicy;
 import com.fyp.bloodinventory.dto.PasswordResetRequestResult;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,13 +16,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.HexFormat;
 
 @Service
 public class PasswordResetService {
@@ -35,6 +33,7 @@ public class PasswordResetService {
     private final ObjectProvider<JavaMailSender> mailSenderProvider;
     private final SecureRandom secureRandom = new SecureRandom();
     private final int codeMinutes;
+    private final int cooldownSeconds;
     private final String mailHost;
     private final String mailFrom;
     private final String mailUsername;
@@ -46,6 +45,7 @@ public class PasswordResetService {
                                 SystemNotificationService notificationService,
                                 ObjectProvider<JavaMailSender> mailSenderProvider,
                                 @Value("${app.password-reset.code-minutes:${app.password-reset.token-minutes:10}}") int codeMinutes,
+                                @Value("${app.password-reset.cooldown-seconds:60}") int cooldownSeconds,
                                 @Value("${spring.mail.host:}") String mailHost,
                                 @Value("${spring.mail.from:}") String mailFrom,
                                 @Value("${spring.mail.username:}") String mailUsername,
@@ -56,6 +56,7 @@ public class PasswordResetService {
         this.notificationService = notificationService;
         this.mailSenderProvider = mailSenderProvider;
         this.codeMinutes = Math.max(5, codeMinutes);
+        this.cooldownSeconds = Math.max(30, cooldownSeconds);
         this.mailHost = mailHost;
         this.mailFrom = mailFrom;
         this.mailUsername = mailUsername;
@@ -79,7 +80,7 @@ public class PasswordResetService {
         return createVerificationCode(account, sourceIp);
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = InvalidVerificationCodeException.class)
     public void resetPasswordWithCode(String username,
                                       String email,
                                       String icNumber,
@@ -91,13 +92,17 @@ public class PasswordResetService {
         String normalizedIcNumber = requireText(icNumber, "Please enter your IC number.");
         StaffAccount account = findActiveAccountByIdentity(normalizedUsername, normalizedEmail, normalizedIcNumber);
         if (account == null) {
-            throw new RuntimeException("Verification code is invalid or expired.");
+            throw new InvalidVerificationCodeException();
         }
 
         completeResetWithCode(account, verificationCode, newPassword, confirmPassword);
     }
 
     private PasswordResetRequestResult createVerificationCode(StaffAccount account, String sourceIp) {
+        if (recentRequestExists(account.staffId())) {
+            return new PasswordResetRequestResult(GENERIC_REQUEST_MESSAGE, true, null);
+        }
+
         JavaMailSender mailSender = requireMailSender();
         auditContextService.applyCurrentContext();
 
@@ -114,7 +119,7 @@ public class PasswordResetService {
                 VALUES (?, ?, ?, ?)
                 """,
                 account.staffId(),
-                verificationCodeHash(account.staffId(), code),
+                passwordEncoder.encode(resetMaterial(account.staffId(), code)),
                 Timestamp.valueOf(LocalDateTime.now().plusMinutes(codeMinutes)),
                 truncate(sourceIp, 80));
 
@@ -155,9 +160,9 @@ public class PasswordResetService {
         );
 
         return new PasswordResetRequestResult(
-                "A verification code has been sent to " + maskEmail(account.email()) + ".",
+                GENERIC_REQUEST_MESSAGE,
                 true,
-                maskEmail(account.email())
+                null
         );
     }
 
@@ -166,16 +171,25 @@ public class PasswordResetService {
                                        String newPassword,
                                        String confirmPassword) {
         String normalizedCode = requireVerificationCode(verificationCode);
-        String normalizedNewPassword = requirePassword(newPassword);
-        String normalizedConfirmPassword = requirePassword(confirmPassword);
+        String normalizedNewPassword = PasswordPolicy.requireStrongPassword(newPassword);
+        String normalizedConfirmPassword = requireConfirmation(confirmPassword);
         if (!normalizedNewPassword.equals(normalizedConfirmPassword)) {
             throw new RuntimeException("New password and confirmation do not match.");
         }
-
         auditContextService.applyCurrentContext();
-        ResetToken resetToken = findUsableCode(account.staffId(), verificationCodeHash(account.staffId(), normalizedCode));
+        ResetToken resetToken = findUsableCode(account.staffId());
         if (resetToken == null) {
-            throw new RuntimeException("Verification code is invalid or expired.");
+            throw new InvalidVerificationCodeException();
+        }
+        if (!passwordEncoder.matches(resetMaterial(account.staffId(), normalizedCode), resetToken.tokenHash())) {
+            recordInvalidCodeAttempt(resetToken);
+            throw new InvalidVerificationCodeException();
+        }
+
+        String storedPassword = PasswordHashSupport.normalizeStoredPassword(account.password());
+        if (PasswordHashSupport.isBcryptHash(storedPassword)
+                && passwordEncoder.matches(normalizedNewPassword, storedPassword)) {
+            throw new RuntimeException("New password must be different from the current password.");
         }
 
         String encodedPassword = passwordEncoder.encode(normalizedNewPassword);
@@ -192,6 +206,14 @@ public class PasswordResetService {
                 WHERE token_id = ?
                   AND used_at IS NULL
                 """, resetToken.tokenId());
+        jdbcTemplate.update("""
+                UPDATE staff_login_session
+                SET status = 'ENDED',
+                    ended_at = CURRENT_TIMESTAMP,
+                    end_reason = 'PASSWORD_RESET'
+                WHERE LOWER(username) = LOWER(?)
+                  AND status = 'ACTIVE'
+                """, account.username());
 
         notificationService.record(
                 "Password Reset",
@@ -204,7 +226,7 @@ public class PasswordResetService {
     private StaffAccount findActiveAccountByIdentity(String username, String email, String icNumber) {
         try {
             return jdbcTemplate.queryForObject("""
-                    SELECT staff_id, username, email, full_name
+                    SELECT staff_id, username, email, full_name, password
                     FROM staff
                     WHERE LOWER(username) = LOWER(?)
                       AND LOWER(email) = LOWER(?)
@@ -214,29 +236,59 @@ public class PasswordResetService {
                     rs.getLong("staff_id"),
                     rs.getString("username"),
                     rs.getString("email"),
-                    rs.getString("full_name")
+                    rs.getString("full_name"),
+                    rs.getString("password")
             ), username, email, icNumber);
         } catch (EmptyResultDataAccessException ex) {
             return null;
         }
     }
 
-    private ResetToken findUsableCode(Long staffId, String codeHash) {
+    private ResetToken findUsableCode(Long staffId) {
         try {
             return jdbcTemplate.queryForObject("""
-                    SELECT t.token_id
+                    SELECT t.token_id, t.token_hash, t.attempt_count
                     FROM staff_password_reset_token t
                     JOIN staff s ON s.staff_id = t.staff_id
                     WHERE t.staff_id = ?
-                      AND t.token_hash = ?
                       AND t.used_at IS NULL
                       AND t.expires_at > CURRENT_TIMESTAMP
+                      AND t.attempt_count < 5
                       AND s.is_active = TRUE
+                    ORDER BY t.requested_at DESC
+                    LIMIT 1
                     FOR UPDATE
-                    """, (rs, rowNum) -> new ResetToken(rs.getLong("token_id")), staffId, codeHash);
+                    """, (rs, rowNum) -> new ResetToken(
+                    rs.getLong("token_id"),
+                    rs.getString("token_hash"),
+                    rs.getInt("attempt_count")
+            ), staffId);
         } catch (EmptyResultDataAccessException ex) {
             return null;
         }
+    }
+
+    private void recordInvalidCodeAttempt(ResetToken resetToken) {
+        int nextAttemptCount = resetToken.attemptCount() + 1;
+        jdbcTemplate.update("""
+                UPDATE staff_password_reset_token
+                SET attempt_count = ?,
+                    used_at = CASE WHEN ? >= 5 THEN CURRENT_TIMESTAMP ELSE used_at END
+                WHERE token_id = ?
+                  AND used_at IS NULL
+                """, nextAttemptCount, nextAttemptCount, resetToken.tokenId());
+    }
+
+    private boolean recentRequestExists(Long staffId) {
+        Boolean exists = jdbcTemplate.queryForObject("""
+                SELECT EXISTS (
+                    SELECT 1
+                    FROM staff_password_reset_token
+                    WHERE staff_id = ?
+                      AND requested_at > CURRENT_TIMESTAMP - (? * INTERVAL '1 second')
+                )
+                """, Boolean.class, staffId, cooldownSeconds);
+        return Boolean.TRUE.equals(exists);
     }
 
     private JavaMailSender requireMailSender() {
@@ -283,37 +335,13 @@ public class PasswordResetService {
         return String.valueOf(100000 + secureRandom.nextInt(900000));
     }
 
-    private String verificationCodeHash(Long staffId, String code) {
-        return sha256Hex(staffId + ":" + code);
-    }
-
-    private String sha256Hex(String value) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            return HexFormat.of().formatHex(digest.digest(value.getBytes(StandardCharsets.UTF_8)));
-        } catch (NoSuchAlgorithmException ex) {
-            throw new IllegalStateException("SHA-256 is not available.", ex);
-        }
+    private String resetMaterial(Long staffId, String code) {
+        return staffId + ":" + code;
     }
 
     private String displayName(StaffAccount account) {
         String fullName = trimToNull(account.fullName());
         return fullName == null ? account.username() : fullName;
-    }
-
-    private String maskEmail(String email) {
-        String normalized = trimToNull(email);
-        if (normalized == null || !normalized.contains("@")) {
-            return "the registered email";
-        }
-
-        String[] parts = normalized.split("@", 2);
-        String local = parts[0];
-        String domain = parts[1];
-        String visibleLocal = local.length() <= 2
-                ? local.substring(0, 1)
-                : local.substring(0, 2);
-        return visibleLocal + "***@" + domain;
     }
 
     private String requireVerificationCode(String value) {
@@ -324,12 +352,11 @@ public class PasswordResetService {
         return normalized;
     }
 
-    private String requirePassword(String value) {
-        String normalized = requireText(value, "Please enter the new password.");
-        if (normalized.length() < 8) {
-            throw new RuntimeException("New password must contain at least 8 characters.");
+    private String requireConfirmation(String value) {
+        if (value == null || value.isBlank()) {
+            throw new RuntimeException("Please confirm the new password.");
         }
-        return normalized;
+        return value;
     }
 
     private String requireText(String value, String message) {
@@ -356,9 +383,15 @@ public class PasswordResetService {
         return normalized.substring(0, maxLength);
     }
 
-    private record StaffAccount(Long staffId, String username, String email, String fullName) {
+    private record StaffAccount(Long staffId, String username, String email, String fullName, String password) {
     }
 
-    private record ResetToken(Long tokenId) {
+    private record ResetToken(Long tokenId, String tokenHash, int attemptCount) {
+    }
+
+    private static final class InvalidVerificationCodeException extends RuntimeException {
+        private InvalidVerificationCodeException() {
+            super("Verification code is invalid or expired.");
+        }
     }
 }

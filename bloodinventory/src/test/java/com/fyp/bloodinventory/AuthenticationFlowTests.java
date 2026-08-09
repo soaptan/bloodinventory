@@ -24,8 +24,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -52,21 +54,29 @@ class AuthenticationFlowTests {
 
     @Test
     void manualLogoutAllowsCleanSubsequentLogin() throws Exception {
-        MvcResult firstLogin = login()
-                .andExpect(expect(status().is3xxRedirection()))
-                .andExpect(expect(redirectedUrl("/admin/dashboard")))
-                .andReturn();
-        MockHttpSession session = (MockHttpSession) firstLogin.getRequest().getSession(false);
+        cleanupAuthenticationTestAccounts();
+        String username = "auth.test." + UUID.randomUUID().toString().replace("-", "").substring(0, 16);
+        createTestAdministrator(username);
+        try {
+            MvcResult firstLogin = login(username)
+                    .andExpect(expect(status().is3xxRedirection()))
+                    .andExpect(expect(redirectedUrl("/admin/dashboard")))
+                    .andReturn();
+            MockHttpSession session = (MockHttpSession) firstLogin.getRequest().getSession(false);
 
-        mockMvc.perform(post("/logout")
-                        .with(csrf())
-                        .session(session))
-                .andExpect(expect(status().is3xxRedirection()))
-                .andExpect(expect(redirectedUrl("/login?logout")));
+            mockMvc.perform(post("/logout")
+                            .with(csrf())
+                            .session(session))
+                    .andExpect(expect(status().is3xxRedirection()))
+                    .andExpect(expect(redirectedUrl("/login?logout")));
 
-        login()
-                .andExpect(expect(status().is3xxRedirection()))
-                .andExpect(expect(redirectedUrl("/admin/dashboard")));
+            login(username)
+                    .andExpect(expect(status().is3xxRedirection()))
+                    .andExpect(expect(redirectedUrl("/admin/dashboard")));
+        } finally {
+            jdbcTemplate.update("DELETE FROM staff_login_session WHERE username = ?", username);
+            jdbcTemplate.update("DELETE FROM staff WHERE username = ?", username);
+        }
     }
 
     @Test
@@ -90,13 +100,67 @@ class AuthenticationFlowTests {
     }
 
     @Test
-    void blankLoginShowsValidationErrorInsteadOfAuthenticating() throws Exception {
+    void blankLoginUsesGenericCredentialErrorInsteadOfAuthenticating() throws Exception {
         mockMvc.perform(post("/login")
                         .with(csrf())
                         .param("username", " ")
                         .param("password", ""))
                 .andExpect(expect(status().is3xxRedirection()))
-                .andExpect(expect(redirectedUrl("/login?validation")));
+                .andExpect(expect(redirectedUrl("/login?error")));
+    }
+
+    @Test
+    void loginRejectsSqlInjectionShapedUsername() throws Exception {
+        mockMvc.perform(post("/login")
+                        .with(csrf())
+                        .param("username", "admin' OR '1'='1")
+                        .param("password", "anything"))
+                .andExpect(expect(status().is3xxRedirection()))
+                .andExpect(expect(redirectedUrl("/login?error")));
+    }
+
+    @Test
+    void repeatedLoginFailuresAreThrottled() throws Exception {
+        String username = "missing." + UUID.randomUUID().toString().replace("-", "").substring(0, 16);
+        try {
+            for (int attempt = 1; attempt < 5; attempt++) {
+                mockMvc.perform(post("/login")
+                                .with(csrf())
+                                .param("username", username)
+                                .param("password", "WrongPassword1!"))
+                        .andExpect(expect(status().is3xxRedirection()))
+                        .andExpect(expect(redirectedUrl("/login?error")));
+            }
+
+            mockMvc.perform(post("/login")
+                            .with(csrf())
+                            .param("username", username)
+                            .param("password", "WrongPassword1!"))
+                    .andExpect(expect(status().is3xxRedirection()))
+                    .andExpect(expect(redirectedUrl("/login?throttled")))
+                    .andExpect(expect(header().string("Retry-After", "900")));
+
+            mockMvc.perform(post("/login")
+                            .with(csrf())
+                            .param("username", username)
+                            .param("password", "WrongPassword1!"))
+                    .andExpect(expect(status().is3xxRedirection()))
+                    .andExpect(expect(redirectedUrl("/login?throttled")));
+        } finally {
+            jdbcTemplate.update("DELETE FROM authentication_throttle");
+        }
+    }
+
+    @Test
+    void loginPageIncludesBrowserSecurityHeaders() throws Exception {
+        mockMvc.perform(get("/login"))
+                .andExpect(expect(status().isOk()))
+                .andExpect(expect(header().string("X-Content-Type-Options", "nosniff")))
+                .andExpect(expect(header().string("X-Frame-Options", "DENY")))
+                .andExpect(expect(header().string("Referrer-Policy", "same-origin")))
+                .andExpect(expect(header().string("Cross-Origin-Opener-Policy", "same-origin")))
+                .andExpect(expect(header().string("Content-Security-Policy",
+                        org.hamcrest.Matchers.containsString("object-src 'none'"))));
     }
 
     @Test
@@ -126,8 +190,8 @@ class AuthenticationFlowTests {
                         .param("email", "admin@bloodbank.my")
                         .param("icNumber", "850101-10-2001")
                         .param("verificationCode", "12ab")
-                        .param("newPassword", "validPassword123")
-                        .param("confirmPassword", "differentPassword123"))
+                        .param("newPassword", "ValidPassword123!")
+                        .param("confirmPassword", "DifferentPassword123!"))
                 .andExpect(expect(status().isOk()))
                 .andExpect(expect(content().string(org.hamcrest.Matchers.containsString("Enter the 6-digit verification code"))))
                 .andExpect(expect(content().string(org.hamcrest.Matchers.containsString("Passwords do not match"))));
@@ -172,6 +236,35 @@ class AuthenticationFlowTests {
             verify(mailSender).send(mailCaptor.capture());
             String code = extractResetCode(mailCaptor.getValue().getText());
             assertThat(code).isNotBlank();
+            String storedCodeHash = jdbcTemplate.queryForObject("""
+                    SELECT t.token_hash
+                    FROM staff_password_reset_token t
+                    JOIN staff s ON s.staff_id = t.staff_id
+                    WHERE s.username = ?
+                      AND t.used_at IS NULL
+                    """, String.class, username);
+            assertThat(storedCodeHash).startsWith("$2");
+
+            mockMvc.perform(post("/reset-password")
+                            .with(csrf())
+                            .param("username", username)
+                            .param("email", email)
+                            .param("icNumber", icNumber)
+                            .param("verificationCode", "000000")
+                            .param("newPassword", "NewPassword123!")
+                            .param("confirmPassword", "NewPassword123!"))
+                    .andExpect(expect(status().isOk()))
+                    .andExpect(expect(content().string(org.hamcrest.Matchers.containsString(
+                            "Verification code is invalid or expired"
+                    ))));
+            Integer attemptCount = jdbcTemplate.queryForObject("""
+                    SELECT t.attempt_count
+                    FROM staff_password_reset_token t
+                    JOIN staff s ON s.staff_id = t.staff_id
+                    WHERE s.username = ?
+                      AND t.used_at IS NULL
+                    """, Integer.class, username);
+            assertThat(attemptCount).isEqualTo(1);
 
             mockMvc.perform(post("/reset-password")
                             .with(csrf())
@@ -179,8 +272,8 @@ class AuthenticationFlowTests {
                             .param("email", email)
                             .param("icNumber", icNumber)
                             .param("verificationCode", code)
-                            .param("newPassword", "newPassword123")
-                            .param("confirmPassword", "newPassword123"))
+                            .param("newPassword", "NewPassword123!")
+                            .param("confirmPassword", "NewPassword123!"))
                     .andExpect(expect(status().isOk()))
                     .andExpect(expect(content().string(org.hamcrest.Matchers.containsString("Password reset successfully"))));
 
@@ -204,11 +297,36 @@ class AuthenticationFlowTests {
         }
     }
 
-    private org.springframework.test.web.servlet.ResultActions login() throws Exception {
+    private org.springframework.test.web.servlet.ResultActions login(String username) throws Exception {
         return mockMvc.perform(post("/login")
                 .with(csrf())
-                .param("username", "admin")
+                .param("username", username)
                 .param("password", "admin123"));
+    }
+
+    private void createTestAdministrator(String username) {
+        Long staffId = jdbcTemplate.queryForObject("""
+                INSERT INTO staff (
+                    staff_type, full_name, username, password, phone_no, ic_number,
+                    gender, email, is_active, is_locked, created_at, updated_at
+                )
+                VALUES (
+                    'BLOOD_ADMINISTRATOR', 'Authentication Test', ?,
+                    '$2a$10$gvxGGehUpTk5u9.8/KXbGeW0bRpZ068TwcbZpSbiEvGhxuUlPhOd6',
+                    '0100000000', '990101-10-9002', 'FEMALE', ?, TRUE, FALSE,
+                    CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+                )
+                RETURNING staff_id
+                """, Long.class, username, username + "@bloodbank.my");
+        jdbcTemplate.update("""
+                INSERT INTO blood_administrator (staff_id, department, created_at, updated_at)
+                VALUES (?, 'Test Security', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                """, staffId);
+    }
+
+    private void cleanupAuthenticationTestAccounts() {
+        jdbcTemplate.update("DELETE FROM staff_login_session WHERE username LIKE 'auth.test.%'");
+        jdbcTemplate.update("DELETE FROM staff WHERE username LIKE 'auth.test.%'");
     }
 
     private long countAuditAction(String actionType) {

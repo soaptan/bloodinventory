@@ -325,11 +325,6 @@
             background: #fafcff;
         }
 
-        .field.has-warning input[type="password"] {
-            border-color: #d97706;
-            box-shadow: 0 0 0 3.5px rgba(217, 119, 6, 0.11);
-        }
-
         .pw-input { padding-right: 46px !important; }
 
         .pw-toggle {
@@ -355,20 +350,6 @@
             color: var(--ink-35);
             line-height: 1.45;
         }
-
-        .hash-warning {
-            display: none;
-            margin-top: 6px;
-            padding: 9px 12px;
-            border-radius: var(--radius-sm);
-            background: #fffbeb;
-            border: 1px solid #fcd34d;
-            color: #92400e;
-            font-size: 12px;
-            font-weight: 500;
-            line-height: 1.5;
-        }
-        .hash-warning.show { display: block; }
 
         /* Remember / forgot row */
         .form-row {
