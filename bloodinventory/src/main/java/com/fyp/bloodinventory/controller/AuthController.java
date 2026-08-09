@@ -1,5 +1,6 @@
 package com.fyp.bloodinventory.controller;
 
+import com.fyp.bloodinventory.config.PasswordPolicy;
 import com.fyp.bloodinventory.dto.PasswordResetRequestResult;
 import com.fyp.bloodinventory.service.PasswordResetService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -216,8 +217,10 @@ public class AuthController {
         if (normalizedCode == null || !normalizedCode.matches("\\d{6}")) {
             errors.put("verificationCode", "Enter the 6-digit verification code.");
         }
-        if (password == null || password.length() < 8 || password.length() > 72) {
-            errors.put("newPassword", "Password must be between 8 and 72 characters.");
+        try {
+            PasswordPolicy.requireStrongPassword(password);
+        } catch (RuntimeException exception) {
+            errors.put("newPassword", exception.getMessage());
         }
         if (confirmation == null || confirmation.isEmpty()) {
             errors.put("confirmPassword", "Please confirm the new password.");
@@ -233,7 +236,12 @@ public class AuthController {
 
     private String safeErrorMessage(RuntimeException exception) {
         String message = normalize(exception.getMessage());
-        return message == null ? "The request could not be completed. Please try again." : message;
+        if (message != null && (message.startsWith("Verification code")
+                || message.startsWith("Password")
+                || message.startsWith("New password"))) {
+            return message;
+        }
+        return "The request could not be completed. Please try again later.";
     }
 
     private String normalize(String value) {
@@ -246,12 +254,6 @@ public class AuthController {
     }
 
     private String sourceIp(HttpServletRequest request) {
-        String forwardedFor = normalize(request.getHeader("X-Forwarded-For"));
-        if (forwardedFor != null) {
-            int commaIndex = forwardedFor.indexOf(',');
-            return commaIndex >= 0 ? forwardedFor.substring(0, commaIndex).trim() : forwardedFor;
-        }
-
         return request.getRemoteAddr();
     }
 }

@@ -63,24 +63,12 @@
             </div>
 
             <!-- Alerts -->
-            <div th:if="${param.inactive}" class="alert alert-error">
-                <svg class="alert-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                This staff account is inactive and cannot sign in.
-            </div>
-            <div th:if="${param.locked}" class="alert alert-error">
-                <svg class="alert-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                This account is locked. Please contact an administrator.
-            </div>
-            <div th:if="${param.hashPassword}" class="alert alert-error">
-                <svg class="alert-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                That looks like a stored hash. Enter the plain password, or reset this staff password.
-            </div>
             <div th:if="${param.error}" class="alert alert-error">
                 <svg class="alert-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                 Invalid username or password.
             </div>
-            <div th:if="${param.validation}" class="alert alert-error" role="alert">
-                Please enter both your username and password.
+            <div th:if="${param.throttled}" class="alert alert-error" role="alert">
+                Too many unsuccessful attempts. Wait a few minutes before trying again.
             </div>
             <div th:if="${param.session != null and param.session[0] == 'limit'}" class="alert alert-error">
                 <svg class="alert-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -111,7 +99,7 @@
                     <div class="input-wrap">
                         <input class="pw-input" type="password" id="password" name="password"
                                autocomplete="current-password"
-                               placeholder="Enter your password" required>
+                               placeholder="Enter your password" required maxlength="72">
                         <button type="button" class="pw-toggle" id="togglePassword" aria-label="Show password">
                             <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24"
                                  fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -121,17 +109,14 @@
                             </svg>
                         </button>
                     </div>
-                    <p class="field-hint">Enter the plain password, not the stored database value.</p>
-                    <div class="hash-warning" id="hashPasswordWarning" role="alert">
-                        This appears to be a password hash — it cannot be reversed to plain text. Reset the staff password if the plain password is unknown.
-                    </div>
+                    <p class="field-hint">Use your staff account password.</p>
                 </div>
 
                 <!-- Remember / Forgot -->
                 <div class="form-row">
                     <label class="remember-label" for="rememberCredentials">
                         <input type="checkbox" id="rememberCredentials">
-                        Remember me
+                        Remember username
                     </label>
                     <div class="forgot-row">
                         <a th:href="@{/forgot-username}">Forgot username?</a>
@@ -171,13 +156,10 @@
     const togglePassword    = document.getElementById('togglePassword');
     const usernameInput     = document.getElementById('username');
     const passwordInput     = document.getElementById('password');
-    const passwordGroup     = document.getElementById('passwordGroup');
-    const hashWarning       = document.getElementById('hashPasswordWarning');
     const loginForm         = document.getElementById('loginForm');
     const rememberCheck     = document.getElementById('rememberCredentials');
     const eyeIcon           = document.getElementById('eyeIcon');
     const STORE_KEY         = 'bims_remembered';
-    const BCRYPT_RE         = /^(\{bcrypt\})?\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/;
 
     /* ── Remember me ─────────────────────────────── */
     function loadRemembered() {
@@ -186,7 +168,6 @@
             if (!d) return;
             usernameInput.value = d.username || '';
             rememberCheck.checked = !!d.username;
-            updateHashWarning();
         } catch { localStorage.removeItem(STORE_KEY); }
     }
 
@@ -199,22 +180,8 @@
         if (!rememberCheck.checked) localStorage.removeItem(STORE_KEY);
     });
 
-    /* ── Hash warning ────────────────────────────── */
-    function updateHashWarning() {
-        const bad = BCRYPT_RE.test(passwordInput.value.trim());
-        hashWarning.classList.toggle('show', bad);
-        passwordGroup.classList.toggle('has-warning', bad);
-        return bad;
-    }
-
-    passwordInput.addEventListener('input', updateHashWarning);
-    passwordInput.addEventListener('paste', () => setTimeout(updateHashWarning, 0));
-
     /* ── Form submit ─────────────────────────────── */
-    loginForm.addEventListener('submit', e => {
-        if (updateHashWarning()) { e.preventDefault(); passwordInput.focus(); return; }
-        saveRemembered();
-    });
+    loginForm.addEventListener('submit', saveRemembered);
 
     /* ── Password toggle ─────────────────────────── */
     togglePassword.addEventListener('click', () => {
