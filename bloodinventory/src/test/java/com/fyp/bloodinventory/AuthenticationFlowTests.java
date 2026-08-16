@@ -452,6 +452,48 @@ class AuthenticationFlowTests {
     }
 
     @Test
+    void authenticatedPasswordRecoveryAuditRedactsEmailAndIcNumber() throws Exception {
+        cleanupAuthenticationTestAccounts();
+        String username = "auth.test." + UUID.randomUUID().toString().replace("-", "").substring(0, 16);
+        String email = username + "@bloodbank.my";
+        String icNumber = "990101-10-9002";
+        createTestAdministrator(username);
+
+        try {
+            MvcResult loginResult = login(username)
+                    .andExpect(expect(status().is3xxRedirection()))
+                    .andReturn();
+            MockHttpSession session = (MockHttpSession) loginResult.getRequest().getSession(false);
+            Long latestAuditId = jdbcTemplate.queryForObject(
+                    "SELECT COALESCE(MAX(audit_id), 0) FROM audit_trail", Long.class);
+
+            mockMvc.perform(post("/forgot-password")
+                            .session(session)
+                            .with(csrf())
+                            .param("username", username)
+                            .param("email", email)
+                            .param("icNumber", icNumber))
+                    .andExpect(expect(status().is3xxRedirection()))
+                    .andExpect(expect(redirectedUrl("/reset-password")));
+
+            List<String> recoveryAuditContexts = jdbcTemplate.queryForList("""
+                    SELECT process_context::TEXT
+                    FROM audit_trail
+                    WHERE audit_id > ?
+                      AND request_path = '/forgot-password'
+                    ORDER BY audit_id
+                    """, String.class, latestAuditId);
+            assertThat(recoveryAuditContexts).isNotEmpty();
+            assertThat(recoveryAuditContexts)
+                    .allSatisfy(context -> assertThat(context)
+                            .doesNotContain(email)
+                            .doesNotContain(icNumber));
+        } finally {
+            cleanupAuthenticationTestAccounts();
+        }
+    }
+
+    @Test
     void concurrentPasswordResetSubmissionsConsumeApprovalOnlyOnce() throws Exception {
         cleanupPasswordResetTestAccounts();
         String username = "reset.test." + UUID.randomUUID();
