@@ -12,9 +12,16 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultMatcher;
 
-import java.util.Objects;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -227,6 +234,7 @@ class AuthenticationFlowTests {
                     .andExpect(expect(content().string(containsString("name=\"newPassword\""))))
                     .andExpect(expect(content().string(containsString("name=\"confirmPassword\""))))
                     .andExpect(expect(content().string(containsString("New password requirements"))))
+                    .andExpect(expect(content().string(containsString("maximum 72 bytes"))))
                     .andExpect(expect(content().string(not(containsString("name=\"username\"")))))
                     .andExpect(expect(content().string(not(containsString("name=\"email\"")))))
                     .andExpect(expect(content().string(not(containsString("name=\"icNumber\"")))));
@@ -387,6 +395,158 @@ class AuthenticationFlowTests {
         } finally {
             jdbcTemplate.update("DELETE FROM staff WHERE username = ?", username);
         }
+    }
+
+    @Test
+    void repeatedPasswordRecoveryMismatchesAreThrottledWithoutLoggingIdentityDetails() throws Exception {
+        cleanupPasswordResetTestAccounts();
+        jdbcTemplate.update("DELETE FROM authentication_throttle");
+        String username = "reset.test." + UUID.randomUUID();
+        String email = username + "@bloodbank.my";
+        String icNumber = "990101-10-9004";
+        String wrongIcNumber = "990101-10-9999";
+        createPasswordResetTestAccount(
+                username, email, icNumber, passwordEncoder.encode("OldPassword123!"));
+
+        try {
+            for (int attempt = 1; attempt < 5; attempt++) {
+                mockMvc.perform(post("/forgot-password")
+                                .with(csrf())
+                                .param("username", username)
+                                .param("email", email)
+                                .param("icNumber", wrongIcNumber))
+                        .andExpect(expect(status().isOk()));
+            }
+
+            mockMvc.perform(post("/forgot-password")
+                            .with(csrf())
+                            .param("username", username)
+                            .param("email", email)
+                            .param("icNumber", wrongIcNumber))
+                    .andExpect(expect(status().isOk()))
+                    .andExpect(expect(header().string("Retry-After", "900")))
+                    .andExpect(expect(content().string(containsString(
+                            "The request could not be completed. Please try again later."
+                    ))));
+
+            mockMvc.perform(post("/forgot-password")
+                            .with(csrf())
+                            .param("username", username)
+                            .param("email", email)
+                            .param("icNumber", icNumber))
+                    .andExpect(expect(status().isOk()))
+                    .andExpect(expect(header().string("Retry-After", "900")))
+                    .andExpect(expect(content().string(containsString(
+                            "The request could not be completed. Please try again later."
+                    ))));
+
+            Map<String, Object> latestFailure = latestAuditAction("PASSWORD_RECOVERY_FAILURE");
+            assertThat(latestFailure.get("process_context")).asString()
+                    .doesNotContain(email)
+                    .doesNotContain(icNumber)
+                    .doesNotContain(wrongIcNumber);
+        } finally {
+            jdbcTemplate.update("DELETE FROM authentication_throttle");
+            cleanupPasswordResetTestAccount(username);
+        }
+    }
+
+    @Test
+    void concurrentPasswordResetSubmissionsConsumeApprovalOnlyOnce() throws Exception {
+        cleanupPasswordResetTestAccounts();
+        String username = "reset.test." + UUID.randomUUID();
+        String email = username + "@bloodbank.my";
+        String icNumber = "990101-10-9005";
+        createPasswordResetTestAccount(
+                username, email, icNumber, passwordEncoder.encode("OldPassword123!"));
+
+        try {
+            MockHttpSession resetSession = verifyPasswordResetIdentity(username, email, icNumber);
+            int requestCount = 8;
+            CountDownLatch ready = new CountDownLatch(requestCount);
+            CountDownLatch start = new CountDownLatch(1);
+            List<Future<MvcResult>> futures = new ArrayList<>();
+
+            try (ExecutorService executor = Executors.newFixedThreadPool(requestCount)) {
+                for (int requestNumber = 1; requestNumber <= requestCount; requestNumber++) {
+                    String password = "ConcurrentPassword" + requestNumber + "!";
+                    futures.add(executor.submit(() -> submitConcurrentPasswordReset(
+                            resetSession, password, ready, start)));
+                }
+
+                assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
+                start.countDown();
+
+                List<MvcResult> results = new ArrayList<>();
+                for (Future<MvcResult> future : futures) {
+                    results.add(future.get(30, TimeUnit.SECONDS));
+                }
+
+                assertThat(results.stream()
+                        .filter(result -> result.getResponse().getStatus() == 200)
+                        .count()).isEqualTo(1);
+                assertThat(results.stream()
+                        .filter(result -> result.getResponse().getStatus() >= 300
+                                && result.getResponse().getStatus() < 400)
+                        .count()).isEqualTo(requestCount - 1L);
+            }
+
+            Integer resetNotifications = jdbcTemplate.queryForObject("""
+                    SELECT COUNT(*)
+                    FROM system_activity_notification
+                    WHERE action_type = 'RESET_COMPLETE'
+                      AND actor_username = ?
+                    """, Integer.class, username);
+            assertThat(resetNotifications).isEqualTo(1);
+        } finally {
+            cleanupPasswordResetTestAccount(username);
+        }
+    }
+
+    @Test
+    void currentPasswordRejectionKeepsFreshApprovalForAnotherAttempt() throws Exception {
+        cleanupPasswordResetTestAccounts();
+        String username = "reset.test." + UUID.randomUUID();
+        String email = username + "@bloodbank.my";
+        String icNumber = "990101-10-9006";
+        createPasswordResetTestAccount(
+                username, email, icNumber, passwordEncoder.encode("OldPassword123!"));
+
+        try {
+            MockHttpSession resetSession = verifyPasswordResetIdentity(username, email, icNumber);
+
+            mockMvc.perform(post("/reset-password")
+                            .session(resetSession)
+                            .with(csrf())
+                            .param("newPassword", "OldPassword123!")
+                            .param("confirmPassword", "OldPassword123!"))
+                    .andExpect(expect(status().isOk()))
+                    .andExpect(expect(content().string(containsString(
+                            "New password must be different from the current password."
+                    ))));
+
+            mockMvc.perform(get("/reset-password").session(resetSession))
+                    .andExpect(expect(status().isOk()));
+        } finally {
+            cleanupPasswordResetTestAccount(username);
+        }
+    }
+
+    private MvcResult submitConcurrentPasswordReset(MockHttpSession session,
+                                                    String password,
+                                                    CountDownLatch ready,
+                                                    CountDownLatch start) throws Exception {
+        ready.countDown();
+        if (!start.await(5, TimeUnit.SECONDS)) {
+            throw new IllegalStateException("Concurrent reset requests did not start together.");
+        }
+
+        return mockMvc.perform(post("/reset-password")
+                        .session(session)
+                        .with(csrf())
+                        .param("newPassword", password)
+                        .param("confirmPassword", password))
+                .andReturn();
     }
 
     private MockHttpSession verifyPasswordResetIdentity(String username,

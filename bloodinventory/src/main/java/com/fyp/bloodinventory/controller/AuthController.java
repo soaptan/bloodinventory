@@ -1,8 +1,11 @@
 package com.fyp.bloodinventory.controller;
 
 import com.fyp.bloodinventory.config.PasswordPolicy;
+import com.fyp.bloodinventory.service.AuditEventService;
+import com.fyp.bloodinventory.service.LoginAttemptService;
 import com.fyp.bloodinventory.service.PasswordResetService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Controller;
@@ -24,14 +27,22 @@ public class AuthController {
     private static final String PASSWORD_RESET_STAFF_ID = "passwordResetStaffId";
     private static final String PASSWORD_RESET_VERIFIED_AT = "passwordResetVerifiedAt";
     private static final long PASSWORD_RESET_VERIFICATION_TTL_MILLIS = 600_000L;
+    private static final String GENERIC_PASSWORD_RECOVERY_ERROR =
+            "The request could not be completed. Please try again later.";
 
     private final JdbcTemplate jdbcTemplate;
     private final PasswordResetService passwordResetService;
+    private final LoginAttemptService loginAttemptService;
+    private final AuditEventService auditEventService;
 
     public AuthController(JdbcTemplate jdbcTemplate,
-                          PasswordResetService passwordResetService) {
+                          PasswordResetService passwordResetService,
+                          LoginAttemptService loginAttemptService,
+                          AuditEventService auditEventService) {
         this.jdbcTemplate = jdbcTemplate;
         this.passwordResetService = passwordResetService;
+        this.loginAttemptService = loginAttemptService;
+        this.auditEventService = auditEventService;
     }
 
     @GetMapping("/login")
@@ -106,6 +117,7 @@ public class AuthController {
                                        @RequestParam("email") String email,
                                        @RequestParam("icNumber") String icNumber,
                                        HttpServletRequest request,
+                                       HttpServletResponse response,
                                        Model model) {
         HttpSession session = request.getSession();
         clearPasswordResetVerification(session);
@@ -113,10 +125,29 @@ public class AuthController {
         String normalizedUsername = normalize(username);
         String normalizedEmail = normalize(email);
         String normalizedIcNumber = normalize(icNumber);
+        String sourceAddress = sourceIp(request);
+
+        if (loginAttemptService.isPasswordRecoveryBlocked(normalizedUsername, sourceAddress)) {
+            markPasswordRecoveryThrottled(response);
+            auditEventService.recordPasswordRecoveryAttempt(
+                    request, normalizedUsername, "PASSWORD_RECOVERY_THROTTLED", false);
+            model.addAttribute("errorMessage", GENERIC_PASSWORD_RECOVERY_ERROR);
+            preservePasswordResetInputs(model, normalizedUsername, normalizedEmail, normalizedIcNumber);
+            return "forgot-password";
+        }
 
         Map<String, String> fieldErrors = validateRecoveryIdentity(
                 normalizedUsername, normalizedEmail, normalizedIcNumber, true);
         if (!fieldErrors.isEmpty()) {
+            boolean blocked = loginAttemptService.recordRejectedPasswordRecoveryInput(sourceAddress);
+            auditEventService.recordPasswordRecoveryAttempt(
+                    request, normalizedUsername, "INVALID_PASSWORD_RECOVERY_INPUT", false);
+            if (blocked) {
+                markPasswordRecoveryThrottled(response);
+                model.addAttribute("errorMessage", GENERIC_PASSWORD_RECOVERY_ERROR);
+                preservePasswordResetInputs(model, normalizedUsername, normalizedEmail, normalizedIcNumber);
+                return "forgot-password";
+            }
             addValidationErrors(model, fieldErrors);
             preservePasswordResetInputs(model, normalizedUsername, normalizedEmail, normalizedIcNumber);
             return "forgot-password";
@@ -126,17 +157,28 @@ public class AuthController {
             Long staffId = passwordResetService.verifyIdentity(
                     normalizedUsername, normalizedEmail, normalizedIcNumber).orElse(null);
             if (staffId == null) {
-                model.addAttribute("errorMessage", "The request could not be completed. Please try again later.");
+                boolean blocked = loginAttemptService.recordPasswordRecoveryFailure(
+                        normalizedUsername, sourceAddress);
+                auditEventService.recordPasswordRecoveryAttempt(
+                        request, normalizedUsername, "IDENTITY_MISMATCH", false);
+                if (blocked) {
+                    markPasswordRecoveryThrottled(response);
+                }
+                model.addAttribute("errorMessage", GENERIC_PASSWORD_RECOVERY_ERROR);
                 preservePasswordResetInputs(model, normalizedUsername, normalizedEmail, normalizedIcNumber);
                 return "forgot-password";
             }
 
+            loginAttemptService.recordPasswordRecoverySuccess(normalizedUsername, sourceAddress);
+            auditEventService.recordPasswordRecoveryAttempt(
+                    request, normalizedUsername, "IDENTITY_VERIFIED", true);
             request.changeSessionId();
-            session.setAttribute(PASSWORD_RESET_STAFF_ID, staffId);
-            session.setAttribute(PASSWORD_RESET_VERIFIED_AT, System.currentTimeMillis());
+            storePasswordResetApproval(session, staffId, System.currentTimeMillis());
             return "redirect:/reset-password";
         } catch (RuntimeException e) {
-            model.addAttribute("errorMessage", safeErrorMessage(e));
+            auditEventService.recordPasswordRecoveryAttempt(
+                    request, normalizedUsername, "PASSWORD_RECOVERY_ERROR", false);
+            model.addAttribute("errorMessage", GENERIC_PASSWORD_RECOVERY_ERROR);
             preservePasswordResetInputs(model, normalizedUsername, normalizedEmail, normalizedIcNumber);
             return "forgot-password";
         }
@@ -156,8 +198,7 @@ public class AuthController {
                                 HttpServletRequest request,
                                 Model model) {
         HttpSession session = request.getSession(false);
-        Long staffId = verifiedPasswordResetStaffId(session);
-        if (staffId == null) {
+        if (verifiedPasswordResetApproval(session) == null) {
             return "redirect:/forgot-password?verificationRequired";
         }
 
@@ -168,15 +209,20 @@ public class AuthController {
             return "reset-password";
         }
 
+        PasswordResetApproval approval = claimPasswordResetApproval(session);
+        if (approval == null) {
+            return "redirect:/forgot-password?verificationRequired";
+        }
+
         try {
             passwordResetService.resetPasswordForVerifiedStaff(
-                    staffId, newPassword, confirmPassword, sourceIp(request));
-            clearPasswordResetVerification(session);
+                    approval.staffId(), newPassword, confirmPassword, sourceIp(request));
             model.addAttribute(
                     "successMessage",
                     "Password reset successfully. You can sign in with the new password."
             );
         } catch (RuntimeException exception) {
+            restorePasswordResetApproval(session, approval);
             model.addAttribute("errorMessage", safeErrorMessage(exception));
         }
         return "reset-password";
@@ -232,32 +278,94 @@ public class AuthController {
     }
 
     private Long verifiedPasswordResetStaffId(HttpSession session) {
+        PasswordResetApproval approval = verifiedPasswordResetApproval(session);
+        return approval == null ? null : approval.staffId();
+    }
+
+    private PasswordResetApproval verifiedPasswordResetApproval(HttpSession session) {
         if (session == null) {
             return null;
         }
 
+        synchronized (session) {
+            return passwordResetApprovalWithinLock(session);
+        }
+    }
+
+    private PasswordResetApproval claimPasswordResetApproval(HttpSession session) {
+        if (session == null) {
+            return null;
+        }
+
+        synchronized (session) {
+            PasswordResetApproval approval = passwordResetApprovalWithinLock(session);
+            if (approval != null) {
+                clearPasswordResetVerificationWithinLock(session);
+            }
+            return approval;
+        }
+    }
+
+    private void restorePasswordResetApproval(HttpSession session, PasswordResetApproval approval) {
+        if (session == null || approval == null || !isFreshPasswordResetApproval(approval)) {
+            return;
+        }
+
+        synchronized (session) {
+            if (session.getAttribute(PASSWORD_RESET_STAFF_ID) == null
+                    && session.getAttribute(PASSWORD_RESET_VERIFIED_AT) == null) {
+                storePasswordResetApprovalWithinLock(
+                        session, approval.staffId(), approval.verifiedAt());
+            }
+        }
+    }
+
+    private void storePasswordResetApproval(HttpSession session, Long staffId, long verifiedAt) {
+        synchronized (session) {
+            storePasswordResetApprovalWithinLock(session, staffId, verifiedAt);
+        }
+    }
+
+    private void storePasswordResetApprovalWithinLock(HttpSession session, Long staffId, long verifiedAt) {
+        session.setAttribute(PASSWORD_RESET_STAFF_ID, staffId);
+        session.setAttribute(PASSWORD_RESET_VERIFIED_AT, verifiedAt);
+    }
+
+    private PasswordResetApproval passwordResetApprovalWithinLock(HttpSession session) {
         Object staffIdValue = session.getAttribute(PASSWORD_RESET_STAFF_ID);
         Object verifiedAtValue = session.getAttribute(PASSWORD_RESET_VERIFIED_AT);
         if (!(staffIdValue instanceof Number staffId)
                 || !(verifiedAtValue instanceof Number verifiedAt)) {
-            clearPasswordResetVerification(session);
+            clearPasswordResetVerificationWithinLock(session);
             return null;
         }
 
-        long ageMillis = System.currentTimeMillis() - verifiedAt.longValue();
-        if (staffId.longValue() <= 0
-                || ageMillis < 0
-                || ageMillis > PASSWORD_RESET_VERIFICATION_TTL_MILLIS) {
-            clearPasswordResetVerification(session);
+        PasswordResetApproval approval = new PasswordResetApproval(
+                staffId.longValue(), verifiedAt.longValue());
+        if (!isFreshPasswordResetApproval(approval)) {
+            clearPasswordResetVerificationWithinLock(session);
             return null;
         }
-        return staffId.longValue();
+        return approval;
+    }
+
+    private boolean isFreshPasswordResetApproval(PasswordResetApproval approval) {
+        long ageMillis = System.currentTimeMillis() - approval.verifiedAt();
+        return approval.staffId() > 0
+                && ageMillis >= 0
+                && ageMillis <= PASSWORD_RESET_VERIFICATION_TTL_MILLIS;
     }
 
     private void clearPasswordResetVerification(HttpSession session) {
         if (session == null) {
             return;
         }
+        synchronized (session) {
+            clearPasswordResetVerificationWithinLock(session);
+        }
+    }
+
+    private void clearPasswordResetVerificationWithinLock(HttpSession session) {
         session.removeAttribute(PASSWORD_RESET_STAFF_ID);
         session.removeAttribute(PASSWORD_RESET_VERIFIED_AT);
     }
@@ -268,7 +376,7 @@ public class AuthController {
                 || message.startsWith("New password"))) {
             return message;
         }
-        return "The request could not be completed. Please try again later.";
+        return GENERIC_PASSWORD_RECOVERY_ERROR;
     }
 
     private String normalize(String value) {
@@ -282,5 +390,12 @@ public class AuthController {
 
     private String sourceIp(HttpServletRequest request) {
         return request.getRemoteAddr();
+    }
+
+    private void markPasswordRecoveryThrottled(HttpServletResponse response) {
+        response.setHeader("Retry-After", String.valueOf(loginAttemptService.retryAfterSeconds()));
+    }
+
+    private record PasswordResetApproval(Long staffId, long verifiedAt) {
     }
 }

@@ -106,6 +106,30 @@ public class AuditEventService {
         );
     }
 
+    public void recordPasswordRecoveryAttempt(HttpServletRequest request,
+                                              String attemptedUsername,
+                                              String reason,
+                                              boolean successful) {
+        Map<String, Object> context = new LinkedHashMap<>();
+        context.put("path", request.getRequestURI());
+        context.put("method", request.getMethod());
+        context.put("remote_address", request.getRemoteAddr());
+        context.put("result", successful ? "success" : "failed");
+        context.put("attempted_username", safeText(attemptedUsername));
+        context.put("reason", safeText(reason));
+        record(
+                "SECURITY",
+                "PASSWORD_RECOVERY",
+                successful ? "PASSWORD_RECOVERY_VERIFIED" : "PASSWORD_RECOVERY_FAILURE",
+                "authentication_event",
+                safeText(attemptedUsername),
+                "Authentication",
+                request.getRequestURI(),
+                request.getMethod(),
+                context
+        );
+    }
+
     public void recordLogout(HttpServletRequest request, String username) {
         Map<String, Object> context = baseRequestContext(request);
         context.put("result", "success");

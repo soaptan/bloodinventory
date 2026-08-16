@@ -14,8 +14,9 @@
 - No verification code or email delivery is used.
 - The reset page and URL contain no username, email, IC number, or staff ID.
 - The session stores only verified staff ID and verification timestamp.
-- The password marker is one-use and valid for at most 10 minutes.
-- Password validation requires 8-72 characters, uppercase and lowercase letters, a number, a special character, no spaces, and matching confirmation.
+- The password marker is atomically claimed for one use and valid for at most 10 minutes.
+- Password validation requires 8-72 characters, at most 72 UTF-8 bytes, uppercase and lowercase letters, a number, a special character, no spaces, and matching confirmation.
+- Password recovery has database-backed, recovery-specific account/source throttling and identity-safe audit events.
 - Password hashing, legacy-token invalidation, active-session revocation, and `RESET_COMPLETE` auditing remain transactional.
 
 ---
@@ -68,7 +69,11 @@ mockMvc.perform(post("/reset-password")
 
 Retain assertions for BCrypt matching, used legacy tokens, ended sessions, and the audit notification. Then assert the reset session can no longer access `GET /reset-password`.
 
-- [ ] **Step 5: Run the focused test and verify RED**
+- [ ] **Step 5: Cover abuse and concurrent replay protection**
+
+Assert that repeated identity mismatches produce a recovery-specific block and `Retry-After` without logging email or IC values. Start simultaneous password submissions with one verified session and assert exactly one succeeds. Also assert that rejecting the current password restores the still-fresh approval for another attempt.
+
+- [ ] **Step 6: Run the focused test and verify RED**
 
 ```powershell
 $env:BLOODINVENTORY_JAVA_HOME='C:\Users\User\.jdk\jdk-25.0.2'
@@ -102,7 +107,7 @@ Replace `resetPasswordForIdentity(...)` with `resetPasswordForVerifiedStaff(...)
 
 - [ ] **Step 3: Convert `POST /forgot-password` into verification**
 
-Remove password parameters/validation. Clear any earlier reset marker, validate identity fields, call `verifyIdentity(...)`, and show the existing generic error when it returns empty. On success call `request.changeSessionId()`, store staff ID and `System.currentTimeMillis()`, and return `redirect:/reset-password`.
+Remove password parameters/validation. Clear any earlier reset marker, validate identity fields, enforce recovery-specific throttling, call `verifyIdentity(...)`, and show the existing generic error when it returns empty. Count malformed and mismatched attempts by hashed account/source keys and audit without email or IC values. On success call `request.changeSessionId()`, store staff ID and `System.currentTimeMillis()`, and return `redirect:/reset-password`.
 
 - [ ] **Step 4: Guard `GET /reset-password`**
 
@@ -110,7 +115,7 @@ Add a helper that accepts only numeric staff ID/timestamp attributes whose age i
 
 - [ ] **Step 5: Add `POST /reset-password`**
 
-Reject missing/expired verification with the same redirect. Validate password and confirmation into field errors, call `resetPasswordForVerifiedStaff(...)`, and render the reset template. Clear both session attributes only after successful service completion.
+Reject missing/expired verification with the same redirect. Validate password and confirmation into field errors, atomically claim the approval, call `resetPasswordForVerifiedStaff(...)`, and render the reset template. Keep the approval consumed after success; restore it after a recoverable service error only when it is still fresh. Concurrent submissions after the claim redirect to identity verification.
 
 - [ ] **Step 6: Explain an expired/missing marker generically**
 

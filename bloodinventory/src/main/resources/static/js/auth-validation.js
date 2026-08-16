@@ -3,12 +3,17 @@ document.querySelectorAll('[data-validate-form]').forEach((form) => {
     const passwordInput = form.querySelector('#newPassword');
     const passwordRequirements = form.querySelector('[data-password-requirements]');
 
+    function utf8Length(value) {
+        return new TextEncoder().encode(value).length;
+    }
+
     function updatePasswordRequirements() {
         if (!passwordInput || !passwordRequirements) return;
 
         const value = passwordInput.value;
         const ruleResults = {
             length: value.length >= 8 && value.length <= 72,
+            byteLength: value.length > 0 && utf8Length(value) <= 72,
             letterCase: /[a-z]/.test(value) && /[A-Z]/.test(value),
             number: /[0-9]/.test(value),
             symbol: /[^A-Za-z0-9\s]/.test(value),
@@ -26,6 +31,9 @@ document.querySelectorAll('[data-validate-form]').forEach((form) => {
         const matchTarget = input.dataset.match && document.getElementById(input.dataset.match);
         if (matchTarget && input.value !== matchTarget.value) return 'Passwords do not match.';
         if (input.validity.valueMissing) return `${input.labels?.[0]?.textContent.trim() || 'This field'} is required.`;
+        if (input.id === 'newPassword' && utf8Length(input.value) > 72) {
+            return 'Password must not exceed 72 bytes.';
+        }
         if (input.validity.typeMismatch) return 'Enter a valid email address.';
         if (input.validity.tooShort || input.validity.tooLong) {
             return `Use between ${input.minLength} and ${input.maxLength} characters.`;
