@@ -30,7 +30,7 @@
                         <div>
                             <div class="page-kicker">Safe Blood Match</div>
                             <h1>Compatibility Review</h1>
-                            <p>Filter released components by recipient blood group and reserve suitable blood units.</p>
+                            <p>Filter released components and reserve suitable blood units.</p>
                         </div>
                     </section>
 
@@ -52,14 +52,6 @@
                               method="get"
                               data-safe-match-filter-form>
                             <div class="safe-match-filter-grid" data-safe-match-controls>
-                                <div class="form-group">
-                                    <label for="recipientBloodGroup">Recipient Blood Group</label>
-                                    <select id="recipientBloodGroup" th:field="*{recipientBloodGroup}">
-                                        <option value="">All groups</option>
-                                        <option th:each="group : ${bloodGroups}" th:value="${group}" th:text="${group}">A+</option>
-                                    </select>
-                                </div>
-
                                 <div class="form-group">
                                     <label for="componentType">Component Type</label>
                                     <select id="componentType" th:field="*{componentType}">

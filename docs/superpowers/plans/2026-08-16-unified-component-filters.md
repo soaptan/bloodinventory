@@ -4,7 +4,7 @@
 
 **Goal:** Replace the separate match-criteria card and table-filter toolbar with one responsive filter form and one Apply/Reset action pair.
 
-**Architecture:** Keep recipient blood group and component type bound to the existing `MedicalSafeMatchRequest` so the server remains authoritative for compatibility. Submit the table refinement values in the same GET request, restore those values from `URLSearchParams`, and apply the existing client-side row filtering and sorting after the page reloads.
+**Architecture:** Keep component type bound to the existing `MedicalSafeMatchRequest` while leaving recipient blood group unset so the server returns components for general review. Submit the table refinement values in the same GET request, restore those values from `URLSearchParams`, and apply the existing client-side row filtering and sorting after the page reloads.
 
 **Tech Stack:** Java 25, Spring Boot, MockMvc, Thymeleaf, HTML, CSS, vanilla JavaScript, Maven Wrapper
 
@@ -26,8 +26,8 @@
 - Modify: `bloodinventory/src/main/resources/static/css/medical-workflow.css`
 
 **Interfaces:**
-- Consumes: `MedicalSafeMatchRequest.recipientBloodGroup`, `MedicalSafeMatchRequest.componentType`, model attributes `bloodGroups`, `componentTypes`, `safeMatchLocations`, and `safeComponents`
-- Produces: one form marked `data-safe-match-filter-form`; query parameters `recipientBloodGroup`, `componentType`, `search`, `donorGroup`, `status`, `match`, `expiry`, `location`, and `sort`; reset link marked `data-clear-safe-match-filters`
+- Consumes: `MedicalSafeMatchRequest.componentType`, model attributes `bloodGroups`, `componentTypes`, `safeMatchLocations`, and `safeComponents`
+- Produces: one form marked `data-safe-match-filter-form`; query parameters `componentType`, `search`, `donorGroup`, `status`, `match`, `expiry`, `location`, and `sort`; reset link marked `data-clear-safe-match-filters`
 
 - [ ] **Step 1: Write the failing rendering test**
 
@@ -39,7 +39,8 @@ void medicalComponentsPageCombinesCompatibilityAndTableFilters() throws Exceptio
     mockMvc.perform(get("/medical/components").principal(ADMIN_AUTHENTICATION))
             .andExpect(expect(status().isOk()))
             .andExpect(expect(content().string(containsString("data-safe-match-filter-form"))))
-            .andExpect(expect(content().string(containsString("name=\"recipientBloodGroup\""))))
+            .andExpect(expect(content().string(not(containsString("name=\"recipientBloodGroup\"")))))
+            .andExpect(expect(content().string(not(containsString(">Recipient Blood Group<")))))
             .andExpect(expect(content().string(containsString("name=\"componentType\""))))
             .andExpect(expect(content().string(containsString("name=\"search\""))))
             .andExpect(expect(content().string(containsString("name=\"donorGroup\""))))
@@ -73,7 +74,7 @@ In `medical-components.html`:
 - Remove the `two-column-grid` containing the Match Criteria and Components in Review cards.
 - Keep one `workflow-card` for Available Components.
 - Add the review count to the section heading.
-- Place all nine labeled controls in one GET form with `data-safe-match-filter-form`.
+- Place all eight labeled controls in one GET form with `data-safe-match-filter-form`.
 - Use a submit button labeled `Apply Filters` and an `<a th:href="@{/medical/components}">` reset action.
 - Keep the form outside the `safeComponents` non-empty condition.
 - Keep the table inside its existing non-empty condition.
@@ -137,7 +138,7 @@ Expected: BUILD SUCCESS with zero test failures.
 
 Open `http://localhost:8082/medical/components` and verify:
 
-- one Available Components card contains all nine filters;
+- one Available Components card contains all eight filters;
 - Match Criteria and Apply Match are absent;
 - the count appears in the Available Components heading;
 - Apply submits all selected values and reloads with them restored;

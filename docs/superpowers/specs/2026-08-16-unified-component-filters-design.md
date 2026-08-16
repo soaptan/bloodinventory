@@ -8,7 +8,7 @@ Combine the compatibility criteria and table filters on the medical components p
 
 Use one unified GET form inside the **Available Components** card.
 
-- Keep `recipientBloodGroup` and `componentType` as server-backed compatibility criteria because they determine the component list and compatibility notes returned by `MedicalWorkflowService`.
+- Keep `componentType` as the server-backed component criterion. Do not expose a recipient blood-group control; `recipientBloodGroup` remains unset so the page presents components for general review.
 - Give the existing search, donor group, status, match, expiry, location, and sort controls query-string names.
 - Submit every control together through one **Apply Filters** button.
 - After the server renders the compatibility result, initialize the table controls from the query string and apply their client-side filtering and sorting immediately.
@@ -34,7 +34,6 @@ The **Available Components** card will contain:
 
 1. A heading row with the title, explanatory copy, and the current component count.
 2. One responsive filter grid containing:
-   - Recipient Blood Group
    - Component Type
    - Search Components
    - Donor Group
@@ -51,7 +50,7 @@ On narrower screens, the filter grid will collapse into fewer columns and then a
 ## Data flow
 
 1. The user selects any combination of criteria and submits the unified GET form.
-2. Spring binds `recipientBloodGroup` and `componentType` to `MedicalSafeMatchRequest` and renders the compatible component result as it does today.
+2. Spring binds `componentType` to `MedicalSafeMatchRequest`; `recipientBloodGroup` remains unset, and the service renders components for general review.
 3. The remaining query parameters remain available in the browser URL.
 4. On page initialization, JavaScript restores the table control values from those query parameters.
 5. JavaScript filters and sorts the server-rendered rows and updates the visible-results summary.
@@ -73,7 +72,7 @@ On narrower screens, the filter grid will collapse into fewer columns and then a
 ## Testing
 
 - Add a template-rendering/controller test that verifies the page contains one unified GET form with the two compatibility criteria and the table filters.
-- Verify the separate **Match Criteria** card and duplicate **Apply Match** action are absent.
+- Verify the separate **Match Criteria** card, duplicate **Apply Match** action, and recipient blood-group control are absent.
 - Verify query parameters preserve and restore client-side filter values.
 - Verify Reset clears all criteria.
 - Run the focused controller/template tests, then the full Maven test suite.
