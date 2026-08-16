@@ -4,12 +4,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.lang.NonNull;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mock.web.MockHttpSession;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultMatcher;
@@ -17,12 +15,10 @@ import org.springframework.test.web.servlet.ResultMatcher;
 import java.util.Objects;
 import java.util.Map;
 import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.clearInvocations;
-import static org.mockito.Mockito.verify;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -31,25 +27,21 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(properties = {
-        "spring.mail.username=test.sender@gmail.com",
-        "spring.mail.password=test-app-password"
-})
+@SpringBootTest
 @AutoConfigureMockMvc
 class AuthenticationFlowTests {
 
-    private static final Pattern RESET_CODE_PATTERN = Pattern.compile("\\b(\\d{6})\\b");
-
     private final MockMvc mockMvc;
     private final JdbcTemplate jdbcTemplate;
-
-    @MockBean
-    private JavaMailSender mailSender;
+    private final PasswordEncoder passwordEncoder;
 
     @Autowired
-    AuthenticationFlowTests(MockMvc mockMvc, JdbcTemplate jdbcTemplate) {
+    AuthenticationFlowTests(MockMvc mockMvc,
+                            JdbcTemplate jdbcTemplate,
+                            PasswordEncoder passwordEncoder) {
         this.mockMvc = Objects.requireNonNull(mockMvc, "MockMvc must not be null.");
         this.jdbcTemplate = Objects.requireNonNull(jdbcTemplate, "JdbcTemplate must not be null.");
+        this.passwordEncoder = Objects.requireNonNull(passwordEncoder, "PasswordEncoder must not be null.");
     }
 
     @Test
@@ -183,26 +175,37 @@ class AuthenticationFlowTests {
     }
 
     @Test
-    void passwordResetRejectsInvalidCodeAndMismatchedPasswords() throws Exception {
-        mockMvc.perform(post("/reset-password")
+    void forgotPasswordPageUsesSingleStepResetForm() throws Exception {
+        mockMvc.perform(get("/forgot-password"))
+                .andExpect(expect(status().isOk()))
+                .andExpect(expect(content().string(containsString("Reset Password"))))
+                .andExpect(expect(content().string(containsString("name=\"newPassword\""))))
+                .andExpect(expect(content().string(containsString("name=\"confirmPassword\""))))
+                .andExpect(expect(content().string(not(containsString("verificationCode")))))
+                .andExpect(expect(content().string(not(containsString("Send Verification Code")))));
+    }
+
+    @Test
+    void passwordResetRejectsWeakAndMismatchedPasswords() throws Exception {
+        mockMvc.perform(post("/forgot-password")
                         .with(csrf())
                         .param("username", "admin")
                         .param("email", "admin@bloodbank.my")
                         .param("icNumber", "850101-10-2001")
-                        .param("verificationCode", "12ab")
-                        .param("newPassword", "ValidPassword123!")
+                        .param("newPassword", "weak")
                         .param("confirmPassword", "DifferentPassword123!"))
                 .andExpect(expect(status().isOk()))
-                .andExpect(expect(content().string(org.hamcrest.Matchers.containsString("Enter the 6-digit verification code"))))
-                .andExpect(expect(content().string(org.hamcrest.Matchers.containsString("Passwords do not match"))));
+                .andExpect(expect(content().string(containsString("uppercase and lowercase"))))
+                .andExpect(expect(content().string(containsString("Passwords do not match"))));
     }
 
     @Test
-    void forgotPasswordCreatesOneUseVerificationCode() throws Exception {
+    void forgotPasswordDirectlyResetsMatchingAccount() throws Exception {
+        cleanupPasswordResetTestAccounts();
         String username = "reset.test." + UUID.randomUUID();
         String email = username + "@bloodbank.my";
         String icNumber = "990101-10-9001";
-        jdbcTemplate.update("""
+        Long staffId = jdbcTemplate.queryForObject("""
                 INSERT INTO staff (
                     staff_type,
                     full_name,
@@ -217,65 +220,34 @@ class AuthenticationFlowTests {
                     created_at,
                     updated_at
                 )
-                VALUES ('BLOOD_ADMINISTRATOR', 'Reset Flow Test', ?, 'oldPassword123', '0100000000', ?, 'FEMALE', ?, TRUE, FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-                """, username, icNumber, email);
+                VALUES ('BLOOD_ADMINISTRATOR', 'Reset Flow Test', ?, ?, '0100000000', ?, 'FEMALE', ?, TRUE, FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                RETURNING staff_id
+                """, Long.class, username, passwordEncoder.encode("OldPassword123!"), icNumber, email);
+        String sessionId = "reset-session-" + UUID.randomUUID();
+        jdbcTemplate.update("""
+                INSERT INTO staff_login_session (
+                    session_id, username, source_ip, status, created_at, last_seen_at, expires_at
+                )
+                VALUES (?, ?, '127.0.0.1', 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP,
+                        CURRENT_TIMESTAMP + INTERVAL '1 hour')
+                """, sessionId, username);
+        jdbcTemplate.update("""
+                INSERT INTO staff_password_reset_token (
+                    staff_id, token_hash, requested_at, expires_at, request_ip
+                )
+                VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '1 hour', '127.0.0.1')
+                """, staffId, "legacy-" + UUID.randomUUID());
 
         try {
-            clearInvocations(mailSender);
             mockMvc.perform(post("/forgot-password")
                             .with(csrf())
                             .param("username", username)
                             .param("email", email)
-                            .param("icNumber", icNumber))
-                    .andExpect(expect(status().isOk()))
-                    .andExpect(expect(content().string(org.hamcrest.Matchers.containsString("Verification code"))))
-                    .andExpect(expect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Local reset link")))));
-
-            org.mockito.ArgumentCaptor<SimpleMailMessage> mailCaptor =
-                    org.mockito.ArgumentCaptor.forClass(SimpleMailMessage.class);
-            verify(mailSender).send(mailCaptor.capture());
-            String code = extractResetCode(mailCaptor.getValue().getText());
-            assertThat(code).isNotBlank();
-            String storedCodeHash = jdbcTemplate.queryForObject("""
-                    SELECT t.token_hash
-                    FROM staff_password_reset_token t
-                    JOIN staff s ON s.staff_id = t.staff_id
-                    WHERE s.username = ?
-                      AND t.used_at IS NULL
-                    """, String.class, username);
-            assertThat(storedCodeHash).startsWith("$2");
-
-            mockMvc.perform(post("/reset-password")
-                            .with(csrf())
-                            .param("username", username)
-                            .param("email", email)
                             .param("icNumber", icNumber)
-                            .param("verificationCode", "000000")
                             .param("newPassword", "NewPassword123!")
                             .param("confirmPassword", "NewPassword123!"))
                     .andExpect(expect(status().isOk()))
-                    .andExpect(expect(content().string(org.hamcrest.Matchers.containsString(
-                            "Verification code is invalid or expired"
-                    ))));
-            Integer attemptCount = jdbcTemplate.queryForObject("""
-                    SELECT t.attempt_count
-                    FROM staff_password_reset_token t
-                    JOIN staff s ON s.staff_id = t.staff_id
-                    WHERE s.username = ?
-                      AND t.used_at IS NULL
-                    """, Integer.class, username);
-            assertThat(attemptCount).isEqualTo(1);
-
-            mockMvc.perform(post("/reset-password")
-                            .with(csrf())
-                            .param("username", username)
-                            .param("email", email)
-                            .param("icNumber", icNumber)
-                            .param("verificationCode", code)
-                            .param("newPassword", "NewPassword123!")
-                            .param("confirmPassword", "NewPassword123!"))
-                    .andExpect(expect(status().isOk()))
-                    .andExpect(expect(content().string(org.hamcrest.Matchers.containsString("Password reset successfully"))));
+                    .andExpect(expect(content().string(containsString("Password reset successfully"))));
 
             Integer unusedTokens = jdbcTemplate.queryForObject("""
                     SELECT COUNT(*)
@@ -286,12 +258,70 @@ class AuthenticationFlowTests {
                     """, Integer.class, username);
             assertThat(unusedTokens).isZero();
 
+            Map<String, Object> session = jdbcTemplate.queryForMap("""
+                    SELECT status, end_reason
+                    FROM staff_login_session
+                    WHERE session_id = ?
+                    """, sessionId);
+            assertThat(session.get("status")).isEqualTo("ENDED");
+            assertThat(session.get("end_reason")).isEqualTo("PASSWORD_RESET");
+
             String storedPassword = jdbcTemplate.queryForObject(
                     "SELECT password FROM staff WHERE username = ?",
                     String.class,
                     username
             );
             assertThat(storedPassword).startsWith("$2");
+            assertThat(passwordEncoder.matches("NewPassword123!", storedPassword)).isTrue();
+
+            Integer resetNotifications = jdbcTemplate.queryForObject("""
+                    SELECT COUNT(*)
+                    FROM system_activity_notification
+                    WHERE action_type = 'RESET_COMPLETE'
+                      AND actor_username = ?
+                    """, Integer.class, username);
+            assertThat(resetNotifications).isEqualTo(1);
+        } finally {
+            jdbcTemplate.update("DELETE FROM system_activity_notification WHERE actor_username = ?", username);
+            jdbcTemplate.update("DELETE FROM staff_login_session WHERE username = ?", username);
+            jdbcTemplate.update("DELETE FROM staff WHERE username = ?", username);
+        }
+    }
+
+    @Test
+    void forgotPasswordRejectsMismatchedIdentityWithoutChangingPassword() throws Exception {
+        String username = "reset.mismatch." + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+        String email = username + "@bloodbank.my";
+        String storedPassword = passwordEncoder.encode("OldPassword123!");
+        jdbcTemplate.update("""
+                INSERT INTO staff (
+                    staff_type, full_name, username, password, phone_no, ic_number,
+                    gender, email, is_active, is_locked, created_at, updated_at
+                )
+                VALUES ('BLOOD_ADMINISTRATOR', 'Reset Mismatch Test', ?, ?, '0100000001',
+                        '990101-10-9003', 'FEMALE', ?, TRUE, FALSE,
+                        CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                """, username, storedPassword, email);
+
+        try {
+            mockMvc.perform(post("/forgot-password")
+                            .with(csrf())
+                            .param("username", username)
+                            .param("email", email)
+                            .param("icNumber", "990101-10-9999")
+                            .param("newPassword", "NewPassword123!")
+                            .param("confirmPassword", "NewPassword123!"))
+                    .andExpect(expect(status().isOk()))
+                    .andExpect(expect(content().string(containsString(
+                            "The request could not be completed. Please try again later."
+                    ))));
+
+            String passwordAfterRequest = jdbcTemplate.queryForObject(
+                    "SELECT password FROM staff WHERE username = ?",
+                    String.class,
+                    username
+            );
+            assertThat(passwordAfterRequest).isEqualTo(storedPassword);
         } finally {
             jdbcTemplate.update("DELETE FROM staff WHERE username = ?", username);
         }
@@ -329,6 +359,12 @@ class AuthenticationFlowTests {
         jdbcTemplate.update("DELETE FROM staff WHERE username LIKE 'auth.test.%'");
     }
 
+    private void cleanupPasswordResetTestAccounts() {
+        jdbcTemplate.update("DELETE FROM system_activity_notification WHERE actor_username LIKE 'reset.test.%'");
+        jdbcTemplate.update("DELETE FROM staff_login_session WHERE username LIKE 'reset.test.%'");
+        jdbcTemplate.update("DELETE FROM staff WHERE username LIKE 'reset.test.%'");
+    }
+
     private long countAuditAction(String actionType) {
         Long count = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM audit_trail WHERE action_type = ?",
@@ -350,12 +386,6 @@ class AuthenticationFlowTests {
                 ORDER BY audit_id DESC
                 LIMIT 1
                 """, actionType);
-    }
-
-    private String extractResetCode(String emailBody) {
-        Matcher matcher = RESET_CODE_PATTERN.matcher(emailBody);
-        assertThat(matcher.find()).isTrue();
-        return matcher.group(1);
     }
 
     @NonNull

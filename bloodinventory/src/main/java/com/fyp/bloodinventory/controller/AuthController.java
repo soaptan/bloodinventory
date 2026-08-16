@@ -1,7 +1,6 @@
 package com.fyp.bloodinventory.controller;
 
 import com.fyp.bloodinventory.config.PasswordPolicy;
-import com.fyp.bloodinventory.dto.PasswordResetRequestResult;
 import com.fyp.bloodinventory.service.PasswordResetService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -95,6 +94,8 @@ public class AuthController {
     public String requestPasswordReset(@RequestParam("username") String username,
                                        @RequestParam("email") String email,
                                        @RequestParam("icNumber") String icNumber,
+                                       @RequestParam(value = "newPassword", required = false) String newPassword,
+                                       @RequestParam(value = "confirmPassword", required = false) String confirmPassword,
                                        HttpServletRequest request,
                                        Model model) {
         request.getSession();
@@ -105,6 +106,7 @@ public class AuthController {
 
         Map<String, String> fieldErrors = validateRecoveryIdentity(
                 normalizedUsername, normalizedEmail, normalizedIcNumber, true);
+        validateResetFields(fieldErrors, newPassword, confirmPassword);
         if (!fieldErrors.isEmpty()) {
             addValidationErrors(model, fieldErrors);
             preservePasswordResetInputs(model, normalizedUsername, normalizedEmail, normalizedIcNumber);
@@ -112,15 +114,15 @@ public class AuthController {
         }
 
         try {
-            PasswordResetRequestResult result = passwordResetService.requestResetForIdentity(
+            passwordResetService.resetPasswordForIdentity(
                     normalizedUsername,
                     normalizedEmail,
                     normalizedIcNumber,
+                    newPassword,
+                    confirmPassword,
                     sourceIp(request)
             );
-            model.addAttribute("successMessage", result.getMessage());
-            model.addAttribute("codeRequested", true);
-            model.addAttribute("maskedEmail", result.getMaskedEmail());
+            model.addAttribute("successMessage", "Password reset successfully. You can sign in with the new password.");
         } catch (RuntimeException e) {
             model.addAttribute("errorMessage", safeErrorMessage(e));
             preservePasswordResetInputs(model, normalizedUsername, normalizedEmail, normalizedIcNumber);
@@ -135,51 +137,6 @@ public class AuthController {
     public String resetPasswordPage(HttpServletRequest request) {
         request.getSession();
         return "redirect:/forgot-password";
-    }
-
-    @PostMapping("/reset-password")
-    public String resetPassword(@RequestParam("username") String username,
-                                @RequestParam("email") String email,
-                                @RequestParam("icNumber") String icNumber,
-                                @RequestParam("verificationCode") String verificationCode,
-                                @RequestParam("newPassword") String newPassword,
-                                @RequestParam("confirmPassword") String confirmPassword,
-                                HttpServletRequest request,
-                                Model model) {
-        request.getSession();
-        String normalizedUsername = normalize(username);
-        String normalizedEmail = normalize(email);
-        String normalizedIcNumber = normalize(icNumber);
-
-        Map<String, String> fieldErrors = validateRecoveryIdentity(
-                normalizedUsername, normalizedEmail, normalizedIcNumber, true);
-        validateResetFields(fieldErrors, verificationCode, newPassword, confirmPassword);
-        if (!fieldErrors.isEmpty()) {
-            addValidationErrors(model, fieldErrors);
-            model.addAttribute("codeRequested", true);
-            model.addAttribute("verificationCode", normalize(verificationCode));
-            preservePasswordResetInputs(model, normalizedUsername, normalizedEmail, normalizedIcNumber);
-            return "forgot-password";
-        }
-
-        try {
-            passwordResetService.resetPasswordWithCode(
-                    normalizedUsername,
-                    normalizedEmail,
-                    normalizedIcNumber,
-                    verificationCode,
-                    newPassword,
-                    confirmPassword
-            );
-            model.addAttribute("successMessage", "Password reset successfully. You can sign in with the new password.");
-        } catch (RuntimeException e) {
-            model.addAttribute("errorMessage", safeErrorMessage(e));
-            model.addAttribute("codeRequested", true);
-            model.addAttribute("verificationCode", normalize(verificationCode));
-            preservePasswordResetInputs(model, normalizedUsername, normalizedEmail, normalizedIcNumber);
-        }
-
-        return "forgot-password";
     }
 
     private void preservePasswordResetInputs(Model model, String username, String email, String icNumber) {
@@ -211,12 +168,9 @@ public class AuthController {
         return errors;
     }
 
-    private void validateResetFields(Map<String, String> errors, String code,
-                                     String password, String confirmation) {
-        String normalizedCode = normalize(code);
-        if (normalizedCode == null || !normalizedCode.matches("\\d{6}")) {
-            errors.put("verificationCode", "Enter the 6-digit verification code.");
-        }
+    private void validateResetFields(Map<String, String> errors,
+                                     String password,
+                                     String confirmation) {
         try {
             PasswordPolicy.requireStrongPassword(password);
         } catch (RuntimeException exception) {
@@ -236,8 +190,7 @@ public class AuthController {
 
     private String safeErrorMessage(RuntimeException exception) {
         String message = normalize(exception.getMessage());
-        if (message != null && (message.startsWith("Verification code")
-                || message.startsWith("Password")
+        if (message != null && (message.startsWith("Password")
                 || message.startsWith("New password"))) {
             return message;
         }
