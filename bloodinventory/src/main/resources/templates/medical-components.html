@@ -34,95 +34,79 @@
                         </div>
                     </section>
 
-                    <section class="two-column-grid">
-                        <article id="match" class="form-card page-card">
-                            <div class="section-title">
-                                <div>
-                                    <h2>Match Criteria</h2>
-                                    <p>Recipient group and component type</p>
-                                </div>
-                            </div>
-
-                            <form th:action="@{/medical/components}" th:object="${safeMatchRequest}" method="get">
-                                <div class="form-grid">
-                                    <div class="form-group">
-                                        <label for="recipientBloodGroup">Recipient Blood Group</label>
-                                        <select id="recipientBloodGroup" th:field="*{recipientBloodGroup}">
-                                            <option value="">All groups</option>
-                                            <option th:each="group : ${bloodGroups}" th:value="${group}" th:text="${group}">A+</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="componentType">Component Type</label>
-                                        <select id="componentType" th:field="*{componentType}">
-                                            <option value="">All types</option>
-                                            <option th:each="type : ${componentTypes}" th:value="${type}" th:text="${type}">RBC</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group full">
-                                        <button type="submit" class="submit-btn">Apply Match</button>
-                                    </div>
-                                </div>
-                            </form>
-                        </article>
-
-                        <article class="medical-stat-card page-card">
-                            <div class="medical-stat-label">Components in Review</div>
-                            <div class="medical-stat-value" th:text="${#lists.size(safeComponents)}">0</div>
-                        </article>
-                    </section>
-
                     <section id="reserve" class="workflow-card page-card">
                         <span id="release" class="sr-only">Release units</span>
-                        <div class="section-title">
+                        <div class="section-title safe-match-section-title">
                             <div>
                                 <h2>Available Components</h2>
                                 <p>Ordered by compatibility and expiry time</p>
                             </div>
+                            <div class="safe-match-review-count" aria-label="Components in review">
+                                <strong th:text="${#lists.size(safeComponents)}">0</strong>
+                                <span>components in review</span>
+                            </div>
                         </div>
 
-                        <div class="empty-state" th:if="${#lists.isEmpty(safeComponents)}">No components match the current criteria.</div>
+                        <form th:action="@{/medical/components}"
+                              th:object="${safeMatchRequest}"
+                              method="get"
+                              data-safe-match-filter-form>
+                            <div class="safe-match-filter-grid" data-safe-match-controls>
+                                <div class="form-group">
+                                    <label for="recipientBloodGroup">Recipient Blood Group</label>
+                                    <select id="recipientBloodGroup" th:field="*{recipientBloodGroup}">
+                                        <option value="">All groups</option>
+                                        <option th:each="group : ${bloodGroups}" th:value="${group}" th:text="${group}">A+</option>
+                                    </select>
+                                </div>
 
-                        <div th:if="${!#lists.isEmpty(safeComponents)}">
-                            <div class="table-controls" data-safe-match-controls>
-                                <div class="form-group table-search-col">
+                                <div class="form-group">
+                                    <label for="componentType">Component Type</label>
+                                    <select id="componentType" th:field="*{componentType}">
+                                        <option value="">All types</option>
+                                        <option th:each="type : ${componentTypes}" th:value="${type}" th:text="${type}">RBC</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group safe-match-search-field">
                                     <label for="safe-match-search" class="form-label">Search Components</label>
                                     <input id="safe-match-search"
                                            class="form-input"
                                            type="search"
+                                           name="search"
                                            placeholder="Search by component, donor, group, location, status, or match"
                                            data-safe-match-search>
                                 </div>
 
-                                <div class="form-group table-filter-col">
+                                <div class="form-group">
                                     <label for="safe-match-group-filter" class="form-label">Donor Group Filter</label>
-                                    <select id="safe-match-group-filter" class="form-select" data-safe-match-group-filter>
+                                    <select id="safe-match-group-filter" class="form-select" name="donorGroup" data-safe-match-group-filter>
                                         <option value="all">All donor groups</option>
                                         <option th:each="group : ${bloodGroups}" th:value="${group}" th:text="${group}">A+</option>
                                     </select>
                                 </div>
 
-                                <div class="form-group table-filter-col">
+                                <div class="form-group">
                                     <label for="safe-match-status-filter" class="form-label">Status Filter</label>
-                                    <select id="safe-match-status-filter" class="form-select" data-safe-match-status-filter>
+                                    <select id="safe-match-status-filter" class="form-select" name="status" data-safe-match-status-filter>
                                         <option value="all">All statuses</option>
                                         <option value="AVAILABLE">Available</option>
                                         <option value="RESERVED">Reserved</option>
                                     </select>
                                 </div>
 
-                                <div class="form-group table-filter-col">
+                                <div class="form-group">
                                     <label for="safe-match-match-filter" class="form-label">Match Filter</label>
-                                    <select id="safe-match-match-filter" class="form-select" data-safe-match-match-filter>
+                                    <select id="safe-match-match-filter" class="form-select" name="match" data-safe-match-match-filter>
                                         <option value="all">All matches</option>
                                         <option value="compatible">Compatible</option>
                                         <option value="incompatible">Incompatible</option>
                                     </select>
                                 </div>
 
-                                <div class="form-group table-filter-col">
+                                <div class="form-group">
                                     <label for="safe-match-expiry-filter" class="form-label">Expiry Filter</label>
-                                    <select id="safe-match-expiry-filter" class="form-select" data-safe-match-expiry-filter>
+                                    <select id="safe-match-expiry-filter" class="form-select" name="expiry" data-safe-match-expiry-filter>
                                         <option value="all">All expiry dates</option>
                                         <option value="expired">Expired</option>
                                         <option value="7days">Next 7 days</option>
@@ -131,17 +115,17 @@
                                     </select>
                                 </div>
 
-                                <div class="form-group table-filter-col">
+                                <div class="form-group">
                                     <label for="safe-match-location-filter" class="form-label">Location Filter</label>
-                                    <select id="safe-match-location-filter" class="form-select" data-safe-match-location-filter>
+                                    <select id="safe-match-location-filter" class="form-select" name="location" data-safe-match-location-filter>
                                         <option value="all">All locations</option>
                                         <option th:each="location : ${safeMatchLocations}" th:value="${location}" th:text="${location}">Storage</option>
                                     </select>
                                 </div>
 
-                                <div class="form-group table-filter-col">
+                                <div class="form-group">
                                     <label for="safe-match-sort" class="form-label">Sort By</label>
-                                    <select id="safe-match-sort" class="form-select" data-safe-match-sort>
+                                    <select id="safe-match-sort" class="form-select" name="sort" data-safe-match-sort>
                                         <option value="compatibility-expiry">Compatible + Earliest Expiry</option>
                                         <option value="expiry-asc">Earliest Expiry</option>
                                         <option value="expiry-desc">Latest Expiry</option>
@@ -154,23 +138,29 @@
                                         <option value="location-asc">Location</option>
                                     </select>
                                 </div>
+                            </div>
 
-                                <button type="button" class="btn btn-secondary table-filter-reset" data-apply-safe-match-filters>
+                            <div class="safe-match-filter-actions">
+                                <button type="submit" class="btn btn-secondary table-filter-reset">
                                     <svg viewBox="0 0 24 24" aria-hidden="true">
                                         <path d="M4 12l5 5L20 6"></path>
                                     </svg>
                                     Apply Filters
                                 </button>
 
-                                <button type="button" class="btn btn-tertiary table-filter-reset" data-clear-safe-match-filters>
+                                <a th:href="@{/medical/components}" data-clear-safe-match-filters class="btn btn-tertiary table-filter-reset">
                                     <svg viewBox="0 0 24 24" aria-hidden="true">
                                         <path d="M3 12a9 9 0 1 0 3-6.7"></path>
                                         <path d="M3 4v6h6"></path>
                                     </svg>
                                     Reset Filters
-                                </button>
+                                </a>
                             </div>
+                        </form>
 
+                        <div class="empty-state" th:if="${#lists.isEmpty(safeComponents)}">No components match the current criteria.</div>
+
+                        <div th:if="${!#lists.isEmpty(safeComponents)}">
                             <div class="form-help table-results-summary" data-safe-match-results-summary>
                                 Showing all components in review.
                             </div>
@@ -255,6 +245,39 @@
     <th:block layout:fragment="custom-js">
         <script>
             (() => {
+                const searchInput = document.querySelector("[data-safe-match-search]");
+                const groupFilter = document.querySelector("[data-safe-match-group-filter]");
+                const statusFilter = document.querySelector("[data-safe-match-status-filter]");
+                const matchFilter = document.querySelector("[data-safe-match-match-filter]");
+                const expiryFilter = document.querySelector("[data-safe-match-expiry-filter]");
+                const locationFilter = document.querySelector("[data-safe-match-location-filter]");
+                const sortSelect = document.querySelector("[data-safe-match-sort]");
+                const queryParameters = new URLSearchParams(window.location.search);
+
+                const restoreControl = (control, parameterName) => {
+                    const requestedValue = queryParameters.get(parameterName);
+                    if (!control || requestedValue === null) {
+                        return;
+                    }
+
+                    if (control instanceof HTMLSelectElement
+                            && !Array.from(control.options).some((option) => option.value === requestedValue)) {
+                        return;
+                    }
+
+                    control.value = requestedValue;
+                };
+
+                [
+                    [searchInput, "search"],
+                    [groupFilter, "donorGroup"],
+                    [statusFilter, "status"],
+                    [matchFilter, "match"],
+                    [expiryFilter, "expiry"],
+                    [locationFilter, "location"],
+                    [sortSelect, "sort"]
+                ].forEach(([control, parameterName]) => restoreControl(control, parameterName));
+
                 const tableBody = document.querySelector("[data-safe-match-table-body]");
                 if (!tableBody) {
                     return;
@@ -265,15 +288,6 @@
                     return;
                 }
 
-                const searchInput = document.querySelector("[data-safe-match-search]");
-                const groupFilter = document.querySelector("[data-safe-match-group-filter]");
-                const statusFilter = document.querySelector("[data-safe-match-status-filter]");
-                const matchFilter = document.querySelector("[data-safe-match-match-filter]");
-                const expiryFilter = document.querySelector("[data-safe-match-expiry-filter]");
-                const locationFilter = document.querySelector("[data-safe-match-location-filter]");
-                const sortSelect = document.querySelector("[data-safe-match-sort]");
-                const applyButton = document.querySelector("[data-apply-safe-match-filters]");
-                const clearButton = document.querySelector("[data-clear-safe-match-filters]");
                 const emptyRow = document.querySelector("[data-safe-match-empty]");
                 const resultsSummary = document.querySelector("[data-safe-match-results-summary]");
                 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
@@ -433,30 +447,6 @@
                             : `Showing ${visibleRows.length} of ${rows.length} components in review.`;
                     }
                 };
-
-                const controls = [searchInput, groupFilter, statusFilter, matchFilter, expiryFilter, locationFilter, sortSelect];
-                controls.forEach((control) => {
-                    control?.addEventListener(control === searchInput ? "input" : "change", applySafeMatchControls);
-                });
-
-                applyButton?.addEventListener("click", applySafeMatchControls);
-                clearButton?.addEventListener("click", () => {
-                    if (searchInput) {
-                        searchInput.value = "";
-                    }
-
-                    [groupFilter, statusFilter, matchFilter, expiryFilter, locationFilter].forEach((filter) => {
-                        if (filter) {
-                            filter.value = "all";
-                        }
-                    });
-
-                    if (sortSelect) {
-                        sortSelect.value = "compatibility-expiry";
-                    }
-
-                    applySafeMatchControls();
-                });
 
                 applySafeMatchControls();
             })();

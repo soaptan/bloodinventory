@@ -170,6 +170,56 @@
     line-height: 1.5;
 }
 
+.safe-match-section-title {
+    align-items: center;
+}
+
+.safe-match-review-count {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface-soft);
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.safe-match-review-count strong {
+    color: var(--text-strong);
+    font-size: 24px;
+    line-height: 1;
+}
+
+.safe-match-review-count span {
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.safe-match-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 14px;
+    align-items: end;
+}
+
+.safe-match-filter-grid .form-group {
+    min-width: 0;
+    margin-bottom: 0;
+}
+
+.safe-match-search-field {
+    grid-column: span 2;
+}
+
+.safe-match-filter-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 14px 0 10px;
+}
+
 .alert-success,
 .alert-error {
     border-radius: 12px;
@@ -633,8 +683,18 @@ body.theme-dark .text-btn {
     color: #8cc7ff;
 }
 
+@media (max-width: 1400px) {
+    .safe-match-filter-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
 @media (max-width: 1120px) {
     .medical-stat-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .safe-match-filter-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
@@ -667,7 +727,17 @@ body.theme-dark .text-btn {
 
     .medical-stat-grid,
     .form-grid,
-    .patient-mode-options {
+    .patient-mode-options,
+    .safe-match-filter-grid {
         grid-template-columns: 1fr;
+    }
+
+    .safe-match-section-title {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .safe-match-search-field {
+        grid-column: span 1;
     }
 }

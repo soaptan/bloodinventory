@@ -304,6 +304,25 @@ class DashboardTemplateRenderingTests {
     }
 
     @Test
+    void medicalComponentsPageCombinesCompatibilityAndTableFilters() throws Exception {
+        mockMvc.perform(get("/medical/components").principal(ADMIN_AUTHENTICATION))
+                .andExpect(expect(status().isOk()))
+                .andExpect(expect(content().string(containsString("data-safe-match-filter-form"))))
+                .andExpect(expect(content().string(containsString("name=\"recipientBloodGroup\""))))
+                .andExpect(expect(content().string(containsString("name=\"componentType\""))))
+                .andExpect(expect(content().string(containsString("name=\"search\""))))
+                .andExpect(expect(content().string(containsString("name=\"donorGroup\""))))
+                .andExpect(expect(content().string(containsString("name=\"status\""))))
+                .andExpect(expect(content().string(containsString("name=\"match\""))))
+                .andExpect(expect(content().string(containsString("name=\"expiry\""))))
+                .andExpect(expect(content().string(containsString("name=\"location\""))))
+                .andExpect(expect(content().string(containsString("name=\"sort\""))))
+                .andExpect(expect(content().string(containsString("href=\"/medical/components\" data-clear-safe-match-filters"))))
+                .andExpect(expect(content().string(not(containsString(">Apply Match<")))))
+                .andExpect(expect(content().string(not(containsString(">Match Criteria<")))));
+    }
+
+    @Test
     void medicalDonationsPageLinksToSeparateCollectionFormAndOmitsComponentStatus() throws Exception {
         mockMvc.perform(get("/medical/donations").principal(ADMIN_AUTHENTICATION))
                 .andExpect(expect(status().isOk()))
