@@ -49,6 +49,22 @@ public class LoginAttemptService {
         return Boolean.TRUE.equals(blocked);
     }
 
+    @Transactional(readOnly = true)
+    public boolean isPasswordRecoveryBlocked(String username, String sourceAddress) {
+        Boolean blocked = jdbcTemplate.queryForObject("""
+                SELECT EXISTS (
+                    SELECT 1
+                    FROM authentication_throttle
+                    WHERE attempt_key IN (?, ?, ?)
+                      AND blocked_until > CURRENT_TIMESTAMP
+                )
+                """, Boolean.class,
+                recoveryAccountKey(username),
+                recoveryAccountAddressKey(username, sourceAddress),
+                recoveryAddressKey(sourceAddress));
+        return Boolean.TRUE.equals(blocked);
+    }
+
     @Transactional
     public boolean recordFailure(String username, String sourceAddress) {
         LocalDateTime now = LocalDateTime.now();
@@ -75,11 +91,45 @@ public class LoginAttemptService {
     }
 
     @Transactional
+    public boolean recordPasswordRecoveryFailure(String username, String sourceAddress) {
+        LocalDateTime now = LocalDateTime.now();
+        removeExpiredEntries(now);
+        boolean accountBlocked = incrementBucket(recoveryAccountKey(username), maxAttempts, now);
+        boolean accountAddressBlocked = incrementBucket(
+                recoveryAccountAddressKey(username, sourceAddress), maxAttempts, now);
+        boolean addressBlocked = incrementBucket(
+                recoveryAddressKey(sourceAddress),
+                Math.max(maxAttempts * IP_LIMIT_MULTIPLIER, 20),
+                now
+        );
+        return accountBlocked || accountAddressBlocked || addressBlocked;
+    }
+
+    @Transactional
+    public boolean recordRejectedPasswordRecoveryInput(String sourceAddress) {
+        LocalDateTime now = LocalDateTime.now();
+        removeExpiredEntries(now);
+        return incrementBucket(
+                recoveryAddressKey(sourceAddress),
+                Math.max(maxAttempts * IP_LIMIT_MULTIPLIER, 20),
+                now
+        );
+    }
+
+    @Transactional
     public void recordSuccess(String username, String sourceAddress) {
         jdbcTemplate.update("""
                 DELETE FROM authentication_throttle
                 WHERE attempt_key IN (?, ?)
                 """, accountKey(username), accountAddressKey(username, sourceAddress));
+    }
+
+    @Transactional
+    public void recordPasswordRecoverySuccess(String username, String sourceAddress) {
+        jdbcTemplate.update("""
+                DELETE FROM authentication_throttle
+                WHERE attempt_key IN (?, ?)
+                """, recoveryAccountKey(username), recoveryAccountAddressKey(username, sourceAddress));
     }
 
     public int retryAfterSeconds() {
@@ -162,6 +212,19 @@ public class LoginAttemptService {
 
     private String addressKey(String sourceAddress) {
         return digest("ADDRESS:" + normalizeAddress(sourceAddress));
+    }
+
+    private String recoveryAccountKey(String username) {
+        return digest("PASSWORD_RECOVERY_ACCOUNT:" + normalizeUsername(username));
+    }
+
+    private String recoveryAccountAddressKey(String username, String sourceAddress) {
+        return digest("PASSWORD_RECOVERY_ACCOUNT_ADDRESS:"
+                + normalizeUsername(username) + ":" + normalizeAddress(sourceAddress));
+    }
+
+    private String recoveryAddressKey(String sourceAddress) {
+        return digest("PASSWORD_RECOVERY_ADDRESS:" + normalizeAddress(sourceAddress));
     }
 
     private String normalizeUsername(String username) {
