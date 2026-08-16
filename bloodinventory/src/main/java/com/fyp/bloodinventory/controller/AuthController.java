@@ -3,6 +3,7 @@ package com.fyp.bloodinventory.controller;
 import com.fyp.bloodinventory.config.PasswordPolicy;
 import com.fyp.bloodinventory.service.PasswordResetService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -20,6 +21,9 @@ public class AuthController {
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
     private static final Pattern USERNAME_PATTERN = Pattern.compile("^[A-Za-z0-9._-]{3,50}$");
     private static final Pattern IC_NUMBER_PATTERN = Pattern.compile("^\\d{6}-?\\d{2}-?\\d{4}$");
+    private static final String PASSWORD_RESET_STAFF_ID = "passwordResetStaffId";
+    private static final String PASSWORD_RESET_VERIFIED_AT = "passwordResetVerifiedAt";
+    private static final long PASSWORD_RESET_VERIFICATION_TTL_MILLIS = 600_000L;
 
     private final JdbcTemplate jdbcTemplate;
     private final PasswordResetService passwordResetService;
@@ -85,8 +89,15 @@ public class AuthController {
     }
 
     @GetMapping("/forgot-password")
-    public String forgotPasswordPage(HttpServletRequest request) {
-        request.getSession();
+    public String forgotPasswordPage(HttpServletRequest request, Model model) {
+        HttpSession session = request.getSession();
+        clearPasswordResetVerification(session);
+        if (request.getParameterMap().containsKey("verificationRequired")) {
+            model.addAttribute(
+                    "errorMessage",
+                    "Verify your account details before choosing a new password."
+            );
+        }
         return "forgot-password";
     }
 
@@ -94,11 +105,10 @@ public class AuthController {
     public String requestPasswordReset(@RequestParam("username") String username,
                                        @RequestParam("email") String email,
                                        @RequestParam("icNumber") String icNumber,
-                                       @RequestParam(value = "newPassword", required = false) String newPassword,
-                                       @RequestParam(value = "confirmPassword", required = false) String confirmPassword,
                                        HttpServletRequest request,
                                        Model model) {
-        request.getSession();
+        HttpSession session = request.getSession();
+        clearPasswordResetVerification(session);
 
         String normalizedUsername = normalize(username);
         String normalizedEmail = normalize(email);
@@ -106,7 +116,6 @@ public class AuthController {
 
         Map<String, String> fieldErrors = validateRecoveryIdentity(
                 normalizedUsername, normalizedEmail, normalizedIcNumber, true);
-        validateResetFields(fieldErrors, newPassword, confirmPassword);
         if (!fieldErrors.isEmpty()) {
             addValidationErrors(model, fieldErrors);
             preservePasswordResetInputs(model, normalizedUsername, normalizedEmail, normalizedIcNumber);
@@ -114,29 +123,63 @@ public class AuthController {
         }
 
         try {
-            passwordResetService.resetPasswordForIdentity(
-                    normalizedUsername,
-                    normalizedEmail,
-                    normalizedIcNumber,
-                    newPassword,
-                    confirmPassword,
-                    sourceIp(request)
-            );
-            model.addAttribute("successMessage", "Password reset successfully. You can sign in with the new password.");
+            Long staffId = passwordResetService.verifyIdentity(
+                    normalizedUsername, normalizedEmail, normalizedIcNumber).orElse(null);
+            if (staffId == null) {
+                model.addAttribute("errorMessage", "The request could not be completed. Please try again later.");
+                preservePasswordResetInputs(model, normalizedUsername, normalizedEmail, normalizedIcNumber);
+                return "forgot-password";
+            }
+
+            request.changeSessionId();
+            session.setAttribute(PASSWORD_RESET_STAFF_ID, staffId);
+            session.setAttribute(PASSWORD_RESET_VERIFIED_AT, System.currentTimeMillis());
+            return "redirect:/reset-password";
         } catch (RuntimeException e) {
             model.addAttribute("errorMessage", safeErrorMessage(e));
             preservePasswordResetInputs(model, normalizedUsername, normalizedEmail, normalizedIcNumber);
             return "forgot-password";
         }
-
-        preservePasswordResetInputs(model, normalizedUsername, normalizedEmail, normalizedIcNumber);
-        return "forgot-password";
     }
 
     @GetMapping("/reset-password")
     public String resetPasswordPage(HttpServletRequest request) {
-        request.getSession();
-        return "redirect:/forgot-password";
+        if (verifiedPasswordResetStaffId(request.getSession(false)) == null) {
+            return "redirect:/forgot-password?verificationRequired";
+        }
+        return "reset-password";
+    }
+
+    @PostMapping("/reset-password")
+    public String resetPassword(@RequestParam(value = "newPassword", required = false) String newPassword,
+                                @RequestParam(value = "confirmPassword", required = false) String confirmPassword,
+                                HttpServletRequest request,
+                                Model model) {
+        HttpSession session = request.getSession(false);
+        Long staffId = verifiedPasswordResetStaffId(session);
+        if (staffId == null) {
+            return "redirect:/forgot-password?verificationRequired";
+        }
+
+        Map<String, String> fieldErrors = new LinkedHashMap<>();
+        validateResetFields(fieldErrors, newPassword, confirmPassword);
+        if (!fieldErrors.isEmpty()) {
+            addValidationErrors(model, fieldErrors);
+            return "reset-password";
+        }
+
+        try {
+            passwordResetService.resetPasswordForVerifiedStaff(
+                    staffId, newPassword, confirmPassword, sourceIp(request));
+            clearPasswordResetVerification(session);
+            model.addAttribute(
+                    "successMessage",
+                    "Password reset successfully. You can sign in with the new password."
+            );
+        } catch (RuntimeException exception) {
+            model.addAttribute("errorMessage", safeErrorMessage(exception));
+        }
+        return "reset-password";
     }
 
     private void preservePasswordResetInputs(Model model, String username, String email, String icNumber) {
@@ -186,6 +229,37 @@ public class AuthController {
     private void addValidationErrors(Model model, Map<String, String> errors) {
         model.addAttribute("fieldErrors", errors);
         model.addAttribute("errorMessage", "Please correct the highlighted fields.");
+    }
+
+    private Long verifiedPasswordResetStaffId(HttpSession session) {
+        if (session == null) {
+            return null;
+        }
+
+        Object staffIdValue = session.getAttribute(PASSWORD_RESET_STAFF_ID);
+        Object verifiedAtValue = session.getAttribute(PASSWORD_RESET_VERIFIED_AT);
+        if (!(staffIdValue instanceof Number staffId)
+                || !(verifiedAtValue instanceof Number verifiedAt)) {
+            clearPasswordResetVerification(session);
+            return null;
+        }
+
+        long ageMillis = System.currentTimeMillis() - verifiedAt.longValue();
+        if (staffId.longValue() <= 0
+                || ageMillis < 0
+                || ageMillis > PASSWORD_RESET_VERIFICATION_TTL_MILLIS) {
+            clearPasswordResetVerification(session);
+            return null;
+        }
+        return staffId.longValue();
+    }
+
+    private void clearPasswordResetVerification(HttpSession session) {
+        if (session == null) {
+            return;
+        }
+        session.removeAttribute(PASSWORD_RESET_STAFF_ID);
+        session.removeAttribute(PASSWORD_RESET_VERIFIED_AT);
     }
 
     private String safeErrorMessage(RuntimeException exception) {

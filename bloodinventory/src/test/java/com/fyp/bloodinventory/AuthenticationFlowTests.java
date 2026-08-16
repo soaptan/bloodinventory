@@ -175,54 +175,109 @@ class AuthenticationFlowTests {
     }
 
     @Test
-    void forgotPasswordPageUsesSingleStepResetForm() throws Exception {
+    void forgotPasswordPageOnlyCollectsIdentityDetails() throws Exception {
         mockMvc.perform(get("/forgot-password"))
                 .andExpect(expect(status().isOk()))
-                .andExpect(expect(content().string(containsString("Reset Password"))))
-                .andExpect(expect(content().string(containsString("name=\"newPassword\""))))
-                .andExpect(expect(content().string(containsString("name=\"confirmPassword\""))))
+                .andExpect(expect(content().string(containsString("Verify Account"))))
+                .andExpect(expect(content().string(containsString("name=\"username\""))))
+                .andExpect(expect(content().string(containsString("name=\"email\""))))
+                .andExpect(expect(content().string(containsString("name=\"icNumber\""))))
+                .andExpect(expect(content().string(not(containsString("name=\"newPassword\"")))))
+                .andExpect(expect(content().string(not(containsString("name=\"confirmPassword\"")))))
                 .andExpect(expect(content().string(not(containsString("verificationCode")))))
                 .andExpect(expect(content().string(not(containsString("Send Verification Code")))));
     }
 
     @Test
-    void passwordResetRejectsWeakAndMismatchedPasswords() throws Exception {
-        mockMvc.perform(post("/forgot-password")
-                        .with(csrf())
-                        .param("username", "admin")
-                        .param("email", "admin@bloodbank.my")
-                        .param("icNumber", "850101-10-2001")
-                        .param("newPassword", "weak")
-                        .param("confirmPassword", "DifferentPassword123!"))
-                .andExpect(expect(status().isOk()))
-                .andExpect(expect(content().string(containsString("uppercase and lowercase"))))
-                .andExpect(expect(content().string(containsString("Passwords do not match"))));
+    void resetPasswordPageRequiresFreshVerifiedSession() throws Exception {
+        mockMvc.perform(get("/reset-password"))
+                .andExpect(expect(status().is3xxRedirection()))
+                .andExpect(expect(redirectedUrl("/forgot-password?verificationRequired")));
+
+        MockHttpSession expiredSession = new MockHttpSession();
+        expiredSession.setAttribute("passwordResetStaffId", 1L);
+        expiredSession.setAttribute("passwordResetVerifiedAt", System.currentTimeMillis() - 660_000L);
+
+        mockMvc.perform(get("/reset-password").session(expiredSession))
+                .andExpect(expect(status().is3xxRedirection()))
+                .andExpect(expect(redirectedUrl("/forgot-password?verificationRequired")));
+
+        assertThat(expiredSession.getAttribute("passwordResetStaffId")).isNull();
+        assertThat(expiredSession.getAttribute("passwordResetVerifiedAt")).isNull();
     }
 
     @Test
-    void forgotPasswordDirectlyResetsMatchingAccount() throws Exception {
+    void matchingIdentityImmediatelyOpensSeparatePasswordPage() throws Exception {
         cleanupPasswordResetTestAccounts();
         String username = "reset.test." + UUID.randomUUID();
         String email = username + "@bloodbank.my";
         String icNumber = "990101-10-9001";
-        Long staffId = jdbcTemplate.queryForObject("""
-                INSERT INTO staff (
-                    staff_type,
-                    full_name,
-                    username,
-                    password,
-                    phone_no,
-                    ic_number,
-                    gender,
-                    email,
-                    is_active,
-                    is_locked,
-                    created_at,
-                    updated_at
-                )
-                VALUES ('BLOOD_ADMINISTRATOR', 'Reset Flow Test', ?, ?, '0100000000', ?, 'FEMALE', ?, TRUE, FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-                RETURNING staff_id
-                """, Long.class, username, passwordEncoder.encode("OldPassword123!"), icNumber, email);
+        Long staffId = createPasswordResetTestAccount(
+                username, email, icNumber, passwordEncoder.encode("OldPassword123!"));
+
+        try {
+            MockHttpSession resetSession = verifyPasswordResetIdentity(username, email, icNumber);
+
+            assertThat(resetSession.getAttribute("passwordResetStaffId")).isEqualTo(staffId);
+            assertThat(resetSession.getAttribute("passwordResetVerifiedAt")).isInstanceOf(Long.class);
+
+            mockMvc.perform(get("/reset-password").session(resetSession))
+                    .andExpect(expect(status().isOk()))
+                    .andExpect(expect(content().string(containsString("Choose New Password"))))
+                    .andExpect(expect(content().string(containsString("name=\"newPassword\""))))
+                    .andExpect(expect(content().string(containsString("name=\"confirmPassword\""))))
+                    .andExpect(expect(content().string(containsString("New password requirements"))))
+                    .andExpect(expect(content().string(not(containsString("name=\"username\"")))))
+                    .andExpect(expect(content().string(not(containsString("name=\"email\"")))))
+                    .andExpect(expect(content().string(not(containsString("name=\"icNumber\"")))));
+        } finally {
+            cleanupPasswordResetTestAccount(username);
+        }
+    }
+
+    @Test
+    void passwordResetRejectsWeakAndMismatchedPasswords() throws Exception {
+        cleanupPasswordResetTestAccounts();
+        String username = "reset.test." + UUID.randomUUID();
+        String email = username + "@bloodbank.my";
+        String icNumber = "990101-10-9002";
+        String storedPassword = passwordEncoder.encode("OldPassword123!");
+        createPasswordResetTestAccount(username, email, icNumber, storedPassword);
+
+        try {
+            MockHttpSession resetSession = verifyPasswordResetIdentity(username, email, icNumber);
+
+            mockMvc.perform(post("/reset-password")
+                            .session(resetSession)
+                            .with(csrf())
+                            .param("newPassword", "weak")
+                            .param("confirmPassword", "DifferentPassword123!"))
+                    .andExpect(expect(status().isOk()))
+                    .andExpect(expect(content().string(containsString("uppercase and lowercase"))))
+                    .andExpect(expect(content().string(containsString("Passwords do not match"))));
+
+            String passwordAfterRequest = jdbcTemplate.queryForObject(
+                    "SELECT password FROM staff WHERE username = ?",
+                    String.class,
+                    username
+            );
+            assertThat(passwordAfterRequest).isEqualTo(storedPassword);
+
+            mockMvc.perform(get("/reset-password").session(resetSession))
+                    .andExpect(expect(status().isOk()));
+        } finally {
+            cleanupPasswordResetTestAccount(username);
+        }
+    }
+
+    @Test
+    void verifiedPasswordResetUpdatesAccountAndConsumesApproval() throws Exception {
+        cleanupPasswordResetTestAccounts();
+        String username = "reset.test." + UUID.randomUUID();
+        String email = username + "@bloodbank.my";
+        String icNumber = "990101-10-9003";
+        Long staffId = createPasswordResetTestAccount(
+                username, email, icNumber, passwordEncoder.encode("OldPassword123!"));
         String sessionId = "reset-session-" + UUID.randomUUID();
         jdbcTemplate.update("""
                 INSERT INTO staff_login_session (
@@ -239,11 +294,11 @@ class AuthenticationFlowTests {
                 """, staffId, "legacy-" + UUID.randomUUID());
 
         try {
-            mockMvc.perform(post("/forgot-password")
+            MockHttpSession resetSession = verifyPasswordResetIdentity(username, email, icNumber);
+
+            mockMvc.perform(post("/reset-password")
+                            .session(resetSession)
                             .with(csrf())
-                            .param("username", username)
-                            .param("email", email)
-                            .param("icNumber", icNumber)
                             .param("newPassword", "NewPassword123!")
                             .param("confirmPassword", "NewPassword123!"))
                     .andExpect(expect(status().isOk()))
@@ -281,10 +336,12 @@ class AuthenticationFlowTests {
                       AND actor_username = ?
                     """, Integer.class, username);
             assertThat(resetNotifications).isEqualTo(1);
+
+            mockMvc.perform(get("/reset-password").session(resetSession))
+                    .andExpect(expect(status().is3xxRedirection()))
+                    .andExpect(expect(redirectedUrl("/forgot-password?verificationRequired")));
         } finally {
-            jdbcTemplate.update("DELETE FROM system_activity_notification WHERE actor_username = ?", username);
-            jdbcTemplate.update("DELETE FROM staff_login_session WHERE username = ?", username);
-            jdbcTemplate.update("DELETE FROM staff WHERE username = ?", username);
+            cleanupPasswordResetTestAccount(username);
         }
     }
 
@@ -304,17 +361,16 @@ class AuthenticationFlowTests {
                 """, username, storedPassword, email);
 
         try {
-            mockMvc.perform(post("/forgot-password")
+            MvcResult result = mockMvc.perform(post("/forgot-password")
                             .with(csrf())
                             .param("username", username)
                             .param("email", email)
-                            .param("icNumber", "990101-10-9999")
-                            .param("newPassword", "NewPassword123!")
-                            .param("confirmPassword", "NewPassword123!"))
+                            .param("icNumber", "990101-10-9999"))
                     .andExpect(expect(status().isOk()))
                     .andExpect(expect(content().string(containsString(
                             "The request could not be completed. Please try again later."
-                    ))));
+                    ))))
+                    .andReturn();
 
             String passwordAfterRequest = jdbcTemplate.queryForObject(
                     "SELECT password FROM staff WHERE username = ?",
@@ -322,9 +378,57 @@ class AuthenticationFlowTests {
                     username
             );
             assertThat(passwordAfterRequest).isEqualTo(storedPassword);
+
+            MockHttpSession resetSession = (MockHttpSession) result.getRequest().getSession(false);
+            assertThat(resetSession).isNotNull();
+            mockMvc.perform(get("/reset-password").session(resetSession))
+                    .andExpect(expect(status().is3xxRedirection()))
+                    .andExpect(expect(redirectedUrl("/forgot-password?verificationRequired")));
         } finally {
             jdbcTemplate.update("DELETE FROM staff WHERE username = ?", username);
         }
+    }
+
+    private MockHttpSession verifyPasswordResetIdentity(String username,
+                                                        String email,
+                                                        String icNumber) throws Exception {
+        MvcResult result = mockMvc.perform(post("/forgot-password")
+                        .with(csrf())
+                        .param("username", username)
+                        .param("email", email)
+                        .param("icNumber", icNumber))
+                .andExpect(expect(status().is3xxRedirection()))
+                .andExpect(expect(redirectedUrl("/reset-password")))
+                .andReturn();
+
+        MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
+        assertThat(session).isNotNull();
+        return session;
+    }
+
+    private Long createPasswordResetTestAccount(String username,
+                                                String email,
+                                                String icNumber,
+                                                String storedPassword) {
+        return jdbcTemplate.queryForObject("""
+                INSERT INTO staff (
+                    staff_type,
+                    full_name,
+                    username,
+                    password,
+                    phone_no,
+                    ic_number,
+                    gender,
+                    email,
+                    is_active,
+                    is_locked,
+                    created_at,
+                    updated_at
+                )
+                VALUES ('BLOOD_ADMINISTRATOR', 'Reset Flow Test', ?, ?, '0100000000', ?,
+                        'FEMALE', ?, TRUE, FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                RETURNING staff_id
+                """, Long.class, username, storedPassword, icNumber, email);
     }
 
     private org.springframework.test.web.servlet.ResultActions login(String username) throws Exception {
@@ -363,6 +467,12 @@ class AuthenticationFlowTests {
         jdbcTemplate.update("DELETE FROM system_activity_notification WHERE actor_username LIKE 'reset.test.%'");
         jdbcTemplate.update("DELETE FROM staff_login_session WHERE username LIKE 'reset.test.%'");
         jdbcTemplate.update("DELETE FROM staff WHERE username LIKE 'reset.test.%'");
+    }
+
+    private void cleanupPasswordResetTestAccount(String username) {
+        jdbcTemplate.update("DELETE FROM system_activity_notification WHERE actor_username = ?", username);
+        jdbcTemplate.update("DELETE FROM staff_login_session WHERE username = ?", username);
+        jdbcTemplate.update("DELETE FROM staff WHERE username = ?", username);
     }
 
     private long countAuditAction(String actionType) {

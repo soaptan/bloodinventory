@@ -8,6 +8,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 @Service
 public class PasswordResetService {
 
@@ -26,29 +28,32 @@ public class PasswordResetService {
         this.notificationService = notificationService;
     }
 
-    @Transactional
-    public void resetPasswordForIdentity(String username,
-                                         String email,
-                                         String icNumber,
-                                         String newPassword,
-                                         String confirmPassword,
-                                         String sourceIp) {
+    public Optional<Long> verifyIdentity(String username, String email, String icNumber) {
         String normalizedUsername = requireText(username, "Please enter your username.");
         String normalizedEmail = requireText(email, "Please enter your registered email.");
         String normalizedIcNumber = requireText(icNumber, "Please enter your IC number.");
+
+        return Optional.ofNullable(findActiveAccountByIdentity(
+                normalizedUsername,
+                normalizedEmail,
+                normalizedIcNumber
+        )).map(StaffAccount::staffId);
+    }
+
+    @Transactional
+    public void resetPasswordForVerifiedStaff(Long staffId,
+                                              String newPassword,
+                                              String confirmPassword,
+                                              String sourceIp) {
         String normalizedNewPassword = PasswordPolicy.requireStrongPassword(newPassword);
         String normalizedConfirmPassword = requireConfirmation(confirmPassword);
         if (!normalizedNewPassword.equals(normalizedConfirmPassword)) {
             throw new RuntimeException("New password and confirmation do not match.");
         }
 
-        StaffAccount account = findActiveAccountByIdentity(
-                normalizedUsername,
-                normalizedEmail,
-                normalizedIcNumber
-        );
+        StaffAccount account = findActiveAccountById(staffId);
         if (account == null) {
-            throw new RuntimeException("Account identity did not match.");
+            throw new RuntimeException("Verified account is no longer available.");
         }
 
         completeDirectReset(account, normalizedNewPassword, sourceIp);
@@ -110,6 +115,27 @@ public class PasswordResetService {
                     rs.getString("username"),
                     rs.getString("password")
             ), username, email, icNumber);
+        } catch (EmptyResultDataAccessException ex) {
+            return null;
+        }
+    }
+
+    private StaffAccount findActiveAccountById(Long staffId) {
+        if (staffId == null || staffId <= 0) {
+            return null;
+        }
+
+        try {
+            return jdbcTemplate.queryForObject("""
+                    SELECT staff_id, username, password
+                    FROM staff
+                    WHERE staff_id = ?
+                      AND is_active = TRUE
+                    """, (rs, rowNum) -> new StaffAccount(
+                    rs.getLong("staff_id"),
+                    rs.getString("username"),
+                    rs.getString("password")
+            ), staffId);
         } catch (EmptyResultDataAccessException ex) {
             return null;
         }
