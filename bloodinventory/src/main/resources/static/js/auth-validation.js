@@ -2,6 +2,27 @@ document.querySelectorAll('[data-validate-form]').forEach((form) => {
     const fields = Array.from(form.querySelectorAll('input:not([type="hidden"])'));
     const passwordInput = form.querySelector('#newPassword');
     const passwordRequirements = form.querySelector('[data-password-requirements]');
+    const visibleEye = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+    const hiddenEye = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+
+    form.querySelectorAll('[data-password-toggle]').forEach((toggle) => {
+        if (!(toggle instanceof HTMLButtonElement)) return;
+
+        toggle.addEventListener('click', () => {
+            const input = document.getElementById(toggle.dataset.passwordToggle);
+            if (!(input instanceof HTMLInputElement) || !form.contains(input)) return;
+
+            const willShow = input.type === 'password';
+            const fieldName = input.id === 'confirmPassword' ? 'confirmed password' : 'new password';
+            input.type = willShow ? 'text' : 'password';
+            toggle.setAttribute('aria-pressed', String(willShow));
+            toggle.setAttribute('aria-label', `${willShow ? 'Hide' : 'Show'} ${fieldName}`);
+            toggle.title = `${willShow ? 'Hide' : 'Show'} ${fieldName}`;
+            const icon = toggle.querySelector('[data-password-eye]');
+            if (icon instanceof SVGElement) icon.innerHTML = willShow ? hiddenEye : visibleEye;
+            input.focus();
+        });
+    });
 
     function utf8Length(value) {
         return new TextEncoder().encode(value).length;

@@ -62,6 +62,98 @@
             margin-bottom:6px;
         }
 
+        .report-table-controls {
+            display:grid;
+            grid-template-columns:repeat(2, minmax(0, 1fr));
+            gap:10px;
+            align-items:end;
+            margin:16px 0 10px;
+            padding:12px;
+            border:1px solid #dbe7f3;
+            border-radius:12px;
+            background:#f7faff;
+        }
+
+        .module-card-full .report-table-controls {
+            grid-template-columns:repeat(3, minmax(0, 1fr));
+        }
+
+        .report-table-field label {
+            display:block;
+            margin-bottom:7px;
+            color:#6b85a3;
+            font-size:11px;
+            font-weight:800;
+            letter-spacing:.08em;
+            text-transform:uppercase;
+        }
+
+        .report-table-field input,
+        .report-table-field select {
+            width:100%;
+            min-height:42px;
+            border:1px solid #ccd8e6;
+            border-radius:8px;
+            background:#fff;
+            color:#172033;
+            padding:9px 12px;
+            font-size:13px;
+        }
+
+        .report-table-actions {
+            grid-column:1 / -1;
+            display:flex;
+            gap:10px;
+            flex-wrap:wrap;
+        }
+
+        .report-filter-button {
+            min-width:108px;
+            min-height:40px;
+            border:1px solid #c9d8e7;
+            border-radius:8px;
+            background:#fff;
+            color:#315170;
+            padding:8px 16px;
+            font-size:13px;
+            font-weight:800;
+            cursor:pointer;
+        }
+
+        .report-filter-button:hover {
+            border-color:#94b8dc;
+            background:#edf5fd;
+        }
+
+        .report-filter-button.primary {
+            border-color:#1476d4;
+            background:#1476d4;
+            color:#fff;
+        }
+
+        .report-filter-button.primary:hover {
+            border-color:#0f65ba;
+            background:#0f65ba;
+        }
+
+        .report-filter-meta {
+            min-height:18px;
+            margin-bottom:8px;
+            color:#6b85a3;
+            font-size:12px;
+            font-weight:700;
+        }
+
+        .report-table-wrap {
+            overflow-x:auto;
+        }
+
+        [data-report-filter-empty] td {
+            padding:24px 16px;
+            color:#6b85a3;
+            text-align:center;
+        }
+
         .dashboard-action-header {
             display:flex;
             justify-content:space-between;
@@ -794,6 +886,36 @@
             color:#f8fbff;
         }
 
+        body.theme-dark .report-table-controls {
+            background:#111a28;
+            border-color:#2b3c52;
+        }
+
+        body.theme-dark .report-table-field label,
+        body.theme-dark .report-filter-meta,
+        body.theme-dark [data-report-filter-empty] td {
+            color:#9db8d4;
+        }
+
+        body.theme-dark .report-table-field input,
+        body.theme-dark .report-table-field select,
+        body.theme-dark .report-filter-button {
+            background:#071824;
+            border-color:#27506d;
+            color:#f8fbff;
+        }
+
+        body.theme-dark .report-filter-button:hover {
+            background:#132334;
+            border-color:#3a6485;
+        }
+
+        body.theme-dark .report-filter-button.primary {
+            background:#1476d4;
+            border-color:#1476d4;
+            color:#fff;
+        }
+
         body.theme-dark .audit-snapshot summary {
             color:#8ec6ff;
         }
@@ -951,6 +1073,15 @@
                 justify-content:flex-start;
                 flex-wrap:wrap;
             }
+
+            .report-table-controls,
+            .module-card-full .report-table-controls {
+                grid-template-columns:1fr;
+            }
+
+            .report-filter-button {
+                flex:1 1 120px;
+            }
         }
 
         @media print {
@@ -1030,7 +1161,9 @@
             .inventory-apply-control,
             .form-grid,
             .audit-filter-grid,
-            .audit-meta {
+            .audit-meta,
+            .report-table-controls,
+            .report-filter-meta {
                 display:none !important;
             }
 

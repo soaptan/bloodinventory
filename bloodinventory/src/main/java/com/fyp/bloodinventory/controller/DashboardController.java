@@ -30,6 +30,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -131,18 +132,22 @@ public class DashboardController {
 
     @GetMapping("/admin/storage/create")
     public String createStorageLocation(Model model) {
+        model.addAttribute("locations", storageLocationService.getAllLocations());
         model.addAttribute("stats", adminDashboardService.getDashboardStats());
         model.addAttribute("locationCount", storageLocationService.countLocations());
         if (!model.containsAttribute("locationRequest")) {
             model.addAttribute("locationRequest", new StorageLocationRequest());
         }
-        return "admin-storage-create";
+        model.addAttribute("openStorageCreateModal", true);
+        return "admin-storage";
     }
 
     @PostMapping("/admin/storage/add")
     public String addStorageLocation(@ModelAttribute("locationRequest") StorageLocationRequest request,
+                                     BindingResult bindingResult,
                                      Principal principal,
                                      RedirectAttributes redirectAttributes) {
+        String redirectPath = "/admin/storage";
         try {
             String actor = actorName(principal);
             request.setStaffId(staffService.getStaffIdByUsername(actor));
@@ -155,11 +160,25 @@ public class DashboardController {
             );
             redirectAttributes.addFlashAttribute("successMessage", "Storage location created successfully.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectPath = "/admin/storage/create";
+            String message = safeLabel(e.getMessage(), "The storage location could not be created.");
+            if ("Storage location name already exists.".equals(message)) {
+                bindingResult.rejectValue("description", "duplicate", message);
+                redirectAttributes.addFlashAttribute(
+                        BindingResult.MODEL_KEY_PREFIX + "locationRequest",
+                        bindingResult
+                );
+                redirectAttributes.addFlashAttribute(
+                        "errorMessage",
+                        "Please correct the highlighted storage location field."
+                );
+            } else {
+                redirectAttributes.addFlashAttribute("errorMessage", message);
+            }
             redirectAttributes.addFlashAttribute("locationRequest", request);
         }
 
-        return "redirect:/admin/storage/create";
+        return "redirect:" + redirectPath;
     }
 
     @PostMapping("/admin/storage/{id}/update")
@@ -335,18 +354,22 @@ public class DashboardController {
 
     @GetMapping("/admin/deferral-rules/create")
     public String createDeferralRule(Model model) {
+        model.addAttribute("rules", deferralRuleService.getAllRules());
         model.addAttribute("stats", adminDashboardService.getDashboardStats());
         model.addAttribute("ruleCount", deferralRuleService.countRules());
         if (!model.containsAttribute("ruleRequest")) {
             model.addAttribute("ruleRequest", new DeferralRuleRequest());
         }
-        return "admin-deferral-rule-create";
+        model.addAttribute("openDeferralRuleCreateModal", true);
+        return "admin-deferral-rules";
     }
 
     @PostMapping("/admin/deferral-rules/add")
     public String addDeferralRule(@ModelAttribute("ruleRequest") DeferralRuleRequest request,
+                                  BindingResult bindingResult,
                                   Principal principal,
                                   RedirectAttributes redirectAttributes) {
+        String redirectPath = "/admin/deferral-rules";
         try {
             String actor = actorName(principal);
             request.setStaffId(staffService.getStaffIdByUsername(actor));
@@ -359,11 +382,25 @@ public class DashboardController {
             );
             redirectAttributes.addFlashAttribute("successMessage", "Deferral rule created successfully.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectPath = "/admin/deferral-rules/create";
+            String message = safeLabel(e.getMessage(), "The deferral rule could not be created.");
+            if ("Deferral rule name already exists.".equals(message)) {
+                bindingResult.rejectValue("description", "duplicate", message);
+                redirectAttributes.addFlashAttribute(
+                        BindingResult.MODEL_KEY_PREFIX + "ruleRequest",
+                        bindingResult
+                );
+                redirectAttributes.addFlashAttribute(
+                        "errorMessage",
+                        "Please correct the highlighted deferral rule field."
+                );
+            } else {
+                redirectAttributes.addFlashAttribute("errorMessage", message);
+            }
             redirectAttributes.addFlashAttribute("ruleRequest", request);
         }
 
-        return "redirect:/admin/deferral-rules/create";
+        return "redirect:" + redirectPath;
     }
 
     @PostMapping("/admin/deferral-rules/{id}/update")

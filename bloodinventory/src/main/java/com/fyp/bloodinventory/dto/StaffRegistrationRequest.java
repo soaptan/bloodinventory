@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
+@ValidStaffRegistration
 public class StaffRegistrationRequest {
 
     @NotBlank(message = "Full name is required.")
@@ -21,10 +22,15 @@ public class StaffRegistrationRequest {
 
     @NotBlank(message = "Password cannot be blank.")
     @Size(min = 8, max = 72, message = "Password must be between 8 and 72 characters.")
+    @Pattern(
+            regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9\\s])\\S+$",
+            message = "Password must include uppercase and lowercase letters, a number, and a special character, with no spaces."
+    )
     private String password;
 
+    @NotBlank(message = "Phone number is required.")
     @Size(max = 20, message = "Phone number must not exceed 20 characters.")
-    @Pattern(regexp = "^$|^(?:\\+?60|0)1\\d(?:[ -]?\\d){7,8}$", message = "Enter a valid Malaysian mobile number.")
+    @Pattern(regexp = "^(?:\\+?60|0)1\\d(?:[ -]?\\d){7,8}$", message = "Enter a valid Malaysian mobile number.")
     private String phoneNo;
 
     @NotBlank(message = "IC number is required.")

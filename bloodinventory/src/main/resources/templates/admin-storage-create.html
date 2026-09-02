@@ -1,95 +1,117 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org"
-      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-      layout:decorate="~{layout/master-layout}">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Storage Location</title>
-</head>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <body>
 
-    <th:block layout:fragment="app-subtitle">
-        Administrative workspace for staffing, storage, monitoring, and reporting.
-    </th:block>
+<div th:fragment="storageCreateModal"
+     th:if="${openStorageCreateModal == true}"
+     class="modal-backdrop admin-create-backdrop"
+     th:classappend="${openStorageCreateModal == true} ? 'is-open'"
+     data-admin-create-modal
+     data-storage-create-page
+     data-storage-create-modal>
+    <div class="card card-lg staff-register-modal admin-create-modal"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="storage-create-modal-title">
+        <div class="staff-register-header admin-create-modal-header">
+            <div>
+                <div class="section-subtitle">Storage Setup</div>
+                <h2 id="storage-create-modal-title" class="section-title staff-register-modal-title admin-create-modal-title">
+                    Create Storage Location
+                </h2>
+                <p class="staff-register-modal-description admin-create-modal-description">
+                    Add a controlled storage location for blood component placement and monitoring.
+                </p>
+            </div>
 
-    <th:block layout:fragment="sidebar">
-        <div th:replace="~{fragments/sidebar :: sidebar(
-            'Blood Administrator Panel',
-            'Centralized navigation for staff, storage, inventory monitoring, alerts, and reports.',
-            'storage-config'
-        )}"></div>
-    </th:block>
+            <a th:href="@{/admin/storage}"
+               class="btn btn-icon btn-secondary"
+               aria-label="Close create storage location form"
+               data-admin-create-close
+               data-back-to-storage-locations
+               data-storage-create-close>
+                &times;
+            </a>
+        </div>
 
-    <th:block layout:fragment="content">
-        <div class="main-stack admin-form-page-stack" data-storage-create-page>
-            <section class="page-intro page-card admin-form-page-intro">
-                <div>
-                    <div class="page-kicker">Storage Setup</div>
-                    <h1>Create Storage Location</h1>
-                    <p>Add a controlled storage location for blood component placement and monitoring.</p>
+        <div class="staff-register-content admin-create-modal-content">
+            <div th:if="${errorMessage != null and #strings.isNotEmpty(errorMessage)}"
+                 class="card card-sm staff-register-error"
+                 role="alert"
+                 th:text="${errorMessage}">
+                Please correct the highlighted storage location field.
+            </div>
+
+            <div class="admin-create-summary-heading">
+                <h3>Storage Summary</h3>
+                <p>Review current storage capacity indicators before creating the new location.</p>
+            </div>
+
+            <div class="grid grid-3 admin-create-summary-grid" aria-label="Storage summary">
+                <article class="card card-sm admin-create-summary-card">
+                    <div class="stat-card-label">Active Storage Locations</div>
+                    <div class="stat-card-value" th:text="${locationCount}">0</div>
+                </article>
+
+                <article class="card card-sm admin-create-summary-card">
+                    <div class="stat-card-label">Available Components</div>
+                    <div class="stat-card-value" th:text="${stats.availableComponents}">0</div>
+                </article>
+
+                <article class="card card-sm admin-create-summary-card">
+                    <div class="stat-card-label">Near Expiry Components</div>
+                    <div class="stat-card-value" th:text="${stats.nearExpiryComponents}">0</div>
+                </article>
+            </div>
+
+            <form class="section gap-md admin-create-form"
+                  th:action="@{/admin/storage/add}"
+                  th:object="${locationRequest}"
+                  method="post"
+                  novalidate
+                  data-storage-create-form
+                  data-action-confirm
+                  data-action-label="create storage location"
+                  data-action-confirm-text="Confirm Create">
+                <div th:if="${#fields.hasAnyErrors()}"
+                     class="card card-sm staff-register-validation">
+                    Please correct the highlighted storage location field.
                 </div>
-                <a class="btn btn-tertiary"
-                   th:href="@{/admin/storage}"
-                   data-back-to-storage-locations>
-                    Back to Storage Locations
-                </a>
-            </section>
 
-            <section class="standalone-admin-form-layout">
-                <article class="module-card standalone-admin-form-card">
-                    <h2>Storage Summary &amp; Create Location</h2>
-                    <p>Review current storage capacity indicators before creating the new location.</p>
-
-                    <div class="summary-list admin-form-summary-list">
-                        <div class="summary-item">
-                            <div class="label">Active Storage Locations</div>
-                            <div class="value" th:text="${locationCount}">0</div>
-                        </div>
-
-                        <div class="summary-item">
-                            <div class="label">Available Components</div>
-                            <div class="value" th:text="${stats.availableComponents}">0</div>
-                        </div>
-
-                        <div class="summary-item">
-                            <div class="label">Near Expiry Components</div>
-                            <div class="value" th:text="${stats.nearExpiryComponents}">0</div>
+                <div class="form-grid form-grid-2 admin-create-form-grid">
+                    <div class="form-group full">
+                        <label for="storage-description" class="form-label">Description</label>
+                        <input id="storage-description"
+                               class="form-input"
+                               th:classappend="${#fields.hasErrors('description')} ? 'form-error' : ''"
+                               type="text"
+                               th:field="*{description}"
+                               placeholder="Enter storage description"
+                               maxlength="255"
+                               required>
+                        <div class="form-error-text"
+                             th:if="${#fields.hasErrors('description')}"
+                             th:errors="*{description}">Storage location name already exists.</div>
+                        <div class="invalid-feedback"
+                             th:unless="${#fields.hasErrors('description')}">
+                            Please enter a storage description.
                         </div>
                     </div>
+                </div>
 
-                    <form class="needs-validation admin-create-form"
-                          th:action="@{/admin/storage/add}"
-                          th:object="${locationRequest}"
-                          method="post"
-                          novalidate
-                          data-storage-create-form
-                          data-action-confirm
-                          data-action-label="create storage location"
-                          data-action-confirm-text="Confirm Create">
-                        <div class="form-grid single">
-                            <div class="form-group full">
-                                <label for="storage-description">Description</label>
-                                <input id="storage-description"
-                                       type="text"
-                                       th:field="*{description}"
-                                       placeholder="Enter storage description"
-                                       required>
-                                <div class="invalid-feedback">Please enter a storage description.</div>
-                            </div>
-
-                            <div class="admin-form-actions">
-                                <button type="submit" class="btn btn-primary" data-create-storage-location>
-                                    Create Location
-                                </button>
-                                <a class="btn btn-tertiary" th:href="@{/admin/storage}">Cancel</a>
-                            </div>
-                        </div>
-                    </form>
-                </article>
-            </section>
+                <div class="flex flex-between gap-md staff-register-footer">
+                    <div class="form-help">Use a clear, unique name that identifies where blood components are stored.</div>
+                    <div class="btn-row">
+                        <a class="btn btn-secondary" th:href="@{/admin/storage}" data-admin-create-close>Cancel</a>
+                        <button type="submit" class="btn btn-primary" data-create-storage-location>
+                            Create Location
+                        </button>
+                    </div>
+                </div>
+            </form>
         </div>
-    </th:block>
+    </div>
+</div>
 
 </body>
 </html>

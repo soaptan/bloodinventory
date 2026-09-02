@@ -1748,6 +1748,12 @@ body::after,
 .main {
     background: #f4f5f7;
     padding: 28px 32px;
+    display: flex;
+    flex-direction: column;
+}
+
+.main > .main-stack {
+    flex: 1 0 auto;
 }
 
 .page-card,

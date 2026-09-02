@@ -43,13 +43,25 @@ public class MedicalWorkflowController {
     public String donorAssessment(@RequestParam(value = "donorId", required = false) Long donorId,
                                   Model model) {
         populateDonorAssessment(donorId, model);
-        return "medical-donor-assessment";
+        model.addAttribute("openDonorAssessmentModal", true);
+        return "medical-donor-eligibility";
     }
 
     @PostMapping("/medical/donor-eligibility/donors")
-    public String saveDonor(@ModelAttribute("donorRequest") MedicalDonorRequest request,
+    public String saveDonor(@Valid @ModelAttribute("donorRequest") MedicalDonorRequest request,
+                            BindingResult bindingResult,
                             Principal principal,
                             RedirectAttributes redirectAttributes) {
+        if (bindingResult.hasErrors()) {
+            return donorAssessmentValidationRedirect(
+                    "donorRequest",
+                    request,
+                    bindingResult,
+                    "Please correct the highlighted donor fields.",
+                    redirectAttributes
+            );
+        }
+
         try {
             medicalWorkflowService.saveDonor(request);
             notificationService.record(
@@ -59,20 +71,38 @@ public class MedicalWorkflowController {
                     actorName(principal)
             );
             redirectAttributes.addFlashAttribute("successMessage", "Donor record saved.");
+        } catch (IllegalArgumentException e) {
+            bindingResult.rejectValue("icNumber", "duplicate", e.getMessage());
+            return donorAssessmentValidationRedirect(
+                    "donorRequest",
+                    request,
+                    bindingResult,
+                    "Please correct the highlighted donor fields.",
+                    redirectAttributes
+            );
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            return donorAssessmentRedirect(request.getDonorId());
         }
 
-        if (request.getDonorId() != null) {
-            return "redirect:/medical/donor-eligibility/assessment?donorId=" + request.getDonorId();
-        }
-        return "redirect:/medical/donor-eligibility/assessment";
+        return "redirect:/medical/donor-eligibility";
     }
 
     @PostMapping("/medical/donor-eligibility/deferrals")
-    public String recordDeferral(@ModelAttribute("deferralRequest") MedicalDeferralRequest request,
+    public String recordDeferral(@Valid @ModelAttribute("deferralRequest") MedicalDeferralRequest request,
+                                 BindingResult bindingResult,
                                  Principal principal,
                                  RedirectAttributes redirectAttributes) {
+        if (bindingResult.hasErrors()) {
+            return donorAssessmentValidationRedirect(
+                    "deferralRequest",
+                    request,
+                    bindingResult,
+                    "Please correct the highlighted deferral fields.",
+                    redirectAttributes
+            );
+        }
+
         try {
             medicalWorkflowService.recordDeferral(request, actorName(principal));
             notificationService.record(
@@ -82,14 +112,21 @@ public class MedicalWorkflowController {
                     actorName(principal)
             );
             redirectAttributes.addFlashAttribute("successMessage", "Deferral recorded.");
+        } catch (IllegalArgumentException e) {
+            bindingResult.rejectValue(deferralErrorField(e.getMessage()), "invalid", e.getMessage());
+            return donorAssessmentValidationRedirect(
+                    "deferralRequest",
+                    request,
+                    bindingResult,
+                    "Please correct the highlighted deferral fields.",
+                    redirectAttributes
+            );
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            return donorAssessmentRedirect(request.getDonorId());
         }
 
-        if (request.getDonorId() != null) {
-            return "redirect:/medical/donor-eligibility/assessment?donorId=" + request.getDonorId();
-        }
-        return "redirect:/medical/donor-eligibility/assessment";
+        return "redirect:/medical/donor-eligibility";
     }
 
     @PostMapping("/medical/donor-eligibility/clear")
@@ -140,8 +177,10 @@ public class MedicalWorkflowController {
 
     @GetMapping("/medical/donations/record")
     public String donationRecord(Model model) {
+        populateDonations(model);
         populateDonationForm(model);
-        return "medical-donation-record";
+        model.addAttribute("openDonationCreateModal", true);
+        return "medical-donations";
     }
 
     @PostMapping("/medical/donations")
@@ -150,13 +189,7 @@ public class MedicalWorkflowController {
                                  Principal principal,
                                  RedirectAttributes redirectAttributes) {
         if (bindingResult.hasErrors()) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Please correct the highlighted donation fields.");
-            redirectAttributes.addFlashAttribute("donationRequest", request);
-            redirectAttributes.addFlashAttribute(
-                    BindingResult.MODEL_KEY_PREFIX + "donationRequest",
-                    bindingResult
-            );
-            return "redirect:/medical/donations/record";
+            return donationValidationRedirect(request, bindingResult, redirectAttributes);
         }
 
         try {
@@ -168,11 +201,15 @@ public class MedicalWorkflowController {
                     actorName(principal)
             );
             redirectAttributes.addFlashAttribute("successMessage", "Donation session recorded.");
+        } catch (IllegalArgumentException e) {
+            bindingResult.rejectValue(donationErrorField(e.getMessage()), "invalid", e.getMessage());
+            return donationValidationRedirect(request, bindingResult, redirectAttributes);
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            return "redirect:/medical/donations/record";
         }
 
-        return "redirect:/medical/donations/record";
+        return "redirect:/medical/donations";
     }
 
     @PostMapping("/medical/donations/update")
@@ -225,14 +262,21 @@ public class MedicalWorkflowController {
 
     @GetMapping("/medical/transfusion/record")
     public String transfusionRecord(Model model) {
+        populateTransfusion(model);
         populateTransfusionForm(model);
-        return "medical-transfusion-record";
+        model.addAttribute("openTransfusionCreateModal", true);
+        return "medical-transfusion";
     }
 
     @PostMapping("/medical/transfusion")
-    public String recordTransfusion(@ModelAttribute("transfusionRequest") MedicalTransfusionRequest request,
+    public String recordTransfusion(@Valid @ModelAttribute("transfusionRequest") MedicalTransfusionRequest request,
+                                    BindingResult bindingResult,
                                     Principal principal,
                                     RedirectAttributes redirectAttributes) {
+        if (bindingResult.hasErrors()) {
+            return transfusionValidationRedirect(request, bindingResult, redirectAttributes);
+        }
+
         try {
             medicalWorkflowService.recordTransfusion(request, actorName(principal));
             notificationService.record(
@@ -242,11 +286,16 @@ public class MedicalWorkflowController {
                     actorName(principal)
             );
             redirectAttributes.addFlashAttribute("successMessage", "Transfusion event recorded.");
+        } catch (IllegalArgumentException e) {
+            bindingResult.rejectValue(transfusionErrorField(e.getMessage()), "invalid", e.getMessage());
+            return transfusionValidationRedirect(request, bindingResult, redirectAttributes);
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectAttributes.addFlashAttribute("transfusionRequest", request);
+            return "redirect:/medical/transfusion/record";
         }
 
-        return "redirect:/medical/transfusion/record";
+        return "redirect:/medical/transfusion";
     }
 
     @PostMapping("/medical/transfusion/update")
@@ -407,6 +456,35 @@ public class MedicalWorkflowController {
         }
     }
 
+    private String transfusionValidationRedirect(MedicalTransfusionRequest request,
+                                                 BindingResult bindingResult,
+                                                 RedirectAttributes redirectAttributes) {
+        redirectAttributes.addFlashAttribute("errorMessage", "Please correct the highlighted transfusion fields.");
+        redirectAttributes.addFlashAttribute("transfusionRequest", request);
+        redirectAttributes.addFlashAttribute(
+                BindingResult.MODEL_KEY_PREFIX + "transfusionRequest",
+                bindingResult
+        );
+        return "redirect:/medical/transfusion/record";
+    }
+
+    private String transfusionErrorField(String message) {
+        String normalizedMessage = message == null ? "" : message.toLowerCase();
+        if (normalizedMessage.contains("patient type") || normalizedMessage.contains("either an existing")) {
+            return "patientMode";
+        }
+        if (normalizedMessage.contains("patient name")) {
+            return "patientName";
+        }
+        if (normalizedMessage.contains("condition")) {
+            return "condition";
+        }
+        if (normalizedMessage.contains("patient")) {
+            return "patientId";
+        }
+        return "componentId";
+    }
+
     private void populateComponents(Model model, MedicalSafeMatchRequest request) {
         var safeComponents = medicalWorkflowService.getSafeComponents(request);
         model.addAttribute("safeComponents", safeComponents);
@@ -433,5 +511,56 @@ public class MedicalWorkflowController {
         }
 
         return fallback == null || fallback.isBlank() ? "record" : fallback.trim();
+    }
+
+    private String donorAssessmentRedirect(Long donorId) {
+        return donorId == null
+                ? "redirect:/medical/donor-eligibility/assessment"
+                : "redirect:/medical/donor-eligibility/assessment?donorId=" + donorId;
+    }
+
+    private String donationValidationRedirect(MedicalDonationRequest request,
+                                              BindingResult bindingResult,
+                                              RedirectAttributes redirectAttributes) {
+        redirectAttributes.addFlashAttribute("errorMessage", "Please correct the highlighted donation fields.");
+        redirectAttributes.addFlashAttribute("donationRequest", request);
+        redirectAttributes.addFlashAttribute(
+                BindingResult.MODEL_KEY_PREFIX + "donationRequest",
+                bindingResult
+        );
+        return "redirect:/medical/donations/record";
+    }
+
+    private String donationErrorField(String message) {
+        String normalizedMessage = message == null ? "" : message.toLowerCase();
+        if (normalizedMessage.contains("storage location")) {
+            return "locationId";
+        }
+        if (normalizedMessage.contains("component")) {
+            return "componentTypes";
+        }
+        if (normalizedMessage.contains("timestamp")) {
+            return "collectionTimestamp";
+        }
+        return "donorId";
+    }
+
+    private String donorAssessmentValidationRedirect(String requestName,
+                                                      Object request,
+                                                      BindingResult bindingResult,
+                                                      String message,
+                                                      RedirectAttributes redirectAttributes) {
+        redirectAttributes.addFlashAttribute("errorMessage", message);
+        redirectAttributes.addFlashAttribute(requestName, request);
+        redirectAttributes.addFlashAttribute(BindingResult.MODEL_KEY_PREFIX + requestName, bindingResult);
+
+        Long donorId = request instanceof MedicalDonorRequest donorRequest
+                ? donorRequest.getDonorId()
+                : ((MedicalDeferralRequest) request).getDonorId();
+        return donorAssessmentRedirect(donorId);
+    }
+
+    private String deferralErrorField(String message) {
+        return message != null && message.toLowerCase().contains("reason") ? "reasonId" : "donorId";
     }
 }

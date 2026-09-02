@@ -168,6 +168,7 @@
                         </article>
                     </section>
                 </div>
+                <div th:replace="~{medical-transfusion-record :: transfusionCreateModal}"></div>
     </th:block>
 
     <th:block layout:fragment="custom-js">
@@ -301,6 +302,40 @@
                 });
 
                 applyTransfusionControls();
+            })();
+        </script>
+        <script th:src="@{/js/admin-create-modals.js}"></script>
+        <script>
+            (() => {
+                const form = document.querySelector("[data-transfusion-form]");
+                if (!form) {
+                    return;
+                }
+
+                const modeInputs = Array.from(form.querySelectorAll("[data-patient-mode]"));
+                const panels = Array.from(form.querySelectorAll("[data-patient-panel]"));
+
+                const syncPatientMode = () => {
+                    const selectedMode = modeInputs.find((input) => input.checked)?.value;
+
+                    panels.forEach((panel) => {
+                        const isActive = panel.dataset.patientPanel === selectedMode;
+                        panel.hidden = !isActive;
+                        panel.setAttribute("aria-hidden", String(!isActive));
+
+                        panel.querySelectorAll("input, select").forEach((field) => {
+                            field.disabled = !isActive;
+                            if (field.hasAttribute("data-required-when-active")) {
+                                field.required = isActive;
+                            }
+                        });
+                    });
+
+                    form.classList.remove("was-validated");
+                };
+
+                modeInputs.forEach((input) => input.addEventListener("change", syncPatientMode));
+                syncPatientMode();
             })();
         </script>
     </th:block>

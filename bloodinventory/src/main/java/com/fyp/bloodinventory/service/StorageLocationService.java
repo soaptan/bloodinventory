@@ -2,6 +2,7 @@ package com.fyp.bloodinventory.service;
 
 import com.fyp.bloodinventory.dto.StorageLocationDto;
 import com.fyp.bloodinventory.dto.StorageLocationRequest;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.lang.NonNull;
@@ -14,6 +15,9 @@ import java.util.List;
 
 @Service
 public class StorageLocationService {
+
+    private static final String DUPLICATE_NAME_MESSAGE = "Storage location name already exists.";
+    private static final String DUPLICATE_NAME_CONSTRAINT = "ux_storage_location_description_normalized";
 
     private final JdbcTemplate jdbcTemplate;
     private final DatabaseAuditContextService auditContextService;
@@ -50,12 +54,24 @@ public class StorageLocationService {
 
     @Transactional
     public void addLocation(StorageLocationRequest request) {
+        String description = requireText(request.getDescription(), "Please enter a storage description.");
+        if (locationNameExists(description)) {
+            throw new RuntimeException(DUPLICATE_NAME_MESSAGE);
+        }
+
         applyAuditContext();
-        jdbcTemplate.update(
-                "CALL sp_add_storage_location(?, ?)",
-                request.getDescription(),
-                request.getStaffId()
-        );
+        try {
+            jdbcTemplate.update(
+                    "CALL sp_add_storage_location(?, ?)",
+                    description,
+                    request.getStaffId()
+            );
+        } catch (DataAccessException exception) {
+            if (isDuplicateNameFailure(exception)) {
+                throw new RuntimeException(DUPLICATE_NAME_MESSAGE, exception);
+            }
+            throw exception;
+        }
     }
 
     @Transactional
@@ -109,6 +125,26 @@ public class StorageLocationService {
 
     private void applyAuditContext() {
         auditContextService.applyCurrentContext();
+    }
+
+    private boolean locationNameExists(String description) {
+        Boolean exists = jdbcTemplate.queryForObject(
+                "SELECT EXISTS (SELECT 1 FROM storage_location WHERE LOWER(BTRIM(description)) = LOWER(BTRIM(?)))",
+                Boolean.class,
+                description
+        );
+        return Boolean.TRUE.equals(exists);
+    }
+
+    private boolean isDuplicateNameFailure(DataAccessException exception) {
+        for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
+            String message = cause.getMessage();
+            if (message != null && (message.contains(DUPLICATE_NAME_MESSAGE)
+                    || message.contains(DUPLICATE_NAME_CONSTRAINT))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private Long requireId(Long value, String message) {

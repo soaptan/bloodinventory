@@ -158,7 +158,27 @@ class DashboardTemplateRenderingTests {
     }
 
     @Test
-    void adminStoragePageLinksToSeparateCreateForm() throws Exception {
+    void adminReportsPageIncludesIndependentTableFiltersAndSorting() throws Exception {
+        mockMvc.perform(get("/admin/reports").principal(ADMIN_AUTHENTICATION))
+                .andExpect(expect(status().isOk()))
+                .andExpect(expect(content().string(containsString("data-report-table=\"available-stock\""))))
+                .andExpect(expect(content().string(containsString("data-report-table=\"staff-totals\""))))
+                .andExpect(expect(content().string(containsString("data-report-table=\"near-expiry\""))))
+                .andExpect(expect(content().string(containsString("data-report-table=\"system-activity\""))))
+                .andExpect(expect(content().string(containsString("data-report-filter=\"component-type\""))))
+                .andExpect(expect(content().string(containsString("data-report-filter=\"status\""))))
+                .andExpect(expect(content().string(containsString("data-report-filter=\"staff-type\""))))
+                .andExpect(expect(content().string(containsString("data-report-filter=\"module\""))))
+                .andExpect(expect(content().string(containsString("data-report-filter=\"action\""))))
+                .andExpect(expect(content().string(containsString("data-report-sort"))))
+                .andExpect(expect(content().string(containsString("data-report-apply"))))
+                .andExpect(expect(content().string(containsString("data-report-reset"))))
+                .andExpect(expect(content().string(containsString("data-report-filter-empty"))))
+                .andExpect(expect(content().string(containsString("/js/admin-report-table-filters.js"))));
+    }
+
+    @Test
+    void adminStoragePageLinksToCreateModal() throws Exception {
         mockMvc.perform(get("/admin/storage").principal(ADMIN_AUTHENTICATION))
                 .andExpect(expect(status().isOk()))
                 .andExpect(expect(content().string(containsString("data-create-storage-link"))))
@@ -168,18 +188,22 @@ class DashboardTemplateRenderingTests {
     }
 
     @Test
-    void storageCreatePageIncludesSummaryAndCompactForm() throws Exception {
+    void storageCreateRouteOpensModalOverManagementPage() throws Exception {
         mockMvc.perform(get("/admin/storage/create").principal(ADMIN_AUTHENTICATION))
                 .andExpect(expect(status().isOk()))
                 .andExpect(expect(content().string(containsString("data-storage-create-page"))))
                 .andExpect(expect(content().string(containsString("data-storage-create-form"))))
                 .andExpect(expect(content().string(containsString("data-create-storage-location"))))
                 .andExpect(expect(content().string(containsString("data-back-to-storage-locations"))))
+                .andExpect(expect(content().string(containsString("data-storage-create-modal"))))
+                .andExpect(expect(content().string(containsString("admin-create-backdrop"))))
+                .andExpect(expect(content().string(containsString("is-open"))))
+                .andExpect(expect(content().string(containsString("staff-register-modal admin-create-modal"))))
                 .andExpect(expect(content().string(containsString("action=\"/admin/storage/add\""))));
     }
 
     @Test
-    void adminDeferralRulesPageLinksToSeparateCreateForm() throws Exception {
+    void adminDeferralRulesPageLinksToCreateModal() throws Exception {
         mockMvc.perform(get("/admin/deferral-rules").principal(ADMIN_AUTHENTICATION))
                 .andExpect(expect(status().isOk()))
                 .andExpect(expect(content().string(containsString("data-create-deferral-rule-link"))))
@@ -189,13 +213,17 @@ class DashboardTemplateRenderingTests {
     }
 
     @Test
-    void deferralRuleCreatePageIncludesSummaryAndCompactForm() throws Exception {
+    void deferralRuleCreateRouteOpensModalOverManagementPage() throws Exception {
         mockMvc.perform(get("/admin/deferral-rules/create").principal(ADMIN_AUTHENTICATION))
                 .andExpect(expect(status().isOk()))
                 .andExpect(expect(content().string(containsString("data-deferral-rule-create-page"))))
                 .andExpect(expect(content().string(containsString("data-deferral-rule-create-form"))))
                 .andExpect(expect(content().string(containsString("data-create-deferral-rule"))))
                 .andExpect(expect(content().string(containsString("data-back-to-deferral-rules"))))
+                .andExpect(expect(content().string(containsString("data-deferral-rule-create-modal"))))
+                .andExpect(expect(content().string(containsString("admin-create-backdrop"))))
+                .andExpect(expect(content().string(containsString("is-open"))))
+                .andExpect(expect(content().string(containsString("staff-register-modal admin-create-modal"))))
                 .andExpect(expect(content().string(containsString("action=\"/admin/deferral-rules/add\""))));
     }
 
@@ -324,39 +352,47 @@ class DashboardTemplateRenderingTests {
     }
 
     @Test
-    void medicalDonationsPageLinksToSeparateCollectionFormAndOmitsComponentStatus() throws Exception {
+    void medicalDonationsPageLinksToCollectionModalAndOmitsComponentStatus() throws Exception {
         mockMvc.perform(get("/medical/donations").principal(ADMIN_AUTHENTICATION))
                 .andExpect(expect(status().isOk()))
                 .andExpect(expect(content().string(containsString("data-record-collection-link"))))
                 .andExpect(expect(content().string(containsString("href=\"/medical/donations/record\""))))
+                .andExpect(expect(content().string(containsString("/js/admin-create-modals.js"))))
                 .andExpect(expect(content().string(not(containsString("data-donation-form-page")))))
-                .andExpect(expect(content().string(not(containsString("data-donor-select")))))
+                .andExpect(expect(content().string(not(containsString("data-donation-create-modal")))))
                 .andExpect(expect(content().string(not(containsString("<th>Status</th>")))))
                 .andExpect(expect(content().string(not(containsString("donation.componentStatuses")))));
     }
 
     @Test
-    void donationRecordPageIncludesCompactCollectionForm() throws Exception {
+    void donationRecordRouteOpensCollectionModalOverLog() throws Exception {
         mockMvc.perform(get("/medical/donations/record").principal(ADMIN_AUTHENTICATION))
                 .andExpect(expect(status().isOk()))
                 .andExpect(expect(content().string(containsString("data-donation-form-page"))))
                 .andExpect(expect(content().string(containsString("data-create-donation"))))
                 .andExpect(expect(content().string(containsString("data-donor-select-search"))))
                 .andExpect(expect(content().string(containsString("data-donor-select"))))
-                .andExpect(expect(content().string(containsString("data-back-to-collection-log"))));
+                .andExpect(expect(content().string(containsString("data-back-to-collection-log"))))
+                .andExpect(expect(content().string(containsString("data-donation-create-modal"))))
+                .andExpect(expect(content().string(containsString("admin-create-backdrop"))))
+                .andExpect(expect(content().string(containsString("staff-register-modal admin-create-modal"))))
+                .andExpect(expect(content().string(containsString("is-open"))))
+                .andExpect(expect(content().string(containsString("action=\"/medical/donations\""))));
     }
 
     @Test
-    void transfusionPageLinksToSeparateRecordForm() throws Exception {
+    void transfusionPageLinksToRecordModal() throws Exception {
         mockMvc.perform(get("/medical/transfusion").principal(ADMIN_AUTHENTICATION))
                 .andExpect(expect(status().isOk()))
                 .andExpect(expect(content().string(containsString("data-record-transfusion-link"))))
                 .andExpect(expect(content().string(containsString("href=\"/medical/transfusion/record\""))))
-                .andExpect(expect(content().string(not(containsString("data-transfusion-form-page")))));
+                .andExpect(expect(content().string(containsString("/js/admin-create-modals.js"))))
+                .andExpect(expect(content().string(not(containsString("data-transfusion-form-page")))))
+                .andExpect(expect(content().string(not(containsString("data-transfusion-create-modal")))));
     }
 
     @Test
-    void transfusionRecordPageIncludesCompactEventForm() throws Exception {
+    void transfusionRecordRouteOpensEventModalOverRecords() throws Exception {
         mockMvc.perform(get("/medical/transfusion/record").principal(ADMIN_AUTHENTICATION))
                 .andExpect(expect(status().isOk()))
                 .andExpect(expect(content().string(containsString("data-transfusion-form-page"))))
@@ -367,7 +403,12 @@ class DashboardTemplateRenderingTests {
                 .andExpect(expect(content().string(containsString("data-patient-panel=\"new\""))))
                 .andExpect(expect(content().string(containsString("Register New Patient"))))
                 .andExpect(expect(content().string(not(containsString("<option value=\"\">New patient</option>")))))
-                .andExpect(expect(content().string(containsString("name=\"componentId\""))));
+                .andExpect(expect(content().string(containsString("name=\"componentId\""))))
+                .andExpect(expect(content().string(containsString("data-transfusion-create-modal"))))
+                .andExpect(expect(content().string(containsString("admin-create-backdrop"))))
+                .andExpect(expect(content().string(containsString("staff-register-modal admin-create-modal"))))
+                .andExpect(expect(content().string(containsString("is-open"))))
+                .andExpect(expect(content().string(containsString("action=\"/medical/transfusion\""))));
     }
 
     @Test
@@ -385,18 +426,19 @@ class DashboardTemplateRenderingTests {
     }
 
     @Test
-    void donorEligibilityPageLinksToSeparateAssessmentForm() throws Exception {
+    void donorEligibilityPageLinksToAssessmentModal() throws Exception {
         mockMvc.perform(get("/medical/donor-eligibility").principal(ADMIN_AUTHENTICATION))
                 .andExpect(expect(status().isOk()))
                 .andExpect(expect(content().string(containsString("data-assessment-controls-link"))))
                 .andExpect(expect(content().string(containsString("href=\"/medical/donor-eligibility/assessment\""))))
                 .andExpect(expect(content().string(containsString("/medical/donor-eligibility/assessment?donorId="))))
+                .andExpect(expect(content().string(containsString("/js/admin-create-modals.js"))))
                 .andExpect(expect(content().string(not(containsString("data-assessment-form-page")))))
-                .andExpect(expect(content().string(not(containsString("data-deferral-donor-select")))));
+                .andExpect(expect(content().string(not(containsString("data-assessment-create-modal")))));
     }
 
     @Test
-    void donorAssessmentPageIncludesApplyAndDeferralForms() throws Exception {
+    void donorAssessmentRouteOpensAssessmentModalOverDonorRecords() throws Exception {
         mockMvc.perform(get("/medical/donor-eligibility/assessment").principal(ADMIN_AUTHENTICATION))
                 .andExpect(expect(status().isOk()))
                 .andExpect(expect(content().string(containsString("data-assessment-form-page"))))
@@ -406,15 +448,21 @@ class DashboardTemplateRenderingTests {
                 .andExpect(expect(content().string(containsString("data-back-to-donor-records"))))
                 .andExpect(expect(content().string(containsString("data-deferral-donor-search"))))
                 .andExpect(expect(content().string(containsString("data-deferral-donor-select"))))
-                .andExpect(expect(content().string(containsString("Search donor name, IC number, or blood group"))));
+                .andExpect(expect(content().string(containsString("Search donor name, IC number, or blood group"))))
+                .andExpect(expect(content().string(containsString("data-assessment-create-modal"))))
+                .andExpect(expect(content().string(containsString("admin-create-backdrop"))))
+                .andExpect(expect(content().string(containsString("staff-register-modal admin-create-modal"))))
+                .andExpect(expect(content().string(containsString("is-open"))))
+                .andExpect(expect(content().string(containsString("action=\"/medical/donor-eligibility/donors\""))));
     }
 
     @Test
-    void deferralRulesDisableCoolingPeriodForPermanentLocks() throws Exception {
+    void deferralRulesLoadCreateModalBehavior() throws Exception {
         mockMvc.perform(get("/admin/deferral-rules/create").principal(ADMIN_AUTHENTICATION))
                 .andExpect(expect(status().isOk()))
-                .andExpect(expect(content().string(containsString("coolingInput.disabled = isPermanent"))))
-                .andExpect(expect(content().string(containsString("Not used for permanent"))))
+                .andExpect(expect(content().string(containsString("/js/admin-create-modals.js"))))
+                .andExpect(expect(content().string(containsString("data-lock-type-select"))))
+                .andExpect(expect(content().string(containsString("data-cooling-days-input"))))
                 .andExpect(expect(content().string(not(containsString("coolingInput.value = \"0\"")))));
     }
 

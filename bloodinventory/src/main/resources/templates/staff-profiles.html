@@ -390,41 +390,133 @@
 
                                 <form id="staff-edit-form"
                                       method="post"
+                                      novalidate
                                       class="section gap-md"
                                       data-action-confirm
                                       data-action-label="apply staff profile changes"
                                       data-action-confirm-text="Confirm Changes"
                                       data-role-form
                                       data-staff-edit-form>
-                                    <div class="form-grid form-grid-2">
+                                    <div data-staff-edit-server-errors
+                                         th:if="${editFieldErrors != null}"
+                                         hidden>
+                                        <span th:each="fieldError : ${editFieldErrors}"
+                                              data-staff-edit-server-error
+                                              th:attr="data-field=${fieldError.key}"
+                                              th:text="${fieldError.value}">Field error</span>
+                                    </div>
+
+                                    <div class="form-grid form-grid-2 staff-edit-validation-grid">
                                         <div class="form-group">
                                             <label for="modal-edit-full-name" class="form-label">Full Name</label>
-                                            <input id="modal-edit-full-name" class="form-input" type="text" name="fullName" required data-modal-field="fullName">
+                                            <input id="modal-edit-full-name"
+                                                   class="form-input"
+                                                   type="text"
+                                                   name="fullName"
+                                                   minlength="2"
+                                                   maxlength="100"
+                                                   pattern="[A-Za-zÀ-ž][A-Za-zÀ-ž .'\-]*"
+                                                   title="Use letters, spaces, periods, apostrophes, or hyphens."
+                                                   autocomplete="name"
+                                                   required
+                                                   data-modal-field="fullName">
                                         </div>
 
                                         <div class="form-group">
                                             <label for="modal-edit-username" class="form-label">Username</label>
-                                            <input id="modal-edit-username" class="form-input" type="text" name="username" required data-modal-field="username">
+                                            <input id="modal-edit-username"
+                                                   class="form-input"
+                                                   type="text"
+                                                   name="username"
+                                                   minlength="4"
+                                                   maxlength="50"
+                                                   pattern="[A-Za-z0-9._\-]+"
+                                                   title="Use only letters, numbers, dots, underscores, or hyphens."
+                                                   autocomplete="username"
+                                                   required
+                                                   data-modal-field="username">
                                         </div>
 
                                         <div class="form-group">
                                             <label for="modal-edit-password" class="form-label">New Password</label>
-                                            <input id="modal-edit-password" class="form-input" type="password" name="password" placeholder="Leave blank to keep current password">
+                                            <div class="registration-password-control">
+                                                <input id="modal-edit-password"
+                                                       class="form-input"
+                                                       type="password"
+                                                       name="password"
+                                                       placeholder="Leave blank to keep current password"
+                                                       autocomplete="new-password"
+                                                       minlength="8"
+                                                       maxlength="72"
+                                                       pattern="(?:|(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9 ])[^ ]{8,72})"
+                                                       title="Leave blank to keep the current password, or use 8 to 72 characters with uppercase and lowercase letters, a number, and a special character. Spaces are not allowed."
+                                                       aria-describedby="edit-password-policy">
+                                                <button type="button"
+                                                        class="registration-password-toggle"
+                                                        data-edit-password-toggle
+                                                        aria-controls="modal-edit-password"
+                                                        aria-label="Show password"
+                                                        aria-pressed="false"
+                                                        title="Show password">
+                                                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" data-edit-password-eye>
+                                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                                        <circle cx="12" cy="12" r="3"></circle>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                            <div id="edit-password-policy" class="registration-password-policy">
+                                                <div class="registration-password-policy-title">Optional password policy</div>
+                                                <ul class="registration-password-rules" aria-label="New password requirements">
+                                                    <li data-edit-password-rule="length" data-requirement-met="false"><span aria-hidden="true">&#10003;</span>8-72 characters</li>
+                                                    <li data-edit-password-rule="letterCase" data-requirement-met="false"><span aria-hidden="true">&#10003;</span>Uppercase and lowercase</li>
+                                                    <li data-edit-password-rule="number" data-requirement-met="false"><span aria-hidden="true">&#10003;</span>At least one number</li>
+                                                    <li data-edit-password-rule="symbol" data-requirement-met="false"><span aria-hidden="true">&#10003;</span>At least one special character</li>
+                                                    <li data-edit-password-rule="noWhitespace" data-requirement-met="false"><span aria-hidden="true">&#10003;</span>No spaces</li>
+                                                </ul>
+                                            </div>
                                         </div>
 
                                         <div class="form-group">
                                             <label for="modal-edit-ic" class="form-label">IC Number</label>
-                                            <input id="modal-edit-ic" class="form-input" type="text" name="icNumber" required data-modal-field="icNumber">
+                                            <input id="modal-edit-ic"
+                                                   class="form-input"
+                                                   type="text"
+                                                   name="icNumber"
+                                                   maxlength="14"
+                                                   pattern="[0-9]{6}-?[0-9]{2}-?[0-9]{4}"
+                                                   placeholder="000000-00-0000"
+                                                   title="Enter a 12-digit IC number, for example 850101-10-2001."
+                                                   required
+                                                   data-modal-field="icNumber">
                                         </div>
 
                                         <div class="form-group">
                                             <label for="modal-edit-email" class="form-label">Email Address</label>
-                                            <input id="modal-edit-email" class="form-input" type="email" name="email" placeholder="staff@bloodbank.my" data-modal-field="email">
+                                            <input id="modal-edit-email"
+                                                   class="form-input"
+                                                   type="email"
+                                                   name="email"
+                                                   maxlength="100"
+                                                   placeholder="staff@bloodbank.my"
+                                                   autocomplete="email"
+                                                   required
+                                                   data-modal-field="email">
                                         </div>
 
                                         <div class="form-group">
                                             <label for="modal-edit-phone" class="form-label">Phone Number</label>
-                                            <input id="modal-edit-phone" class="form-input" type="text" name="phoneNo" placeholder="01x-xxxxxxx" data-modal-field="phoneNo">
+                                            <input id="modal-edit-phone"
+                                                   class="form-input"
+                                                   type="text"
+                                                   name="phoneNo"
+                                                   maxlength="20"
+                                                   pattern="(?:\+?60|0)1[0-9](?:[ \-]?[0-9]){7,8}"
+                                                   placeholder="01x-xxxxxxx"
+                                                   inputmode="tel"
+                                                   autocomplete="tel"
+                                                   title="Enter a Malaysian mobile number, for example 012-3456789 or +6012-3456789."
+                                                   required
+                                                   data-modal-field="phoneNo">
                                         </div>
 
                                         <div class="form-group">
@@ -464,7 +556,10 @@
                                                            class="form-input"
                                                            type="text"
                                                            name="licenseNo"
+                                                           maxlength="50"
+                                                           pattern="[A-Za-z0-9][A-Za-z0-9 .\/_\-]*"
                                                            placeholder="e.g. APC-12345"
+                                                           title="Use letters, numbers, spaces, dots, slashes, underscores, or hyphens."
                                                            data-modal-field="licenseNo">
                                                 </div>
                                                 <div class="form-group">
@@ -473,7 +568,10 @@
                                                            class="form-input"
                                                            type="text"
                                                            name="position"
+                                                           maxlength="50"
+                                                           pattern="[A-Za-zÀ-ž][A-Za-zÀ-ž .&amp;'\/\-]*"
                                                            placeholder="e.g. Senior Nurse"
+                                                           title="Use letters, spaces, dots, ampersands, apostrophes, slashes, or hyphens."
                                                            data-modal-field="position">
                                                 </div>
                                             </div>
@@ -486,7 +584,10 @@
                                                        class="form-input"
                                                        type="text"
                                                        name="certificationNo"
+                                                       maxlength="50"
+                                                       pattern="[A-Za-z0-9][A-Za-z0-9 .\/_\-]*"
                                                        placeholder="e.g. LAB-2048"
+                                                       title="Use letters, numbers, spaces, dots, slashes, underscores, or hyphens."
                                                        data-modal-field="certificationNo">
                                             </div>
                                         </div>
@@ -498,7 +599,10 @@
                                                        class="form-input"
                                                        type="text"
                                                        name="department"
+                                                       maxlength="100"
+                                                       pattern="[A-Za-zÀ-ž][A-Za-zÀ-ž .&amp;'\(\)\/\-]*"
                                                        placeholder="e.g. Eligibility Management"
+                                                       title="Use letters, spaces, dots, ampersands, apostrophes, parentheses, slashes, or hyphens."
                                                        data-modal-field="department">
                                             </div>
                                         </div>
@@ -592,7 +696,7 @@
                                         Please correct the highlighted staff registration fields.
                                     </div>
 
-                                    <div class="form-grid form-grid-2">
+                                    <div class="form-grid form-grid-2 staff-registration-grid">
                                         <div class="form-group">
                                             <label for="register-full-name" class="form-label">Full Name</label>
                                             <input id="register-full-name"
@@ -603,7 +707,7 @@
                                                    placeholder="Full legal name"
                                                    minlength="2"
                                                    maxlength="100"
-                                                   pattern="[A-Za-zÀ-ž][A-Za-zÀ-ž .'-]*"
+                                                   pattern="[A-Za-zÀ-ž][A-Za-zÀ-ž .'\-]*"
                                                    required>
                                             <div class="form-error-text"
                                                  th:if="${#fields.hasErrors('fullName')}"
@@ -620,7 +724,7 @@
                                                    placeholder="Unique username"
                                                    minlength="4"
                                                    maxlength="50"
-                                                   pattern="[A-Za-z0-9._-]+"
+                                                   pattern="[A-Za-z0-9._\-]+"
                                                    required>
                                             <div class="form-error-text"
                                                  th:if="${#fields.hasErrors('username')}"
@@ -629,19 +733,46 @@
 
                                         <div class="form-group">
                                             <label for="register-password" class="form-label">Password</label>
-                                            <input id="register-password"
-                                                   class="form-input"
-                                                   th:classappend="${#fields.hasErrors('password')} ? 'form-error' : ''"
-                                                   type="password"
-                                                   th:field="*{password}"
-                                                   placeholder="Minimum 8 characters"
-                                                   autocomplete="new-password"
-                                                   minlength="8"
-                                                   maxlength="72"
-                                                   required>
+                                            <div class="registration-password-control">
+                                                <input id="register-password"
+                                                       class="form-input"
+                                                       th:classappend="${#fields.hasErrors('password')} ? 'form-error' : ''"
+                                                       type="password"
+                                                       th:field="*{password}"
+                                                       placeholder="Create a strong password"
+                                                       autocomplete="new-password"
+                                                       minlength="8"
+                                                       maxlength="72"
+                                                       pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9 ])[^ ]{8,72}"
+                                                       title="Use 8 to 72 characters with uppercase and lowercase letters, a number, and a special character. Spaces are not allowed."
+                                                       aria-describedby="register-password-policy"
+                                                       required>
+                                                <button type="button"
+                                                        class="registration-password-toggle"
+                                                        data-register-password-toggle
+                                                        aria-controls="register-password"
+                                                        aria-label="Show password"
+                                                        aria-pressed="false"
+                                                        title="Show password">
+                                                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" data-register-password-eye>
+                                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                                        <circle cx="12" cy="12" r="3"></circle>
+                                                    </svg>
+                                                </button>
+                                            </div>
                                             <div class="form-error-text"
                                                  th:if="${#fields.hasErrors('password')}"
                                                  th:errors="*{password}">Password error</div>
+                                            <div id="register-password-policy" class="registration-password-policy">
+                                                <div class="registration-password-policy-title">Password policy</div>
+                                                <ul class="registration-password-rules" aria-label="Password requirements">
+                                                    <li data-register-password-rule="length" data-requirement-met="false"><span aria-hidden="true">&#10003;</span>8-72 characters</li>
+                                                    <li data-register-password-rule="letterCase" data-requirement-met="false"><span aria-hidden="true">&#10003;</span>Uppercase and lowercase</li>
+                                                    <li data-register-password-rule="number" data-requirement-met="false"><span aria-hidden="true">&#10003;</span>At least one number</li>
+                                                    <li data-register-password-rule="symbol" data-requirement-met="false"><span aria-hidden="true">&#10003;</span>At least one special character</li>
+                                                    <li data-register-password-rule="noWhitespace" data-requirement-met="false"><span aria-hidden="true">&#10003;</span>No spaces</li>
+                                                </ul>
+                                            </div>
                                         </div>
 
                                         <div class="form-group">
@@ -683,8 +814,12 @@
                                                    type="text"
                                                    th:field="*{phoneNo}"
                                                    maxlength="20"
-                                                   pattern="(?:\+?60|0)1[0-9](?:[ -]?[0-9]){7,8}"
-                                                   placeholder="01x-xxxxxxx">
+                                                   pattern="(?:\+?60|0)1[0-9](?:[ \-]?[0-9]){7,8}"
+                                                   placeholder="01x-xxxxxxx"
+                                                   inputmode="tel"
+                                                   autocomplete="tel"
+                                                   title="Enter a Malaysian mobile number, for example 012-3456789 or +6012-3456789."
+                                                   required>
                                             <div class="form-error-text"
                                                  th:if="${#fields.hasErrors('phoneNo')}"
                                                  th:errors="*{phoneNo}">Phone number error</div>
@@ -745,20 +880,25 @@
                                                            type="text"
                                                            th:field="*{licenseNo}"
                                                            maxlength="50"
-                                                           placeholder="e.g. APC-12345">
+                                                           pattern="[A-Za-z0-9][A-Za-z0-9 .\/_\-]*"
+                                                           placeholder="e.g. APC-12345"
+                                                           title="Use letters, numbers, spaces, dots, slashes, underscores, or hyphens.">
                                                     <div class="form-error-text"
                                                          th:if="${#fields.hasErrors('licenseNo')}"
                                                          th:errors="*{licenseNo}">License error</div>
                                                 </div>
                                                 <div class="form-group">
                                                     <label for="register-position" class="form-label">Clinical Position</label>
-                                                    <input id="register-position"
-                                                           class="form-input"
+                                                    <select id="register-position"
+                                                           class="form-select"
                                                            th:classappend="${#fields.hasErrors('position')} ? 'form-error' : ''"
-                                                           type="text"
                                                            th:field="*{position}"
-                                                           maxlength="50"
-                                                           placeholder="e.g. Senior Nurse">
+                                                           data-clinical-position-select>
+                                                        <option value="">Select clinical position</option>
+                                                        <option th:each="position : ${clinicalPositions}"
+                                                                th:value="${position}"
+                                                                th:text="${position}">Clinical position</option>
+                                                    </select>
                                                     <div class="form-error-text"
                                                          th:if="${#fields.hasErrors('position')}"
                                                          th:errors="*{position}">Position error</div>
@@ -775,7 +915,9 @@
                                                        type="text"
                                                        th:field="*{certificationNo}"
                                                        maxlength="50"
-                                                       placeholder="e.g. LAB-2048">
+                                                       pattern="[A-Za-z0-9][A-Za-z0-9 .\/_\-]*"
+                                                       placeholder="e.g. LAB-2048"
+                                                       title="Use letters, numbers, spaces, dots, slashes, underscores, or hyphens.">
                                                 <div class="form-error-text"
                                                      th:if="${#fields.hasErrors('certificationNo')}"
                                                      th:errors="*{certificationNo}">Certification error</div>
@@ -785,13 +927,16 @@
                                         <div class="role-panel card card-sm form-group-full" data-role-section="BLOOD_ADMINISTRATOR">
                                             <div class="form-group">
                                                 <label for="register-department" class="form-label">Department</label>
-                                                <input id="register-department"
-                                                       class="form-input"
+                                                <select id="register-department"
+                                                       class="form-select"
                                                        th:classappend="${#fields.hasErrors('department')} ? 'form-error' : ''"
-                                                       type="text"
                                                        th:field="*{department}"
-                                                       maxlength="100"
-                                                       placeholder="e.g. Eligibility Management">
+                                                       data-department-select>
+                                                    <option value="">Select department</option>
+                                                    <option th:each="department : ${administratorDepartments}"
+                                                            th:value="${department}"
+                                                            th:text="${department}">Department</option>
+                                                </select>
                                                 <div class="form-error-text"
                                                      th:if="${#fields.hasErrors('department')}"
                                                      th:errors="*{department}">Department error</div>
@@ -854,37 +999,140 @@
             rolePanels.forEach((panel) => {
                 const active = panel.getAttribute("data-role-section") === selectedRole;
                 panel.classList.toggle("is-visible", active);
-                panel.querySelectorAll("input").forEach((input) => {
-                    input.required = active;
-                    input.disabled = !active;
+                panel.querySelectorAll("input, select").forEach((field) => {
+                    field.required = active;
+                    field.disabled = !active;
+                    if (!active) {
+                        showRegistrationError(field, "");
+                    }
                 });
             });
         };
 
-        const registrationMessage = (field) => {
-            if (field.validity.valueMissing) return `${field.labels?.[0]?.textContent.trim() || "This field"} is required.`;
-            if (field.validity.typeMismatch) return "Enter a valid email address.";
-            if (field.validity.tooShort || field.validity.tooLong) return "The value has an invalid length.";
+        const registrationFieldMessages = {
+            "register-full-name": {
+                pattern: "Full name may contain letters, spaces, periods, apostrophes, and hyphens."
+            },
+            "register-username": {
+                pattern: "Use only letters, numbers, dots, underscores, or hyphens."
+            },
+            "register-password": {
+                tooShort: "Password must be at least 8 characters.",
+                tooLong: "Password must not exceed 72 characters.",
+                pattern: "Use 8 to 72 characters with uppercase and lowercase letters, a number, and a special character. Spaces are not allowed."
+            },
+            "register-ic": {
+                pattern: "Enter a 12-digit IC number, for example 850101-10-2001."
+            },
+            "register-email": {
+                typeMismatch: "Enter a valid email address."
+            },
+            "register-phone": {
+                pattern: "Enter a valid Malaysian mobile number."
+            },
+            "register-license": {
+                pattern: "Medical license numbers may contain letters, numbers, spaces, dots, slashes, underscores, or hyphens."
+            },
+            "register-position": {
+                pattern: "Clinical positions may contain letters, spaces, dots, ampersands, apostrophes, slashes, or hyphens."
+            },
+            "register-certification": {
+                pattern: "Certification numbers may contain letters, numbers, spaces, dots, slashes, underscores, or hyphens."
+            },
+            "register-department": {
+                pattern: "Departments may contain letters, spaces, dots, ampersands, apostrophes, parentheses, slashes, or hyphens."
+            }
+        };
+
+        const staffEditFieldMessages = {
+            "modal-edit-full-name": {
+                tooShort: "Full name must be at least 2 characters.",
+                tooLong: "Full name must not exceed 100 characters.",
+                pattern: "Full name may contain letters, spaces, periods, apostrophes, and hyphens."
+            },
+            "modal-edit-username": {
+                tooShort: "Username must be at least 4 characters.",
+                tooLong: "Username must not exceed 50 characters.",
+                pattern: "Use only letters, numbers, dots, underscores, or hyphens."
+            },
+            "modal-edit-password": {
+                tooShort: "New password must be at least 8 characters or left blank.",
+                tooLong: "New password must not exceed 72 characters.",
+                pattern: "Leave blank or use uppercase and lowercase letters, a number, and a special character. Spaces are not allowed."
+            },
+            "modal-edit-ic": {
+                pattern: "Enter a 12-digit IC number, for example 850101-10-2001."
+            },
+            "modal-edit-email": {
+                typeMismatch: "Enter a valid email address."
+            },
+            "modal-edit-phone": {
+                pattern: "Enter a valid Malaysian mobile number."
+            },
+            "modal-edit-license": {
+                pattern: "Medical license numbers may contain letters, numbers, spaces, dots, slashes, underscores, or hyphens."
+            },
+            "modal-edit-position": {
+                pattern: "Clinical positions may contain letters, spaces, dots, ampersands, apostrophes, slashes, or hyphens."
+            },
+            "modal-edit-certification": {
+                pattern: "Certification numbers may contain letters, numbers, spaces, dots, slashes, underscores, or hyphens."
+            },
+            "modal-edit-department": {
+                pattern: "Departments may contain letters, spaces, dots, ampersands, apostrophes, parentheses, slashes, or hyphens."
+            }
+        };
+
+        const roleRequiredMessages = {
+            "register-license": "Medical license number is required for medical staff.",
+            "register-position": "Clinical position is required for medical staff.",
+            "register-certification": "Laboratory certification number is required for lab technicians.",
+            "register-department": "Department is required for blood administrators.",
+            "modal-edit-license": "Medical license number is required for medical staff.",
+            "modal-edit-position": "Clinical position is required for medical staff.",
+            "modal-edit-certification": "Laboratory certification number is required for lab technicians.",
+            "modal-edit-department": "Department is required for blood administrators."
+        };
+
+        const fieldValidationMessage = (field, messages) => {
+            if (field.validity.valueMissing) {
+                return roleRequiredMessages[field.id] || `${field.labels?.[0]?.textContent.trim() || "This field"} is required.`;
+            }
+
+            if (field.validity.typeMismatch) {
+                return messages[field.id]?.typeMismatch || "Enter a valid value.";
+            }
+
+            if (field.validity.tooShort) {
+                return messages[field.id]?.tooShort || "The value is too short.";
+            }
+
+            if (field.validity.tooLong) {
+                return messages[field.id]?.tooLong || "The value is too long.";
+            }
+
             if (field.validity.patternMismatch) {
-                if (field.id === "register-ic") return "Enter a 12-digit IC number, for example 850101-10-2001.";
-                if (field.id === "register-phone") return "Enter a valid Malaysian mobile number.";
-                if (field.id === "register-username") return "Use only letters, numbers, dots, underscores, or hyphens.";
-                return "Enter a valid value.";
+                return messages[field.id]?.pattern || "Enter a valid value.";
             }
             return "";
         };
+
+        const registrationMessage = (field) => fieldValidationMessage(field, registrationFieldMessages);
+        const staffEditMessage = (field) => fieldValidationMessage(field, staffEditFieldMessages);
 
         const showRegistrationError = (field, message) => {
             const group = field.closest(".form-group");
             if (!group) return;
             let error = group.querySelector(".form-error-text");
-            if (!error) {
+            if (!error && message) {
                 error = document.createElement("div");
                 error.className = "form-error-text";
                 group.appendChild(error);
             }
-            error.textContent = message;
-            error.hidden = !message;
+            if (error) {
+                error.textContent = message;
+                error.hidden = !message;
+            }
             field.classList.toggle("form-error", Boolean(message));
             field.setAttribute("aria-invalid", String(Boolean(message)));
         };
@@ -896,9 +1144,59 @@
             return !message;
         };
 
+        const validateStaffEditField = (field) => {
+            if (field.disabled) return true;
+            const message = staffEditMessage(field);
+            showRegistrationError(field, message);
+            return !message;
+        };
+
         const registerForm = document.querySelector("[data-register-form]");
         if (registerForm) {
             const fields = Array.from(registerForm.querySelectorAll("input, select"));
+            const passwordInput = registerForm.querySelector("#register-password");
+            const passwordPolicy = registerForm.querySelector("#register-password-policy");
+            const passwordToggle = registerForm.querySelector("[data-register-password-toggle]");
+            const passwordEye = passwordToggle?.querySelector("[data-register-password-eye]");
+
+            const passwordRules = (value) => ({
+                length: value.length >= 8 && value.length <= 72,
+                letterCase: /[a-z]/.test(value) && /[A-Z]/.test(value),
+                number: /[0-9]/.test(value),
+                symbol: /[^A-Za-z0-9\s]/.test(value),
+                noWhitespace: value.length > 0 && !/\s/.test(value)
+            });
+
+            const updatePasswordPolicy = () => {
+                if (!(passwordInput instanceof HTMLInputElement) || !(passwordPolicy instanceof HTMLElement)) return;
+                const rules = passwordRules(passwordInput.value);
+                passwordPolicy.querySelectorAll("[data-register-password-rule]").forEach((item) => {
+                    const isMet = Boolean(rules[item.getAttribute("data-register-password-rule")]);
+                    item.classList.toggle("is-met", isMet);
+                    item.setAttribute("data-requirement-met", String(isMet));
+                });
+            };
+
+            if (passwordInput instanceof HTMLInputElement) {
+                passwordInput.addEventListener("input", updatePasswordPolicy);
+                updatePasswordPolicy();
+            }
+
+            if (passwordInput instanceof HTMLInputElement && passwordToggle instanceof HTMLButtonElement) {
+                const visibleEye = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+                const hiddenEye = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+
+                passwordToggle.addEventListener("click", () => {
+                    const reveal = passwordInput.type === "password";
+                    passwordInput.type = reveal ? "text" : "password";
+                    passwordToggle.setAttribute("aria-pressed", String(reveal));
+                    passwordToggle.setAttribute("aria-label", reveal ? "Hide password" : "Show password");
+                    passwordToggle.title = reveal ? "Hide password" : "Show password";
+                    if (passwordEye instanceof SVGElement) passwordEye.innerHTML = reveal ? hiddenEye : visibleEye;
+                    passwordInput.focus();
+                });
+            }
+
             fields.forEach((field) => {
                 field.addEventListener("blur", () => validateRegistrationField(field));
                 field.addEventListener("input", () => {
@@ -921,6 +1219,100 @@
                     showRegistrationError(photo, photoMessage);
                     if (photoMessage && !firstInvalid) firstInvalid = photo;
                 }
+                if (firstInvalid) {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    firstInvalid.focus();
+                }
+            }, true);
+        }
+
+        let resetStaffEditValidation = () => {};
+        let restoreStaffEditServerErrors = () => {};
+
+        if (staffEditForm) {
+            const fields = Array.from(staffEditForm.querySelectorAll("input, select"));
+            const passwordInput = staffEditForm.querySelector("#modal-edit-password");
+            const passwordPolicy = staffEditForm.querySelector("#edit-password-policy");
+            const passwordToggle = staffEditForm.querySelector("[data-edit-password-toggle]");
+            const passwordEye = passwordToggle?.querySelector("[data-edit-password-eye]");
+            const serverErrors = Array.from(staffEditForm.querySelectorAll("[data-staff-edit-server-error]"));
+            const visibleEye = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+            const hiddenEye = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+
+            const passwordRules = (value) => ({
+                length: value.length >= 8 && value.length <= 72,
+                letterCase: /[a-z]/.test(value) && /[A-Z]/.test(value),
+                number: /[0-9]/.test(value),
+                symbol: /[^A-Za-z0-9\s]/.test(value),
+                noWhitespace: value.length > 0 && !/\s/.test(value)
+            });
+
+            const updateEditPasswordPolicy = () => {
+                if (!(passwordInput instanceof HTMLInputElement) || !(passwordPolicy instanceof HTMLElement)) return;
+                const rules = passwordRules(passwordInput.value);
+                passwordPolicy.querySelectorAll("[data-edit-password-rule]").forEach((item) => {
+                    const isMet = Boolean(rules[item.getAttribute("data-edit-password-rule")]);
+                    item.classList.toggle("is-met", isMet);
+                    item.setAttribute("data-requirement-met", String(isMet));
+                });
+            };
+
+            if (passwordInput instanceof HTMLInputElement) {
+                passwordInput.addEventListener("input", updateEditPasswordPolicy);
+                updateEditPasswordPolicy();
+            }
+
+            if (passwordInput instanceof HTMLInputElement && passwordToggle instanceof HTMLButtonElement) {
+                passwordToggle.addEventListener("click", () => {
+                    const reveal = passwordInput.type === "password";
+                    passwordInput.type = reveal ? "text" : "password";
+                    passwordToggle.setAttribute("aria-pressed", String(reveal));
+                    passwordToggle.setAttribute("aria-label", reveal ? "Hide password" : "Show password");
+                    passwordToggle.title = reveal ? "Hide password" : "Show password";
+                    if (passwordEye instanceof SVGElement) passwordEye.innerHTML = reveal ? hiddenEye : visibleEye;
+                    passwordInput.focus();
+                });
+            }
+
+            fields.forEach((field) => {
+                field.addEventListener("blur", () => validateStaffEditField(field));
+                field.addEventListener("input", () => {
+                    if (field.getAttribute("aria-invalid") === "true") validateStaffEditField(field);
+                });
+                field.addEventListener("change", () => validateStaffEditField(field));
+            });
+
+            resetStaffEditValidation = () => {
+                fields.forEach((field) => showRegistrationError(field, ""));
+                if (passwordInput instanceof HTMLInputElement) passwordInput.type = "password";
+                if (passwordToggle instanceof HTMLButtonElement) {
+                    passwordToggle.setAttribute("aria-pressed", "false");
+                    passwordToggle.setAttribute("aria-label", "Show password");
+                    passwordToggle.title = "Show password";
+                }
+                if (passwordEye instanceof SVGElement) passwordEye.innerHTML = visibleEye;
+                updateEditPasswordPolicy();
+            };
+
+            let serverErrorsRestored = false;
+            restoreStaffEditServerErrors = () => {
+                if (serverErrorsRestored) return;
+                serverErrors.forEach((error) => {
+                    const fieldName = error.getAttribute("data-field");
+                    const field = fieldName ? staffEditForm.elements.namedItem(fieldName) : null;
+                    const message = error.textContent?.trim() || "Enter a valid value.";
+                    if (field instanceof HTMLElement) showRegistrationError(field, message);
+                });
+                serverErrorsRestored = true;
+            };
+
+            staffEditForm.addEventListener("submit", (event) => {
+                syncRolePanels(staffEditForm);
+                let firstInvalid = null;
+                fields.forEach((field) => {
+                    if (!validateStaffEditField(field) && !firstInvalid) firstInvalid = field;
+                });
                 if (firstInvalid) {
                     event.preventDefault();
                     event.stopImmediatePropagation();
@@ -977,6 +1369,7 @@
             const modalInitials = staffEditModal.querySelector("[data-staff-modal-initials]");
 
             staffEditForm.action = `${formActionBase}/update`;
+            resetStaffEditValidation();
 
             if (staffPhotoForm) {
                 staffPhotoForm.action = `${formActionBase}/photo`;
@@ -1025,6 +1418,7 @@
             const passwordField = staffEditForm.querySelector("input[name='password']");
             if (passwordField) {
                 passwordField.value = "";
+                passwordField.dispatchEvent(new Event("input"));
             }
 
             const photoInput = staffPhotoForm?.querySelector("input[type='file']");
@@ -1033,6 +1427,7 @@
             }
 
             syncRolePanels(staffEditForm);
+            restoreStaffEditServerErrors();
         };
 
         const initStaffListControls = () => {

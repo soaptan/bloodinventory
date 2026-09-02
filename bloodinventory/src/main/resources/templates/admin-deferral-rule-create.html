@@ -1,150 +1,158 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org"
-      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-      layout:decorate="~{layout/master-layout}">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Deferral Rule</title>
-</head>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <body>
 
-    <th:block layout:fragment="app-subtitle">
-        Administrative workspace for staffing, storage, monitoring, and reporting.
-    </th:block>
+<div th:fragment="deferralRuleCreateModal"
+     th:if="${openDeferralRuleCreateModal == true}"
+     class="modal-backdrop admin-create-backdrop"
+     th:classappend="${openDeferralRuleCreateModal == true} ? 'is-open'"
+     data-admin-create-modal
+     data-deferral-rule-create-page
+     data-deferral-rule-create-modal>
+    <div class="card card-lg staff-register-modal admin-create-modal"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="deferral-rule-create-modal-title">
+        <div class="staff-register-header admin-create-modal-header">
+            <div>
+                <div class="section-subtitle">Deferral Rules</div>
+                <h2 id="deferral-rule-create-modal-title" class="section-title staff-register-modal-title admin-create-modal-title">
+                    Create Deferral Rule
+                </h2>
+                <p class="staff-register-modal-description admin-create-modal-description">
+                    Define a temporary cooling-off period or a permanent donor eligibility lock.
+                </p>
+            </div>
 
-    <th:block layout:fragment="sidebar">
-        <div th:replace="~{fragments/sidebar :: sidebar(
-            'Blood Administrator Panel',
-            'Centralized navigation for staff, storage, inventory monitoring, alerts, and reports.',
-            'deferral-rules'
-        )}"></div>
-    </th:block>
+            <a th:href="@{/admin/deferral-rules}"
+               class="btn btn-icon btn-secondary"
+               aria-label="Close create deferral rule form"
+               data-admin-create-close
+               data-back-to-deferral-rules
+               data-deferral-rule-create-close>
+                &times;
+            </a>
+        </div>
 
-    <th:block layout:fragment="content">
-        <div class="main-stack admin-form-page-stack" data-deferral-rule-create-page>
-            <section class="page-intro page-card admin-form-page-intro">
-                <div>
-                    <div class="page-kicker">Deferral Rules</div>
-                    <h1>Create Deferral Rule</h1>
-                    <p>Define a temporary cooling-off period or a permanent donor eligibility lock.</p>
+        <div class="staff-register-content admin-create-modal-content">
+            <div th:if="${errorMessage != null and #strings.isNotEmpty(errorMessage)}"
+                 class="card card-sm staff-register-error"
+                 role="alert"
+                 th:text="${errorMessage}">
+                Please correct the highlighted deferral rule fields.
+            </div>
+
+            <div class="admin-create-summary-heading">
+                <h3>Rule Summary</h3>
+                <p>Review current administration totals before adding the eligibility control.</p>
+            </div>
+
+            <div class="grid grid-3 admin-create-summary-grid" aria-label="Deferral rule summary">
+                <article class="card card-sm admin-create-summary-card">
+                    <div class="stat-card-label">Active Deferral Rules</div>
+                    <div class="stat-card-value" th:text="${ruleCount}">0</div>
+                </article>
+
+                <article class="card card-sm admin-create-summary-card">
+                    <div class="stat-card-label">Total Staff</div>
+                    <div class="stat-card-value" th:text="${stats.totalStaff}">0</div>
+                </article>
+
+                <article class="card card-sm admin-create-summary-card">
+                    <div class="stat-card-label">Total Donors</div>
+                    <div class="stat-card-value" th:text="${stats.totalDonors}">0</div>
+                </article>
+            </div>
+
+            <form class="section gap-md admin-create-form"
+                  th:action="@{/admin/deferral-rules/add}"
+                  th:object="${ruleRequest}"
+                  method="post"
+                  novalidate
+                  data-deferral-rule-create-form
+                  data-action-confirm
+                  data-action-label="create deferral rule"
+                  data-action-confirm-text="Confirm Create">
+                <div th:if="${#fields.hasAnyErrors()}"
+                     class="card card-sm staff-register-validation">
+                    Please correct the highlighted deferral rule fields.
                 </div>
-                <a class="btn btn-tertiary"
-                   th:href="@{/admin/deferral-rules}"
-                   data-back-to-deferral-rules>
-                    Back to Deferral Rules
-                </a>
-            </section>
 
-            <section class="standalone-admin-form-layout">
-                <article class="module-card standalone-admin-form-card">
-                    <h2>Rule Summary &amp; Create Rule</h2>
-                    <p>Review current administration totals before adding the eligibility control.</p>
-
-                    <div class="summary-list admin-form-summary-list">
-                        <div class="summary-item">
-                            <div class="label">Active Deferral Rules</div>
-                            <div class="value" th:text="${ruleCount}">0</div>
-                        </div>
-
-                        <div class="summary-item">
-                            <div class="label">Total Staff</div>
-                            <div class="value" th:text="${stats.totalStaff}">0</div>
-                        </div>
-
-                        <div class="summary-item">
-                            <div class="label">Total Donors</div>
-                            <div class="value" th:text="${stats.totalDonors}">0</div>
+                <div class="form-grid form-grid-2 admin-create-form-grid">
+                    <div class="form-group full">
+                        <label for="deferral-description" class="form-label">Description</label>
+                        <input id="deferral-description"
+                               class="form-input"
+                               th:classappend="${#fields.hasErrors('description')} ? 'form-error' : ''"
+                               type="text"
+                               th:field="*{description}"
+                               placeholder="Enter deferral reason"
+                               maxlength="255"
+                               required>
+                        <div class="form-error-text"
+                             th:if="${#fields.hasErrors('description')}"
+                             th:errors="*{description}">Deferral rule name already exists.</div>
+                        <div class="invalid-feedback"
+                             th:unless="${#fields.hasErrors('description')}">
+                            Please enter the deferral reason.
                         </div>
                     </div>
 
-                    <form class="needs-validation admin-create-form"
-                          th:action="@{/admin/deferral-rules/add}"
-                          th:object="${ruleRequest}"
-                          method="post"
-                          novalidate
-                          data-deferral-rule-create-form
-                          data-action-confirm
-                          data-action-label="create deferral rule"
-                          data-action-confirm-text="Confirm Create">
-                        <div class="form-grid">
-                            <div class="form-group full">
-                                <label for="deferral-description">Description</label>
-                                <input id="deferral-description"
-                                       type="text"
-                                       th:field="*{description}"
-                                       placeholder="Enter deferral reason"
-                                       required>
-                                <div class="invalid-feedback">Please enter the deferral reason.</div>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="deferral-cooling-period">Cooling-off Period (Days)</label>
-                                <input id="deferral-cooling-period"
-                                       type="number"
-                                       th:field="*{defaultCoolingPeriodDays}"
-                                       th:placeholder="${ruleRequest.lockType == 'PERMANENT' ? 'Not used for permanent' : 'Enter days'}"
-                                       th:required="${ruleRequest.lockType != 'PERMANENT'}"
-                                       th:disabled="${ruleRequest.lockType == 'PERMANENT'}"
-                                       min="0"
-                                       data-cooling-days-input>
-                                <div class="invalid-feedback">Please enter a valid cooling-off period.</div>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="deferral-lock-type">Lock Type</label>
-                                <select id="deferral-lock-type" th:field="*{lockType}" required data-lock-type-select>
-                                    <option value="TEMPORARY">Temporary</option>
-                                    <option value="PERMANENT">Permanent</option>
-                                </select>
-                                <div class="invalid-feedback">Please select a lock type.</div>
-                            </div>
-
-                            <div class="admin-form-actions">
-                                <button type="submit" class="btn btn-primary" data-create-deferral-rule>
-                                    Create Rule
-                                </button>
-                                <a class="btn btn-tertiary" th:href="@{/admin/deferral-rules}">Cancel</a>
-                            </div>
+                    <div class="form-group">
+                        <label for="deferral-cooling-period" class="form-label">Cooling-off Period (Days)</label>
+                        <input id="deferral-cooling-period"
+                               class="form-input"
+                               th:classappend="${#fields.hasErrors('defaultCoolingPeriodDays')} ? 'form-error' : ''"
+                               type="number"
+                               th:field="*{defaultCoolingPeriodDays}"
+                               th:placeholder="${ruleRequest.lockType == 'PERMANENT' ? 'Not used for permanent' : 'Enter days'}"
+                               th:required="${ruleRequest.lockType != 'PERMANENT'}"
+                               th:disabled="${ruleRequest.lockType == 'PERMANENT'}"
+                               min="0"
+                               data-cooling-days-input>
+                        <div class="form-error-text"
+                             th:if="${#fields.hasErrors('defaultCoolingPeriodDays')}"
+                             th:errors="*{defaultCoolingPeriodDays}">Cooling period error</div>
+                        <div class="invalid-feedback"
+                             th:unless="${#fields.hasErrors('defaultCoolingPeriodDays')}">
+                            Please enter a valid cooling-off period.
                         </div>
-                    </form>
-                </article>
-            </section>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="deferral-lock-type" class="form-label">Lock Type</label>
+                        <select id="deferral-lock-type"
+                                class="form-select"
+                                th:classappend="${#fields.hasErrors('lockType')} ? 'form-error' : ''"
+                                th:field="*{lockType}"
+                                required
+                                data-lock-type-select>
+                            <option value="TEMPORARY">Temporary</option>
+                            <option value="PERMANENT">Permanent</option>
+                        </select>
+                        <div class="form-error-text"
+                             th:if="${#fields.hasErrors('lockType')}"
+                             th:errors="*{lockType}">Lock type error</div>
+                        <div class="invalid-feedback"
+                             th:unless="${#fields.hasErrors('lockType')}">
+                            Please select a lock type.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-between gap-md staff-register-footer">
+                    <div class="form-help">Temporary rules require a cooling-off period. Permanent rules keep donors locked indefinitely.</div>
+                    <div class="btn-row">
+                        <a class="btn btn-secondary" th:href="@{/admin/deferral-rules}" data-admin-create-close>Cancel</a>
+                        <button type="submit" class="btn btn-primary" data-create-deferral-rule>
+                            Create Rule
+                        </button>
+                    </div>
+                </div>
+            </form>
         </div>
-    </th:block>
-
-    <th:block layout:fragment="custom-js">
-        <script>
-            (() => {
-                const lockType = document.querySelector("[data-lock-type-select]");
-                const coolingInput = document.querySelector("[data-cooling-days-input]");
-                if (!lockType || !coolingInput) {
-                    return;
-                }
-
-                const syncCoolingInput = () => {
-                    const isPermanent = lockType.value === "PERMANENT";
-                    coolingInput.disabled = isPermanent;
-                    coolingInput.required = !isPermanent;
-
-                    if (isPermanent) {
-                        coolingInput.value = "";
-                        coolingInput.removeAttribute("required");
-                        coolingInput.setAttribute("aria-disabled", "true");
-                        coolingInput.placeholder = "Not used for permanent";
-                        return;
-                    }
-
-                    coolingInput.setAttribute("required", "required");
-                    coolingInput.removeAttribute("aria-disabled");
-                    coolingInput.placeholder = "Enter days";
-                };
-
-                lockType.addEventListener("change", syncCoolingInput);
-                syncCoolingInput();
-            })();
-        </script>
-    </th:block>
+    </div>
+</div>
 
 </body>
 </html>
