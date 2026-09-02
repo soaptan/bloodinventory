@@ -101,8 +101,9 @@
                                     Reset Filters
                                 </button>
 
-                                <a class="btn btn-primary table-filter-reset"
+                                <a class="btn btn-primary table-create-action"
                                    th:href="@{/admin/deferral-rules/create}"
+                                   aria-label="Create deferral rule"
                                    data-create-deferral-rule-link>
                                     <svg viewBox="0 0 24 24" aria-hidden="true">
                                         <path d="M12 5v14"></path>
@@ -199,10 +200,13 @@
                         </article>
 
                     </section>
+
+                    <div th:replace="~{admin-deferral-rule-create :: deferralRuleCreateModal}"></div>
                 </div>
     </th:block>
 
     <th:block layout:fragment="custom-js">
+        <script th:src="@{/js/admin-create-modals.js}"></script>
         <script>
             (() => {
                 document.querySelectorAll("[data-lock-type-select]").forEach((select) => {

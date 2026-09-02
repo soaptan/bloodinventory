@@ -78,8 +78,9 @@
                                     Reset Filters
                                 </button>
 
-                                <a class="btn btn-primary table-filter-reset"
+                                <a class="btn btn-primary table-create-action"
                                    th:href="@{/admin/storage/create}"
+                                   aria-label="Create storage location"
                                    data-create-storage-link>
                                     <svg viewBox="0 0 24 24" aria-hidden="true">
                                         <path d="M12 5v14"></path>
@@ -153,10 +154,13 @@
                         </article>
 
                     </section>
+
+                    <div th:replace="~{admin-storage-create :: storageCreateModal}"></div>
                 </div>
     </th:block>
 
     <th:block layout:fragment="custom-js">
+        <script th:src="@{/js/admin-create-modals.js}"></script>
         <script>
             (() => {
                 const tableBody = document.querySelector("[data-storage-table-body]");

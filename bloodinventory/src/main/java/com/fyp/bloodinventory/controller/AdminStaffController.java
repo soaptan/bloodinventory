@@ -5,6 +5,7 @@ import com.fyp.bloodinventory.dto.StaffPasswordChangeRequest;
 import com.fyp.bloodinventory.dto.StaffProfileDto;
 import com.fyp.bloodinventory.dto.StaffProfileUpdateRequest;
 import com.fyp.bloodinventory.dto.StaffRegistrationRequest;
+import com.fyp.bloodinventory.dto.StaffRegistrationRoleOptions;
 import com.fyp.bloodinventory.entity.StaffRole;
 import com.fyp.bloodinventory.service.StaffService;
 import com.fyp.bloodinventory.service.SystemNotificationService;
@@ -26,6 +27,7 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.security.Principal;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -77,18 +79,11 @@ public class AdminStaffController {
                                 Principal principal,
                                 RedirectAttributes redirectAttributes) {
 
-        validateRegistrationRoleFields(request, bindingResult);
         validateRegistrationPhoto(photoFile, bindingResult);
 
         if (bindingResult.hasErrors()) {
-            request.setPassword(null);
-            redirectAttributes.addFlashAttribute("errorMessage", "Please correct the highlighted staff registration fields.");
-            redirectAttributes.addFlashAttribute("staffRequest", request);
-            redirectAttributes.addFlashAttribute(
-                    BindingResult.MODEL_KEY_PREFIX + "staffRequest",
-                    bindingResult
-            );
-            redirectAttributes.addFlashAttribute("openRegisterModal", true);
+            preserveRegistrationFailure(request, bindingResult, redirectAttributes,
+                    "Please correct the highlighted staff registration fields.");
             return "redirect:/admin/staff/management";
         }
 
@@ -107,8 +102,15 @@ public class AdminStaffController {
         } catch (IllegalArgumentException e) {
             preserveRegistrationFailure(request, redirectAttributes, safeLabel(e.getMessage(), "The registration details are invalid."));
         } catch (RuntimeException e) {
-            preserveRegistrationFailure(request, redirectAttributes,
-                    safeLabel(e.getMessage(), "The staff account could not be created."));
+            String message = safeLabel(e.getMessage(), "The staff account could not be created.");
+            String duplicateField = duplicateRoleCredentialField(message);
+            if (duplicateField != null) {
+                bindingResult.rejectValue(duplicateField, "duplicate", message);
+                preserveRegistrationFailure(request, bindingResult, redirectAttributes,
+                        "Please correct the highlighted staff registration fields.");
+            } else {
+                preserveRegistrationFailure(request, redirectAttributes, message);
+            }
         } catch (Exception e) {
             preserveRegistrationFailure(request, redirectAttributes,
                     "The staff account could not be created right now. Please try again.");
@@ -126,16 +128,22 @@ public class AdminStaffController {
             redirectAttributes.addFlashAttribute("openRegisterModal", true);
     }
 
-    private void validateRegistrationRoleFields(StaffRegistrationRequest request, BindingResult bindingResult) {
-        if (request.getStaffType() == StaffRole.MEDICAL_STAFF) {
-            rejectBlank(bindingResult, "licenseNo", request.getLicenseNo(), "Medical license number is required.");
-            rejectBlank(bindingResult, "position", request.getPosition(), "Clinical position is required.");
-        } else if (request.getStaffType() == StaffRole.LAB_TECHNICIAN) {
-            rejectBlank(bindingResult, "certificationNo", request.getCertificationNo(),
-                    "Laboratory certification number is required.");
-        } else if (request.getStaffType() == StaffRole.BLOOD_ADMINISTRATOR) {
-            rejectBlank(bindingResult, "department", request.getDepartment(), "Department is required.");
+    private void preserveRegistrationFailure(StaffRegistrationRequest request,
+                                             BindingResult bindingResult,
+                                             RedirectAttributes redirectAttributes,
+                                             String message) {
+        preserveRegistrationFailure(request, redirectAttributes, message);
+        redirectAttributes.addFlashAttribute(BindingResult.MODEL_KEY_PREFIX + "staffRequest", bindingResult);
+    }
+
+    private String duplicateRoleCredentialField(String message) {
+        if ("Medical license number already exists.".equals(message)) {
+            return "licenseNo";
         }
+        if ("Laboratory certification number already exists.".equals(message)) {
+            return "certificationNo";
+        }
+        return null;
     }
 
     private void validateRegistrationPhoto(MultipartFile photoFile, BindingResult bindingResult) {
@@ -151,17 +159,26 @@ public class AdminStaffController {
         }
     }
 
-    private void rejectBlank(BindingResult bindingResult, String field, String value, String message) {
-        if (value == null || value.isBlank()) {
-            bindingResult.rejectValue(field, "required", message);
-        }
-    }
-
     @PostMapping("/admin/staff/{id}/update")
     public String updateStaff(@PathVariable("id") Long id,
-                              @ModelAttribute("editStaffRequest") StaffManagementRequest request,
+                              @Valid @ModelAttribute("editStaffRequest") StaffManagementRequest request,
+                              BindingResult bindingResult,
                               Principal principal,
                               RedirectAttributes redirectAttributes) {
+
+        if (bindingResult.hasErrors()) {
+            Map<String, String> fieldErrors = new LinkedHashMap<>();
+            bindingResult.getFieldErrors().forEach(error -> fieldErrors.putIfAbsent(
+                    error.getField(),
+                    safeLabel(error.getDefaultMessage(), "Enter a valid value.")
+            ));
+            request.setPassword(null);
+            redirectAttributes.addFlashAttribute("errorMessage", "Please correct the highlighted staff profile fields.");
+            redirectAttributes.addFlashAttribute("editingStaffId", id);
+            redirectAttributes.addFlashAttribute("editStaffRequest", request);
+            redirectAttributes.addFlashAttribute("editFieldErrors", fieldErrors);
+            return "redirect:/admin/staff/management";
+        }
 
         try {
             Long staffId = Objects.requireNonNull(id, "Staff ID must not be null.");
@@ -435,6 +452,8 @@ public class AdminStaffController {
         List<StaffProfileDto> staffProfiles = staffService.getAllStaffProfiles();
 
         model.addAttribute("roles", StaffRole.values());
+        model.addAttribute("clinicalPositions", StaffRegistrationRoleOptions.clinicalPositions());
+        model.addAttribute("administratorDepartments", StaffRegistrationRoleOptions.administratorDepartments());
         model.addAttribute("currentUsername", currentUsername);
         model.addAttribute("staffProfiles", staffProfiles);
         model.addAttribute("staffCount", staffProfiles.size());

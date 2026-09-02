@@ -235,6 +235,8 @@ class AuthenticationFlowTests {
                     .andExpect(expect(content().string(containsString("name=\"confirmPassword\""))))
                     .andExpect(expect(content().string(containsString("New password requirements"))))
                     .andExpect(expect(content().string(containsString("maximum 72 bytes"))))
+                    .andExpect(expect(content().string(containsString("data-password-toggle=\"newPassword\""))))
+                    .andExpect(expect(content().string(containsString("data-password-toggle=\"confirmPassword\""))))
                     .andExpect(expect(content().string(not(containsString("name=\"username\"")))))
                     .andExpect(expect(content().string(not(containsString("name=\"email\"")))))
                     .andExpect(expect(content().string(not(containsString("name=\"icNumber\"")))));

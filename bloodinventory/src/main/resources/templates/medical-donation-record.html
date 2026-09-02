@@ -1,186 +1,176 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org"
-      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-      layout:decorate="~{layout/master-layout}">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Record Blood Collection</title>
-    <th:block layout:fragment="custom-css">
-        <link rel="stylesheet" th:href="@{/css/medical-workflow.css}">
-    </th:block>
-</head>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <body>
 
-    <th:block layout:fragment="app-subtitle">
-        Clinical workspace for eligibility review, collection, and transfusion support.
-    </th:block>
+<div th:fragment="donationCreateModal"
+     th:if="${openDonationCreateModal == true}"
+     class="modal-backdrop admin-create-backdrop"
+     th:classappend="${openDonationCreateModal == true} ? 'is-open'"
+     data-admin-create-modal
+     data-donation-form-page
+     data-donation-create-modal>
+    <div class="card card-lg staff-register-modal admin-create-modal"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="donation-create-modal-title">
+        <div class="staff-register-header admin-create-modal-header">
+            <div>
+                <div class="section-subtitle">Blood Collection</div>
+                <h2 id="donation-create-modal-title" class="section-title staff-register-modal-title admin-create-modal-title">
+                    Record Collection
+                </h2>
+                <p class="staff-register-modal-description admin-create-modal-description">
+                    Capture the collection details and assign generated components to controlled storage.
+                </p>
+            </div>
 
-    <th:block layout:fragment="sidebar">
-        <div th:replace="~{fragments/sidebar :: sidebar(
-            'Medical Staff Panel',
-            'Clinical workflows for donor eligibility, blood collection, and transfusion requests.',
-            'blood-collection'
-        )}"></div>
-    </th:block>
+            <a th:href="@{/medical/donations}"
+               class="btn btn-icon btn-secondary"
+               aria-label="Close record collection form"
+               data-admin-create-close
+               data-back-to-collection-log>
+                &times;
+            </a>
+        </div>
 
-    <th:block layout:fragment="content">
-        <div class="main-stack assessment-page-stack" data-donation-form-page>
-            <section class="page-intro page-card assessment-page-intro">
-                <div>
-                    <div class="page-kicker">Blood Collection</div>
-                    <h1>Record Collection</h1>
-                    <p>Capture the collection details and assign generated components to controlled storage.</p>
+        <div class="staff-register-content admin-create-modal-content">
+            <div th:if="${errorMessage != null and #strings.isNotEmpty(errorMessage)}"
+                 class="card card-sm staff-register-error"
+                 role="alert"
+                 th:text="${errorMessage}">
+                Please correct the highlighted donation fields.
+            </div>
+
+            <article class="form-card page-card">
+                <div class="section-title">
+                    <div>
+                        <h3>Collection Details</h3>
+                        <p>Eligible donor, collection time, component types, and storage location</p>
+                    </div>
                 </div>
-                <a class="btn btn-tertiary" th:href="@{/medical/donations}" data-back-to-collection-log>
-                    Back to Collection Log
-                </a>
-            </section>
 
-            <section class="standalone-workflow-form-layout">
-                <article class="form-card page-card standalone-workflow-form-card">
-                    <div class="section-title">
-                        <div>
-                            <h2>Collection Details</h2>
-                            <p>Eligible donor, collection time, component types, and storage location</p>
-                        </div>
+                <form class="needs-validation"
+                      data-action-confirm
+                      data-action-label="create donation session"
+                      data-action-confirm-text="Confirm Create"
+                      th:action="@{/medical/donations}"
+                      th:object="${donationRequest}"
+                      method="post"
+                      novalidate>
+                    <div th:if="${#fields.hasAnyErrors()}" class="alert-error">
+                        Please correct the highlighted donation fields.
                     </div>
 
-                    <form class="needs-validation"
-                          data-action-confirm
-                          data-action-label="create donation session"
-                          data-action-confirm-text="Confirm Create"
-                          th:action="@{/medical/donations}"
-                          th:object="${donationRequest}"
-                          method="post"
-                          novalidate>
-                        <div th:if="${#fields.hasAnyErrors()}" class="alert-error">
-                            Please correct the highlighted donation fields.
+                    <div class="form-grid">
+                        <div class="form-group full">
+                            <label for="donorId">Donor</label>
+                            <input id="donorSelectSearch"
+                                   class="form-input"
+                                   type="search"
+                                   placeholder="Search donor name or blood group"
+                                   autocomplete="off"
+                                   data-donor-select-search>
+                            <select id="donorId"
+                                    th:field="*{donorId}"
+                                    th:classappend="${#fields.hasErrors('donorId')} ? ' is-invalid' : ''"
+                                    data-donor-select
+                                    required>
+                                <option value="">Select donor</option>
+                                <option th:each="donor : ${donationDonors}"
+                                        th:value="${donor.donorId}"
+                                        th:disabled="${!donor.eligible}"
+                                        th:attr="data-donor-search=${#strings.toLowerCase(donor.fullName + ' ' + donor.bloodGroup + ' ' + donor.eligibilityStatus)}"
+                                        th:text="${donor.fullName + ' - ' + donor.bloodGroup + (donor.eligible ? '' : ' - ' + donor.eligibilityStatus)}">
+                                    Donor
+                                </option>
+                            </select>
+                            <div class="field-error"
+                                 th:if="${#fields.hasErrors('donorId')}"
+                                 th:errors="*{donorId}">Donor error</div>
+                            <div class="invalid-feedback">Please select an eligible donor.</div>
                         </div>
 
-                        <div class="form-grid">
-                            <div class="form-group full">
-                                <label for="donorId">Donor</label>
-                                <input id="donorSelectSearch"
-                                       class="form-input"
-                                       type="search"
-                                       placeholder="Search donor name or blood group"
-                                       autocomplete="off"
-                                       data-donor-select-search>
-                                <select id="donorId"
-                                        th:field="*{donorId}"
-                                        th:classappend="${#fields.hasErrors('donorId')} ? ' is-invalid' : ''"
-                                        data-donor-select
-                                        required>
-                                    <option value="">Select donor</option>
-                                    <option th:each="donor : ${donationDonors}"
-                                            th:value="${donor.donorId}"
-                                            th:disabled="${!donor.eligible}"
-                                            th:attr="data-donor-search=${#strings.toLowerCase(donor.fullName + ' ' + donor.bloodGroup + ' ' + donor.eligibilityStatus)}"
-                                            th:text="${donor.fullName + ' - ' + donor.bloodGroup + (donor.eligible ? '' : ' - ' + donor.eligibilityStatus)}">
-                                        Donor
-                                    </option>
-                                </select>
-                                <div class="field-error"
-                                     th:if="${#fields.hasErrors('donorId')}"
-                                     th:errors="*{donorId}">Donor error</div>
-                                <div class="invalid-feedback">Please select an eligible donor.</div>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="collectionTimestamp">Collection Timestamp</label>
-                                <input id="collectionTimestamp"
-                                       type="datetime-local"
-                                       th:field="*{collectionTimestamp}"
-                                       th:classappend="${#fields.hasErrors('collectionTimestamp')} ? ' is-invalid' : ''"
-                                       required>
-                                <div class="field-error"
-                                     th:if="${#fields.hasErrors('collectionTimestamp')}"
-                                     th:errors="*{collectionTimestamp}">Collection timestamp error</div>
-                                <div class="invalid-feedback">Please enter the collection date and time.</div>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="locationId">Storage Location</label>
-                                <select id="locationId"
-                                        th:field="*{locationId}"
-                                        th:classappend="${#fields.hasErrors('locationId')} ? ' is-invalid' : ''"
-                                        required>
-                                    <option value="">Select location</option>
-                                    <option th:each="location : ${storageLocations}"
-                                            th:value="${location.locationId}"
-                                            th:text="${location.locationId} + ' - ' + ${location.description}">
-                                        Location
-                                    </option>
-                                </select>
-                                <div class="field-error"
-                                     th:if="${#fields.hasErrors('locationId')}"
-                                     th:errors="*{locationId}">Storage location error</div>
-                                <div class="invalid-feedback">Please select the storage location.</div>
-                            </div>
-
-                            <div class="form-group full">
-                                <label>Component Types</label>
-                                <div class="choice-row"
-                                     data-required-checkbox-group
-                                     data-required-message="Please select at least one component type."
-                                     th:classappend="${#fields.hasErrors('componentTypes')} ? ' is-invalid' : ''">
-                                    <label class="check-chip" th:each="type : ${componentTypes}">
-                                        <input type="checkbox"
-                                               th:field="*{componentTypes}"
-                                               th:value="${type}"
-                                               aria-label="Component type"
-                                               title="Component type">
-                                        <span th:text="${type}">RBC</span>
-                                    </label>
-                                </div>
-                                <div class="field-error"
-                                     th:if="${#fields.hasErrors('componentTypes')}"
-                                     th:errors="*{componentTypes}">Component type error</div>
-                                <div class="invalid-feedback">Please select at least one component type.</div>
-                            </div>
-
-                            <div class="form-group full">
-                                <button type="submit" class="submit-btn" data-create-donation>Create Donation</button>
-                            </div>
+                        <div class="form-group">
+                            <label for="collectionTimestamp">Collection Timestamp</label>
+                            <input id="collectionTimestamp"
+                                   type="datetime-local"
+                                   th:field="*{collectionTimestamp}"
+                                   th:classappend="${#fields.hasErrors('collectionTimestamp')} ? ' is-invalid' : ''"
+                                   data-current-or-past-datetime
+                                   required>
+                            <div class="field-error"
+                                 th:if="${#fields.hasErrors('collectionTimestamp')}"
+                                 th:errors="*{collectionTimestamp}">Collection timestamp error</div>
+                            <div class="invalid-feedback">Please enter the collection date and time.</div>
                         </div>
-                    </form>
-                </article>
-            </section>
+
+                        <div class="form-group">
+                            <label for="locationId">Storage Location</label>
+                            <select id="locationId"
+                                    th:field="*{locationId}"
+                                    th:classappend="${#fields.hasErrors('locationId')} ? ' is-invalid' : ''"
+                                    required>
+                                <option value="">Select location</option>
+                                <option th:each="location : ${storageLocations}"
+                                        th:value="${location.locationId}"
+                                        th:text="${location.locationId} + ' - ' + ${location.description}">
+                                    Location
+                                </option>
+                            </select>
+                            <div class="field-error"
+                                 th:if="${#fields.hasErrors('locationId')}"
+                                 th:errors="*{locationId}">Storage location error</div>
+                            <div class="invalid-feedback">Please select the storage location.</div>
+                        </div>
+
+                        <div class="form-group full">
+                            <div class="component-type-toolbar">
+                                <label id="componentTypesLabel">Component Types</label>
+                                <label class="check-chip component-select-all">
+                                    <input id="componentTypesAll"
+                                           type="checkbox"
+                                           data-component-select-all
+                                           aria-controls="componentTypesChoices"
+                                           aria-label="Select all component types"
+                                           title="Select all component types">
+                                    <span>Select All</span>
+                                </label>
+                            </div>
+                            <div id="componentTypesChoices"
+                                 class="choice-row"
+                                 data-required-checkbox-group
+                                 data-required-message="Please select at least one component type."
+                                 aria-labelledby="componentTypesLabel"
+                                 th:classappend="${#fields.hasErrors('componentTypes')} ? ' is-invalid' : ''">
+                                <label class="check-chip" th:each="type : ${componentTypes}">
+                                    <input type="checkbox"
+                                           th:field="*{componentTypes}"
+                                           th:value="${type}"
+                                           aria-label="Component type"
+                                           title="Component type">
+                                    <span th:text="${type}">RBC</span>
+                                </label>
+                            </div>
+                            <div class="field-error"
+                                 th:if="${#fields.hasErrors('componentTypes')}"
+                                 th:errors="*{componentTypes}">Component type error</div>
+                            <div class="invalid-feedback">Please select at least one component type.</div>
+                        </div>
+
+                        <div class="form-group full">
+                            <button type="submit" class="submit-btn" data-create-donation>Create Donation</button>
+                        </div>
+                    </div>
+                </form>
+            </article>
+
+            <div class="staff-register-footer">
+                <div class="form-help">Only eligible donors and active storage locations can be selected.</div>
+                <a class="btn btn-secondary" th:href="@{/medical/donations}" data-admin-create-close>Cancel</a>
+            </div>
         </div>
-    </th:block>
+    </div>
+</div>
 
-    <th:block layout:fragment="custom-js">
-        <script>
-            (() => {
-                const donorSearch = document.querySelector("[data-donor-select-search]");
-                const donorSelect = document.querySelector("[data-donor-select]");
-                if (!donorSearch || !donorSelect) {
-                    return;
-                }
-
-                const donorOptions = Array.from(donorSelect.options).filter((option) => option.value);
-                const applyDonorSearch = () => {
-                    const query = donorSearch.value.trim().toLowerCase();
-                    let selectedOptionVisible = true;
-
-                    donorOptions.forEach((option) => {
-                        const matches = !query || (option.getAttribute("data-donor-search") || "").includes(query);
-                        option.hidden = !matches;
-                        if (option.selected && !matches) {
-                            selectedOptionVisible = false;
-                        }
-                    });
-
-                    if (!selectedOptionVisible) {
-                        donorSelect.value = "";
-                    }
-                };
-
-                donorSearch.addEventListener("input", applyDonorSearch);
-                applyDonorSearch();
-            })();
-        </script>
-    </th:block>
 </body>
 </html>

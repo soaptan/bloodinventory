@@ -1,204 +1,195 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org"
-      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-      layout:decorate="~{layout/master-layout}">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Apply Donor Assessment</title>
-    <th:block layout:fragment="custom-css">
-        <link rel="stylesheet" th:href="@{/css/medical-workflow.css}">
-    </th:block>
-</head>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <body>
 
-    <th:block layout:fragment="app-subtitle">
-        Clinical workspace for eligibility review, collection, and transfusion support.
-    </th:block>
+<div th:fragment="donorAssessmentModal"
+     th:if="${openDonorAssessmentModal == true}"
+     class="modal-backdrop admin-create-backdrop"
+     th:classappend="${openDonorAssessmentModal == true} ? 'is-open'"
+     data-admin-create-modal
+     data-assessment-form-page
+     data-assessment-create-modal>
+    <div class="card card-lg staff-register-modal admin-create-modal"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="donor-assessment-modal-title">
+        <div class="staff-register-header admin-create-modal-header">
+            <div>
+                <div class="section-subtitle">Donor Eligibility</div>
+                <h2 id="donor-assessment-modal-title" class="section-title staff-register-modal-title admin-create-modal-title">
+                    Apply Assessment
+                </h2>
+                <p class="staff-register-modal-description admin-create-modal-description">
+                    Review donor identity and apply the appropriate eligibility or deferral controls.
+                </p>
+            </div>
 
-    <th:block layout:fragment="sidebar">
-        <div th:replace="~{fragments/sidebar :: sidebar(
-            'Medical Staff Panel',
-            'Clinical workflows for donor eligibility, blood collection, and transfusion requests.',
-            'donor-eligibility'
-        )}"></div>
-    </th:block>
-
-    <th:block layout:fragment="content">
-        <div class="main-stack assessment-page-stack" data-assessment-form-page>
-            <section class="page-intro page-card assessment-page-intro">
-                <div>
-                    <div class="page-kicker">Donor Eligibility</div>
-                    <h1>Apply Assessment</h1>
-                    <p>Review donor identity and apply the appropriate eligibility or deferral controls.</p>
-                </div>
-                <a class="btn btn-tertiary"
-                   th:href="@{/medical/donor-eligibility}"
-                   data-back-to-donor-records>
-                    Back to Donor Records
-                </a>
-            </section>
-
-            <section class="assessment-form-layout">
-                <article class="form-card page-card assessment-form-card">
-                    <div class="section-title">
-                        <div>
-                            <h2 th:text="${donorRequest.donorId != null ? 'Edit Assessment Controls' : 'Assessment Controls'}">
-                                Assessment Controls
-                            </h2>
-                            <p>Identity details and deferral events</p>
-                        </div>
-                    </div>
-
-                    <div class="assessment-controls-grid" data-assessment-controls-grid>
-                        <section class="assessment-control-panel">
-                            <div class="assessment-panel-heading">
-                                <h3>Donor Details</h3>
-                                <p>Create a donor record or update the selected donor.</p>
-                            </div>
-
-                            <form th:action="@{/medical/donor-eligibility/donors}"
-                                  data-action-confirm
-                                  data-action-label="apply donor identity details"
-                                  data-action-confirm-text="Confirm Apply"
-                                  th:object="${donorRequest}"
-                                  method="post">
-                                <div class="form-grid">
-                                    <input id="donorRecordId" type="hidden" th:field="*{donorId}">
-                                    <div class="form-group full">
-                                        <label for="fullName">Full Name</label>
-                                        <input id="fullName" type="text" th:field="*{fullName}" required autofocus>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="icNumber">IC Number</label>
-                                        <input id="icNumber" type="text" th:field="*{icNumber}" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="bloodGroup">Blood Group</label>
-                                        <select id="bloodGroup" th:field="*{bloodGroup}" required>
-                                            <option value="">Select</option>
-                                            <option th:each="group : ${bloodGroups}"
-                                                    th:value="${group}"
-                                                    th:text="${group}">A+</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group full">
-                                        <div class="button-row">
-                                            <button type="submit" class="submit-btn" data-apply-assessment>Apply Assessment</button>
-                                            <button type="button" class="text-btn" data-donor-reset>New Donor</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </form>
-                        </section>
-
-                        <section class="assessment-control-panel assessment-deferral-panel">
-                            <div class="assessment-panel-heading">
-                                <h3>Deferral Assessment</h3>
-                                <p>Apply a temporary cooling period or permanent eligibility lock.</p>
-                            </div>
-
-                            <form th:action="@{/medical/donor-eligibility/deferrals}"
-                                  data-action-confirm
-                                  data-action-label="record donor deferral"
-                                  data-action-confirm-text="Confirm Deferral"
-                                  th:object="${deferralRequest}"
-                                  method="post">
-                                <div class="form-grid">
-                                    <div class="form-group full">
-                                        <label for="donorId">Donor</label>
-                                        <input id="deferralDonorSearch"
-                                               class="form-input"
-                                               type="search"
-                                               th:value="${selectedDonorName}"
-                                               placeholder="Search donor name, IC number, or blood group"
-                                               autocomplete="off"
-                                               data-deferral-donor-search>
-                                        <select id="donorId" th:field="*{donorId}" data-deferral-donor-select required>
-                                            <option value="">Select donor</option>
-                                            <option th:each="donor : ${donors}"
-                                                    th:value="${donor.donorId}"
-                                                    th:attr="data-deferral-donor-search=${#strings.toLowerCase(donor.fullName + ' ' + donor.icNumber + ' ' + donor.bloodGroup + ' ' + donor.eligibilityStatus)}"
-                                                    th:text="${donor.fullName} + ' - ' + ${donor.bloodGroup}">Donor</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group full">
-                                        <label for="reasonId">Deferral Reason</label>
-                                        <select id="reasonId" th:field="*{reasonId}" required>
-                                            <option value="">Select reason</option>
-                                            <option th:each="reason : ${deferralReasons}"
-                                                    th:value="${reason.reasonId}"
-                                                    th:data-lock-type="${reason.lockType}"
-                                                    th:text="${reason.permanentLock ? reason.description + ' (Permanent lock)' : reason.description + ' (' + reason.defaultCoolingPeriodDays + ' days)'}">
-                                                Reason
-                                            </option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group full">
-                                        <button type="submit" class="secondary-btn">Record Deferral</button>
-                                    </div>
-                                </div>
-                            </form>
-                        </section>
-                    </div>
-                </article>
-            </section>
+            <a th:href="@{/medical/donor-eligibility}"
+               class="btn btn-icon btn-secondary"
+               aria-label="Close donor assessment form"
+               data-admin-create-close
+               data-back-to-donor-records>
+                &times;
+            </a>
         </div>
-    </th:block>
 
-    <th:block layout:fragment="custom-js">
-        <script>
-            (() => {
-                const donorId = document.getElementById("donorRecordId");
-                const fullName = document.getElementById("fullName");
-                const icNumber = document.getElementById("icNumber");
-                const bloodGroup = document.getElementById("bloodGroup");
-                const deferralDonorSelect = document.querySelector("[data-deferral-donor-select]");
-                const deferralDonorSearch = document.querySelector("[data-deferral-donor-search]");
-                const deferralDonorOptions = deferralDonorSelect
-                    ? Array.from(deferralDonorSelect.options).filter((option) => option.value)
-                    : [];
+        <div class="staff-register-content admin-create-modal-content">
+            <div th:if="${errorMessage != null and #strings.isNotEmpty(errorMessage)}"
+                 class="card card-sm staff-register-error"
+                 role="alert"
+                 th:text="${errorMessage}">
+                Please correct the highlighted assessment fields.
+            </div>
 
-                const applyDeferralDonorSearch = () => {
-                    if (!deferralDonorSelect || !deferralDonorSearch) {
-                        return;
-                    }
+            <article class="form-card page-card assessment-form-card">
+                <div class="section-title">
+                    <div>
+                        <h3 th:text="${donorRequest.donorId != null ? 'Edit Assessment Controls' : 'Assessment Controls'}">
+                            Assessment Controls
+                        </h3>
+                        <p>Identity details and deferral events</p>
+                    </div>
+                </div>
 
-                    const query = deferralDonorSearch.value.trim().toLowerCase();
-                    let selectedOptionVisible = true;
+                <div class="assessment-controls-grid" data-assessment-controls-grid>
+                    <section class="assessment-control-panel">
+                        <div class="assessment-panel-heading">
+                            <h3>Donor Details</h3>
+                            <p>Create a donor record or update the selected donor.</p>
+                        </div>
 
-                    deferralDonorOptions.forEach((option) => {
-                        const matches = !query || (option.getAttribute("data-deferral-donor-search") || "").includes(query);
-                        option.hidden = !matches;
-                        if (option.selected && !matches) {
-                            selectedOptionVisible = false;
-                        }
-                    });
+                        <form class="needs-validation"
+                              th:action="@{/medical/donor-eligibility/donors}"
+                              data-action-confirm
+                              data-action-label="apply donor identity details"
+                              data-action-confirm-text="Confirm Apply"
+                              th:object="${donorRequest}"
+                              method="post" novalidate>
+                            <div class="form-grid">
+                                <input id="donorRecordId" type="hidden" th:field="*{donorId}">
+                                <div class="form-group full">
+                                    <label for="fullName">Full Name</label>
+                                    <input id="fullName" type="text" th:field="*{fullName}"
+                                           th:classappend="${#fields.hasErrors('fullName')} ? ' form-error' : ''"
+                                           autocomplete="name" minlength="2" maxlength="100"
+                                           pattern="[\p{L}](?:[\p{L}\s.,'@\/\-])*" required autofocus
+                                           aria-describedby="fullName-error"
+                                           title="Use 2-100 letters and common name punctuation only.">
+                                    <div id="fullName-error" class="form-error-text"
+                                         th:if="${#fields.hasErrors('fullName')}" th:errors="*{fullName}">
+                                        Enter the donor's full name.
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="icNumber">IC Number</label>
+                                    <input id="icNumber" type="text" th:field="*{icNumber}"
+                                           th:classappend="${#fields.hasErrors('icNumber')} ? ' form-error' : ''"
+                                           autocomplete="off" inputmode="numeric" maxlength="14"
+                                           pattern="\d{6}-\d{2}-\d{4}" required
+                                           aria-describedby="icNumber-error"
+                                           placeholder="900101-10-1234"
+                                           title="Use the Malaysian IC format YYMMDD-##-####.">
+                                    <div id="icNumber-error" class="form-error-text"
+                                         th:if="${#fields.hasErrors('icNumber')}" th:errors="*{icNumber}">
+                                        Enter a valid Malaysian IC number.
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="bloodGroup">Blood Group</label>
+                                    <select id="bloodGroup" th:field="*{bloodGroup}"
+                                            th:classappend="${#fields.hasErrors('bloodGroup')} ? ' form-error' : ''"
+                                            required aria-describedby="bloodGroup-error">
+                                        <option value="">Select</option>
+                                        <option th:each="group : ${bloodGroups}"
+                                                th:value="${group}"
+                                                th:text="${group}">A+</option>
+                                    </select>
+                                    <div id="bloodGroup-error" class="form-error-text"
+                                         th:if="${#fields.hasErrors('bloodGroup')}" th:errors="*{bloodGroup}">
+                                        Please select a blood group.
+                                    </div>
+                                </div>
+                                <div class="form-group full">
+                                    <div class="button-row">
+                                        <button type="submit" class="submit-btn" data-apply-assessment>Apply Assessment</button>
+                                        <button type="button" class="text-btn" data-donor-reset>New Donor</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </section>
 
-                    if (!selectedOptionVisible) {
-                        deferralDonorSelect.value = "";
-                    }
-                };
+                    <section class="assessment-control-panel assessment-deferral-panel">
+                        <div class="assessment-panel-heading">
+                            <h3>Deferral Assessment</h3>
+                            <p>Apply a temporary cooling period or permanent eligibility lock.</p>
+                        </div>
 
-                deferralDonorSearch?.addEventListener("input", applyDeferralDonorSearch);
-                applyDeferralDonorSearch();
+                        <form class="needs-validation"
+                              th:action="@{/medical/donor-eligibility/deferrals}"
+                              data-action-confirm
+                              data-action-label="record donor deferral"
+                              data-action-confirm-text="Confirm Deferral"
+                              th:object="${deferralRequest}"
+                              method="post" novalidate>
+                            <div class="form-grid">
+                                <div class="form-group full">
+                                    <label for="donorId">Donor</label>
+                                    <input id="deferralDonorSearch"
+                                           class="form-input"
+                                           type="search"
+                                           th:value="${selectedDonorName}"
+                                           placeholder="Search donor name, IC number, or blood group"
+                                           autocomplete="off"
+                                           data-deferral-donor-search>
+                                    <select id="donorId" th:field="*{donorId}" data-deferral-donor-select
+                                            th:classappend="${#fields.hasErrors('donorId')} ? ' form-error' : ''"
+                                            required aria-describedby="donorId-error">
+                                        <option value="">Select donor</option>
+                                        <option th:each="donor : ${donors}"
+                                                th:value="${donor.donorId}"
+                                                th:attr="data-deferral-donor-search=${#strings.toLowerCase(donor.fullName + ' ' + donor.icNumber + ' ' + donor.bloodGroup + ' ' + donor.eligibilityStatus)}"
+                                                th:text="${donor.fullName} + ' - ' + ${donor.bloodGroup}">Donor</option>
+                                    </select>
+                                    <div id="donorId-error" class="form-error-text"
+                                         th:if="${#fields.hasErrors('donorId')}" th:errors="*{donorId}">
+                                        Please select a donor.
+                                    </div>
+                                </div>
+                                <div class="form-group full">
+                                    <label for="reasonId">Deferral Reason</label>
+                                    <select id="reasonId" th:field="*{reasonId}"
+                                            th:classappend="${#fields.hasErrors('reasonId')} ? ' form-error' : ''"
+                                            required aria-describedby="reasonId-error">
+                                        <option value="">Select reason</option>
+                                        <option th:each="reason : ${deferralReasons}"
+                                                th:value="${reason.reasonId}"
+                                                th:data-lock-type="${reason.lockType}"
+                                                th:text="${reason.permanentLock ? reason.description + ' (Permanent lock)' : reason.description + ' (' + reason.defaultCoolingPeriodDays + ' days)'}">
+                                            Reason
+                                        </option>
+                                    </select>
+                                    <div id="reasonId-error" class="form-error-text"
+                                         th:if="${#fields.hasErrors('reasonId')}" th:errors="*{reasonId}">
+                                        Please select a deferral reason.
+                                    </div>
+                                </div>
+                                <div class="form-group full">
+                                    <button type="submit" class="secondary-btn">Record Deferral</button>
+                                </div>
+                            </div>
+                        </form>
+                    </section>
+                </div>
+            </article>
 
-                document.querySelector("[data-donor-reset]")?.addEventListener("click", () => {
-                    donorId.value = "";
-                    fullName.value = "";
-                    icNumber.value = "";
-                    bloodGroup.value = "";
-                    if (deferralDonorSelect) {
-                        deferralDonorSelect.value = "";
-                    }
-                    if (deferralDonorSearch) {
-                        deferralDonorSearch.value = "";
-                        applyDeferralDonorSearch();
-                    }
-                    fullName.focus();
-                });
-            })();
-        </script>
-    </th:block>
+            <div class="staff-register-footer">
+                <div class="form-help">Use the donor records page to review the updated eligibility status after saving.</div>
+                <a class="btn btn-secondary" th:href="@{/medical/donor-eligibility}" data-admin-create-close>Close</a>
+            </div>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>

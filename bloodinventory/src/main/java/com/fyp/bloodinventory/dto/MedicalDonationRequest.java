@@ -4,15 +4,18 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Positive;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class MedicalDonationRequest {
     @NotNull(message = "Please select a donor.")
+    @Positive(message = "Please select a valid donor.")
     private Long donorId;
 
     @NotNull(message = "Please select a storage location.")
+    @Positive(message = "Please select a valid storage location.")
     private Long locationId;
 
     @NotBlank(message = "Collection timestamp is required.")
@@ -23,7 +26,10 @@ public class MedicalDonationRequest {
     private String collectionTimestamp;
 
     @NotEmpty(message = "Please select at least one component type.")
-    private List<String> componentTypes = new ArrayList<>();
+    private List<@Pattern(
+            regexp = "^(RBC|PLASMA|PLATELET)$",
+            message = "Please select only supported blood component types."
+    ) String> componentTypes = new ArrayList<>();
 
     public Long getDonorId() {
         return donorId;

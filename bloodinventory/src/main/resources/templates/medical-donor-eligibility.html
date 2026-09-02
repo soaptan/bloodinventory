@@ -178,6 +178,7 @@
                         </article>
                     </section>
                 </div>
+                <div th:replace="~{medical-donor-assessment :: donorAssessmentModal}"></div>
     </th:block>
 
     <th:block layout:fragment="custom-js">
@@ -317,6 +318,61 @@
                 });
 
                 applyDonorControls();
+            })();
+        </script>
+        <script th:src="@{/js/admin-create-modals.js}"></script>
+        <script>
+            (() => {
+                const donorId = document.getElementById("donorRecordId");
+                const fullName = document.getElementById("fullName");
+                const icNumber = document.getElementById("icNumber");
+                const bloodGroup = document.getElementById("bloodGroup");
+                const deferralDonorSelect = document.querySelector("[data-deferral-donor-select]");
+                const deferralDonorSearch = document.querySelector("[data-deferral-donor-search]");
+                const deferralDonorPlaceholder = deferralDonorSelect?.options[0]?.cloneNode(true);
+                const deferralDonorOptions = deferralDonorSelect
+                    ? Array.from(deferralDonorSelect.options)
+                        .filter((option) => option.value && !option.disabled)
+                        .map((option) => option.cloneNode(true))
+                    : [];
+
+                const applyDeferralDonorSearch = () => {
+                    if (!deferralDonorSelect || !deferralDonorSearch) {
+                        return;
+                    }
+
+                    const query = deferralDonorSearch.value.trim().toLowerCase();
+                    const selectedValue = deferralDonorSelect.value;
+                    const matchingOptions = deferralDonorOptions
+                        .filter((option) => !query || (option.getAttribute("data-deferral-donor-search") || "").includes(query))
+                        .map((option) => option.cloneNode(true));
+                    const options = deferralDonorPlaceholder
+                        ? [deferralDonorPlaceholder.cloneNode(true), ...matchingOptions]
+                        : matchingOptions;
+                    const matchingSelectedOption = matchingOptions.find((option) => option.value === selectedValue);
+                    const nextDeferralDonorValue = matchingSelectedOption?.value || (query ? matchingOptions[0]?.value : "");
+
+                    deferralDonorSelect.replaceChildren(...options);
+                    deferralDonorSelect.value = nextDeferralDonorValue || "";
+                };
+
+                deferralDonorSearch?.addEventListener("input", applyDeferralDonorSearch);
+                applyDeferralDonorSearch();
+
+                document.querySelector("[data-donor-reset]")?.addEventListener("click", () => {
+                    donorId.value = "";
+                    fullName.value = "";
+                    icNumber.value = "";
+                    bloodGroup.value = "";
+                    if (deferralDonorSelect) {
+                        deferralDonorSelect.value = "";
+                    }
+                    if (deferralDonorSearch) {
+                        deferralDonorSearch.value = "";
+                        applyDeferralDonorSearch();
+                    }
+                    fullName.focus();
+                });
             })();
         </script>
     </th:block>

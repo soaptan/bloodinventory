@@ -191,6 +191,7 @@
                         </article>
                     </section>
                 </div>
+                <div th:replace="~{medical-donation-record :: donationCreateModal}"></div>
     </th:block>
 
     <th:block layout:fragment="custom-js">
@@ -341,6 +342,89 @@
                 });
 
                 applyDonationControls();
+            })();
+        </script>
+        <script th:src="@{/js/admin-create-modals.js}"></script>
+        <script>
+            (() => {
+                const componentSelectAll = document.querySelector("[data-component-select-all]");
+                const componentChoices = document.getElementById("componentTypesChoices");
+                if (!componentSelectAll || !componentChoices) {
+                    return;
+                }
+
+                const componentInputs = Array.from(componentChoices.querySelectorAll("input[type='checkbox']"));
+                if (!componentInputs.length) {
+                    return;
+                }
+
+                const syncComponentSelectAll = () => {
+                    const selectedCount = componentInputs.filter((input) => input.checked).length;
+                    componentSelectAll.checked = selectedCount === componentInputs.length;
+                    componentSelectAll.indeterminate = selectedCount > 0 && selectedCount < componentInputs.length;
+                };
+
+                componentSelectAll.addEventListener("change", () => {
+                    componentInputs.forEach((input) => {
+                        input.checked = componentSelectAll.checked;
+                    });
+                    syncComponentSelectAll();
+                    componentChoices.dispatchEvent(new Event("change", { bubbles: true }));
+                });
+                componentInputs.forEach((input) => {
+                    input.addEventListener("change", syncComponentSelectAll);
+                });
+                syncComponentSelectAll();
+            })();
+        </script>
+        <script>
+            (() => {
+                const collectionTimestamp = document.querySelector("[data-current-or-past-datetime]");
+                if (!collectionTimestamp) {
+                    return;
+                }
+
+                const setCollectionTimestampMaximum = () => {
+                    const now = new Date();
+                    const localNow = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
+                    collectionTimestamp.setAttribute("max", localNow.toISOString().slice(0, 16));
+                };
+
+                collectionTimestamp.addEventListener("focus", setCollectionTimestampMaximum);
+                collectionTimestamp.addEventListener("input", setCollectionTimestampMaximum);
+                setCollectionTimestampMaximum();
+            })();
+        </script>
+        <script>
+            (() => {
+                const donorSearch = document.querySelector("[data-donor-select-search]");
+                const donorSelect = document.querySelector("[data-donor-select]");
+                if (!donorSearch || !donorSelect) {
+                    return;
+                }
+
+                const donorPlaceholder = donorSelect.options[0]?.cloneNode(true);
+                const donorOptions = Array.from(donorSelect.options)
+                    .filter((option) => option.value && !option.disabled)
+                    .map((option) => option.cloneNode(true));
+                const applyDonorSearch = () => {
+                    const query = donorSearch.value.trim().toLowerCase();
+                    const selectedValue = donorSelect.value;
+                    const matchingOptions = donorOptions
+                        .filter((option) => !query || (option.getAttribute("data-donor-search") || "").includes(query))
+                        .map((option) => option.cloneNode(true));
+                    const options = donorPlaceholder
+                        ? [donorPlaceholder.cloneNode(true), ...matchingOptions]
+                        : matchingOptions;
+                    const matchingSelectedOption = matchingOptions.find((option) => option.value === selectedValue);
+                    const nextDonorValue = matchingSelectedOption?.value || (query ? matchingOptions[0]?.value : "");
+
+                    donorSelect.replaceChildren(...options);
+                    donorSelect.value = nextDonorValue || "";
+                };
+
+                donorSearch.addEventListener("input", applyDonorSearch);
+                applyDonorSearch();
             })();
         </script>
     </th:block>

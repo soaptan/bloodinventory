@@ -90,7 +90,7 @@
                     </section>
 
                     <section class="reports-grid">
-                        <article class="module-card">
+                        <article class="module-card" data-report-table="available-stock">
                             <div class="report-card-header">
                                 <div>
                                     <h2>Available Stock by Type</h2>
@@ -98,6 +98,33 @@
                                 </div>
                             </div>
 
+                            <form class="report-table-controls" data-report-controls>
+                                <div class="report-table-field">
+                                    <label for="available-stock-type-filter">Filter</label>
+                                    <select id="available-stock-type-filter" data-report-filter="component-type">
+                                        <option value="all">All component types</option>
+                                        <option value="RBC">RBC</option>
+                                        <option value="PLASMA">Plasma</option>
+                                        <option value="PLATELET">Platelet</option>
+                                    </select>
+                                </div>
+                                <div class="report-table-field">
+                                    <label for="available-stock-sort">Sort</label>
+                                    <select id="available-stock-sort" data-report-sort>
+                                        <option value="units-desc" data-sort-key="total-available" data-sort-type="number" data-sort-direction="desc">Highest available</option>
+                                        <option value="units-asc" data-sort-key="total-available" data-sort-type="number" data-sort-direction="asc">Lowest available</option>
+                                        <option value="type-asc" data-sort-key="component-type" data-sort-type="text" data-sort-direction="asc">Type A-Z</option>
+                                        <option value="type-desc" data-sort-key="component-type" data-sort-type="text" data-sort-direction="desc">Type Z-A</option>
+                                    </select>
+                                </div>
+                                <div class="report-table-actions">
+                                    <button type="submit" class="report-filter-button primary" data-report-apply>Apply</button>
+                                    <button type="button" class="report-filter-button" data-report-reset>Reset</button>
+                                </div>
+                            </form>
+                            <div class="report-filter-meta" data-report-count aria-live="polite"></div>
+
+                            <div class="report-table-wrap">
                             <table class="data-table">
                                 <thead>
                                 <tr>
@@ -106,15 +133,25 @@
                                 </tr>
                                 </thead>
                                 <tbody>
-                                <tr th:each="item : ${availableStockList}">
+                                <tr th:if="${availableStockList == null or #lists.isEmpty(availableStockList)}">
+                                    <td colspan="2">No available stock records found.</td>
+                                </tr>
+                                <tr th:each="item : ${availableStockList}"
+                                    data-report-row
+                                    th:data-report-value-component-type="${item.componentType}"
+                                    th:data-report-value-total-available="${item.totalAvailable}">
                                     <td th:text="${item.componentType}">RBC</td>
                                     <td th:text="${item.totalAvailable}">0</td>
                                 </tr>
+                                <tr data-report-filter-empty hidden>
+                                    <td colspan="2">No available stock matches these filters.</td>
+                                </tr>
                                 </tbody>
                             </table>
+                            </div>
                         </article>
 
-                        <article class="module-card">
+                        <article class="module-card" data-report-table="staff-totals">
                             <div class="report-card-header">
                                 <div>
                                     <h2>Staff Totals by Role</h2>
@@ -122,6 +159,33 @@
                                 </div>
                             </div>
 
+                            <form class="report-table-controls" data-report-controls>
+                                <div class="report-table-field">
+                                    <label for="staff-role-filter">Filter</label>
+                                    <select id="staff-role-filter" data-report-filter="staff-type">
+                                        <option value="all">All staff roles</option>
+                                        <option value="BLOOD_ADMINISTRATOR">Blood Administrator</option>
+                                        <option value="LAB_TECHNICIAN">Lab Technician</option>
+                                        <option value="MEDICAL_STAFF">Medical Staff</option>
+                                    </select>
+                                </div>
+                                <div class="report-table-field">
+                                    <label for="staff-total-sort">Sort</label>
+                                    <select id="staff-total-sort" data-report-sort>
+                                        <option value="staff-desc" data-sort-key="total-staff" data-sort-type="number" data-sort-direction="desc">Highest staff count</option>
+                                        <option value="staff-asc" data-sort-key="total-staff" data-sort-type="number" data-sort-direction="asc">Lowest staff count</option>
+                                        <option value="role-asc" data-sort-key="staff-type" data-sort-type="text" data-sort-direction="asc">Role A-Z</option>
+                                        <option value="role-desc" data-sort-key="staff-type" data-sort-type="text" data-sort-direction="desc">Role Z-A</option>
+                                    </select>
+                                </div>
+                                <div class="report-table-actions">
+                                    <button type="submit" class="report-filter-button primary" data-report-apply>Apply</button>
+                                    <button type="button" class="report-filter-button" data-report-reset>Reset</button>
+                                </div>
+                            </form>
+                            <div class="report-filter-meta" data-report-count aria-live="polite"></div>
+
+                            <div class="report-table-wrap">
                             <table class="data-table">
                                 <thead>
                                 <tr>
@@ -130,15 +194,25 @@
                                 </tr>
                                 </thead>
                                 <tbody>
-                                <tr th:each="item : ${staffRoleTotals}">
+                                <tr th:if="${staffRoleTotals == null or #lists.isEmpty(staffRoleTotals)}">
+                                    <td colspan="2">No staff totals found.</td>
+                                </tr>
+                                <tr th:each="item : ${staffRoleTotals}"
+                                    data-report-row
+                                    th:data-report-value-staff-type="${item.staffType}"
+                                    th:data-report-value-total-staff="${item.totalStaff}">
                                     <td th:text="${item.staffType}">MEDICAL_STAFF</td>
                                     <td th:text="${item.totalStaff}">0</td>
                                 </tr>
+                                <tr data-report-filter-empty hidden>
+                                    <td colspan="2">No staff totals match these filters.</td>
+                                </tr>
                                 </tbody>
                             </table>
+                            </div>
                         </article>
 
-                        <article class="module-card module-card-full">
+                        <article class="module-card module-card-full" data-report-table="near-expiry">
                             <div class="report-card-header">
                                 <div>
                                     <h2>Near Expiry Alerts</h2>
@@ -146,6 +220,44 @@
                                 </div>
                             </div>
 
+                            <form class="report-table-controls" data-report-controls>
+                                <div class="report-table-field">
+                                    <label for="near-expiry-type-filter">Component Type</label>
+                                    <select id="near-expiry-type-filter" data-report-filter="component-type">
+                                        <option value="all">All component types</option>
+                                        <option value="RBC">RBC</option>
+                                        <option value="PLASMA">Plasma</option>
+                                        <option value="PLATELET">Platelet</option>
+                                    </select>
+                                </div>
+                                <div class="report-table-field">
+                                    <label for="near-expiry-status-filter">Status</label>
+                                    <select id="near-expiry-status-filter" data-report-filter="status">
+                                        <option value="all">All statuses</option>
+                                        <option value="AVAILABLE">Available</option>
+                                        <option value="RESERVED">Reserved</option>
+                                        <option value="QUARANTINED">Quarantined</option>
+                                        <option value="EXPIRED">Expired</option>
+                                        <option value="DISCARDED">Discarded</option>
+                                    </select>
+                                </div>
+                                <div class="report-table-field">
+                                    <label for="near-expiry-sort">Sort</label>
+                                    <select id="near-expiry-sort" data-report-sort>
+                                        <option value="expiry-asc" data-sort-key="expiry" data-sort-type="number" data-sort-direction="asc">Earliest expiry</option>
+                                        <option value="expiry-desc" data-sort-key="expiry" data-sort-type="number" data-sort-direction="desc">Latest expiry</option>
+                                        <option value="id-asc" data-sort-key="component-id" data-sort-type="number" data-sort-direction="asc">Component ID: low to high</option>
+                                        <option value="id-desc" data-sort-key="component-id" data-sort-type="number" data-sort-direction="desc">Component ID: high to low</option>
+                                    </select>
+                                </div>
+                                <div class="report-table-actions">
+                                    <button type="submit" class="report-filter-button primary" data-report-apply>Apply</button>
+                                    <button type="button" class="report-filter-button" data-report-reset>Reset</button>
+                                </div>
+                            </form>
+                            <div class="report-filter-meta" data-report-count aria-live="polite"></div>
+
+                            <div class="report-table-wrap">
                             <table class="data-table">
                                 <thead>
                                 <tr>
@@ -157,18 +269,30 @@
                                 </tr>
                                 </thead>
                                 <tbody>
-                                <tr th:each="item : ${nearExpiryAlerts}">
+                                <tr th:if="${nearExpiryAlerts == null or #lists.isEmpty(nearExpiryAlerts)}">
+                                    <td colspan="5">No near expiry alerts found.</td>
+                                </tr>
+                                <tr th:each="item : ${nearExpiryAlerts}"
+                                    data-report-row
+                                    th:data-report-value-component-id="${item.componentId}"
+                                    th:data-report-value-component-type="${item.componentType}"
+                                    th:data-report-value-status="${item.status}"
+                                    th:data-report-value-expiry="${item.expiryTimestamp.time}">
                                     <td th:text="${item.componentId}">1</td>
                                     <td th:text="${item.componentType}">PLATELET</td>
                                     <td th:text="${item.status}">AVAILABLE</td>
                                     <td th:text="${#dates.format(item.expiryTimestamp, 'yyyy-MM-dd HH:mm')}">2026-04-19</td>
                                     <td th:text="${item.locationId}">1</td>
                                 </tr>
+                                <tr data-report-filter-empty hidden>
+                                    <td colspan="5">No near expiry alerts match these filters.</td>
+                                </tr>
                                 </tbody>
                             </table>
+                            </div>
                         </article>
 
-                        <article class="module-card module-card-full">
+                        <article class="module-card module-card-full" data-report-table="system-activity">
                             <div class="report-card-header">
                                 <div>
                                     <h2>System Activity Notifications</h2>
@@ -176,6 +300,43 @@
                                 </div>
                             </div>
 
+                            <form class="report-table-controls" data-report-controls>
+                                <div class="report-table-field">
+                                    <label for="activity-module-filter">Module</label>
+                                    <input id="activity-module-filter"
+                                           type="search"
+                                           placeholder="Search module"
+                                           data-report-filter="module"
+                                           data-report-filter-mode="contains">
+                                </div>
+                                <div class="report-table-field">
+                                    <label for="activity-action-filter">Action</label>
+                                    <select id="activity-action-filter" data-report-filter="action">
+                                        <option value="all">All actions</option>
+                                        <option value="INSERT">Insert</option>
+                                        <option value="UPDATE">Update</option>
+                                        <option value="DELETE">Delete</option>
+                                        <option value="LOGIN">Login</option>
+                                        <option value="LOGOUT">Logout</option>
+                                    </select>
+                                </div>
+                                <div class="report-table-field">
+                                    <label for="activity-time-sort">Sort</label>
+                                    <select id="activity-time-sort" data-report-sort>
+                                        <option value="time-desc" data-sort-key="time" data-sort-type="number" data-sort-direction="desc">Newest activity</option>
+                                        <option value="time-asc" data-sort-key="time" data-sort-type="number" data-sort-direction="asc">Oldest activity</option>
+                                        <option value="module-asc" data-sort-key="module" data-sort-type="text" data-sort-direction="asc">Module A-Z</option>
+                                        <option value="module-desc" data-sort-key="module" data-sort-type="text" data-sort-direction="desc">Module Z-A</option>
+                                    </select>
+                                </div>
+                                <div class="report-table-actions">
+                                    <button type="submit" class="report-filter-button primary" data-report-apply>Apply</button>
+                                    <button type="button" class="report-filter-button" data-report-reset>Reset</button>
+                                </div>
+                            </form>
+                            <div class="report-filter-meta" data-report-count aria-live="polite"></div>
+
+                            <div class="report-table-wrap">
                             <table class="data-table">
                                 <thead>
                                 <tr>
@@ -191,7 +352,11 @@
                                 <tr th:if="${activityNotifications == null or #lists.isEmpty(activityNotifications)}">
                                     <td colspan="6">No system activity notifications recorded yet.</td>
                                 </tr>
-                                <tr th:each="item : ${activityNotifications}">
+                                <tr th:each="item : ${activityNotifications}"
+                                    data-report-row
+                                    th:data-report-value-module="${item.moduleName}"
+                                    th:data-report-value-action="${item.actionType}"
+                                    th:data-report-value-time="${item.createdAt.time}">
                                     <td th:text="${#dates.format(item.createdAt, 'yyyy-MM-dd HH:mm')}">2026-04-26 15:40</td>
                                     <td th:text="${item.moduleName}">Authentication</td>
                                     <td>
@@ -207,8 +372,12 @@
                                     <td th:text="${item.sourceIp != null ? item.sourceIp : '-'}">127.0.0.1</td>
                                     <td th:text="${item.message}">Logged in to the system.</td>
                                 </tr>
+                                <tr data-report-filter-empty hidden>
+                                    <td colspan="6">No system activity notifications match these filters.</td>
+                                </tr>
                                 </tbody>
                             </table>
+                            </div>
                         </article>
                     </section>
 
@@ -308,6 +477,7 @@
 
     <th:block layout:fragment="custom-js">
 <script th:src="@{/js/admin-report-actions.js}"></script>
+<script th:src="@{/js/admin-report-table-filters.js}"></script>
     </th:block>
 
 </body>

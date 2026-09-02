@@ -25,9 +25,11 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Pattern;
 import java.util.Set;
 
 @Service
@@ -36,6 +38,7 @@ public class MedicalWorkflowService {
     public static final List<String> BLOOD_GROUPS = List.of("A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-");
     public static final List<String> COMPONENT_TYPES = List.of("RBC", "PLASMA", "PLATELET");
     private static final String PERMANENT_LOCK = "PERMANENT";
+    private static final Pattern PATIENT_NAME_PATTERN = Pattern.compile("^[\\p{L}](?:[\\p{L}\\s.,'@/\\-])*$");
 
     private final JdbcTemplate jdbcTemplate;
     private final DatabaseAuditContextService auditContextService;
@@ -274,16 +277,13 @@ public class MedicalWorkflowService {
         String icNumber = requireText(request.getIcNumber(), "Please enter the donor IC number.");
         String fullName = requireText(request.getFullName(), "Please enter the donor full name.");
         String bloodGroup = requireBloodGroup(request.getBloodGroup());
+        Long existingDonorId = findDonorIdByIcNumber(icNumber);
 
         if (request.getDonorId() == null) {
-            Long existingDonorId = findDonorIdByIcNumber(icNumber);
             if (existingDonorId != null) {
-                jdbcTemplate.update("""
-                        UPDATE donor
-                        SET full_name = ?, blood_group = ?
-                        WHERE donor_id = ?
-                        """, fullName, bloodGroup, existingDonorId);
-                return;
+                throw new IllegalArgumentException(
+                        "This IC number is already registered. Select the existing donor to edit."
+                );
             }
 
             jdbcTemplate.update("""
@@ -293,11 +293,20 @@ public class MedicalWorkflowService {
             return;
         }
 
-        jdbcTemplate.update("""
+        if (existingDonorId != null && !existingDonorId.equals(request.getDonorId())) {
+            throw new IllegalArgumentException(
+                    "This IC number is already registered. Select the existing donor to edit."
+            );
+        }
+
+        int updatedRows = jdbcTemplate.update("""
                 UPDATE donor
                 SET ic_number = ?, full_name = ?, blood_group = ?
                 WHERE donor_id = ?
                 """, icNumber, fullName, bloodGroup, request.getDonorId());
+        if (updatedRows == 0) {
+            throw new IllegalArgumentException("The selected donor record could not be found.");
+        }
     }
 
     @Transactional
@@ -305,6 +314,7 @@ public class MedicalWorkflowService {
         applyAuditContext();
         Long donorId = requireId(request.getDonorId(), "Please select a donor.");
         Long reasonId = requireId(request.getReasonId(), "Please select a deferral reason.");
+        ensureDonorExists(donorId);
         Long staffId = requireMedicalStaffId(username);
 
         DeferralLockRule rule;
@@ -319,15 +329,17 @@ public class MedicalWorkflowService {
                     rs.getString("lock_type")
             ), reasonId);
         } catch (EmptyResultDataAccessException ex) {
-            throw new RuntimeException("Deferral reason was not found or has been archived.");
+            throw new IllegalArgumentException("Deferral reason was not found or has been archived.");
         }
         if (rule == null) {
-            throw new RuntimeException("Deferral reason was not found or has been archived.");
+            throw new IllegalArgumentException("Deferral reason was not found or has been archived.");
         }
 
         boolean permanentLock = rule.isPermanent();
         if (!permanentLock && hasPermanentDeferral(donorId)) {
-            throw new RuntimeException("This donor already has a permanent deferral. Clear it before recording a temporary reason.");
+            throw new IllegalArgumentException(
+                    "This donor already has a permanent deferral. Clear it before recording a temporary reason."
+            );
         }
 
         LocalDate expiryDate = permanentLock ? null : LocalDate.now().plusDays(rule.coolingDays());
@@ -380,16 +392,13 @@ public class MedicalWorkflowService {
     @Transactional
     public void recordDonation(MedicalDonationRequest request, String username) {
         applyAuditContext();
-        Long donorId = requireId(request.getDonorId(), "Please select a donor.");
-        Long locationId = requireId(request.getLocationId(), "Please select a storage location.");
-        Long staffId = requireMedicalStaffId(username);
+        Long donorId = requireDonationId(request.getDonorId(), "Please select a donor.");
+        Long locationId = requireDonationId(request.getLocationId(), "Please select a storage location.");
         List<String> componentTypes = normalizedComponentTypes(request.getComponentTypes());
-        Timestamp collectionTimestamp = parseTimestamp(request.getCollectionTimestamp());
+        Timestamp collectionTimestamp = parseDonationTimestamp(request.getCollectionTimestamp());
+        Long staffId = requireMedicalStaffId(username);
         ensureActiveStorageLocation(locationId);
-
-        if (!isDonorEligible(donorId)) {
-            throw new RuntimeException("This donor is currently deferred and cannot be collected.");
-        }
+        ensureDonorEligibleForDonation(donorId);
 
         Long donationId = jdbcTemplate.queryForObject("""
                 INSERT INTO donation (collection_timestamp, donor_id, staff_id)
@@ -462,27 +471,12 @@ public class MedicalWorkflowService {
     @Transactional
     public void recordTransfusion(MedicalTransfusionRequest request, String username) {
         applyAuditContext();
-        Long componentId = requireId(request.getComponentId(), "Please select a blood component.");
+        Long componentId = requireTransfusionId(request.getComponentId(), "Please select a blood component.");
+        String patientMode = resolvePatientMode(request);
+        validatePatientFields(request, patientMode);
         Long staffId = requireMedicalStaffId(username);
-        Long patientId = resolvePatientId(request);
-
-        String status = jdbcTemplate.queryForObject(
-                "SELECT status FROM blood_component WHERE component_id = ?",
-                String.class,
-                componentId
-        );
-        if (status == null || (!status.equalsIgnoreCase("AVAILABLE") && !status.equalsIgnoreCase("RESERVED"))) {
-            throw new RuntimeException("Only available or reserved components can be transfused.");
-        }
-
-        Long existingEvents = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM transfusion_record WHERE component_id = ?",
-                Long.class,
-                componentId
-        );
-        if (existingEvents != null && existingEvents > 0) {
-            throw new RuntimeException("This component already has a transfusion record.");
-        }
+        ensureTransfusionComponentAvailable(componentId);
+        Long patientId = resolvePatientId(request, patientMode);
 
         jdbcTemplate.update("""
                 INSERT INTO transfusion_record (
@@ -500,7 +494,7 @@ public class MedicalWorkflowService {
     public void updateTransfusion(Long componentId, MedicalTransfusionRequest request) {
         applyAuditContext();
         Long requiredComponentId = requireId(componentId, "Please select a transfusion record.");
-        Long patientId = resolvePatientId(request);
+        Long patientId = resolvePatientId(request, resolvePatientMode(request));
 
         int updatedRows = jdbcTemplate.update("""
                 UPDATE transfusion_record
@@ -656,22 +650,109 @@ public class MedicalWorkflowService {
         return bloodGroup.replace("+", "").replace("-", "");
     }
 
-    private Long resolvePatientId(MedicalTransfusionRequest request) {
-        if (request.getPatientId() != null) {
-            if (request.getCondition() != null && !request.getCondition().isBlank()) {
-                jdbcTemplate.update("UPDATE patient SET condition = ? WHERE patient_id = ?",
-                        request.getCondition().trim(), request.getPatientId());
+    private Long resolvePatientId(MedicalTransfusionRequest request, String patientMode) {
+        if ("existing".equals(patientMode)) {
+            Long patientId = requireTransfusionId(request.getPatientId(), "Please select an existing patient.");
+            Long patientCount = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM patient WHERE patient_id = ?",
+                    Long.class,
+                    patientId
+            );
+            if (patientCount == null || patientCount == 0) {
+                throw new IllegalArgumentException("The selected patient record could not be found.");
             }
-            return request.getPatientId();
+
+            String condition = validateCondition(request.getCondition());
+            if (condition != null) {
+                jdbcTemplate.update("UPDATE patient SET condition = ? WHERE patient_id = ?", condition, patientId);
+            }
+            return patientId;
         }
 
-        String patientName = requireText(request.getPatientName(), "Please enter the patient name.");
-        String condition = trimToNull(request.getCondition());
+        if (request.getPatientId() != null) {
+            throw new IllegalArgumentException("Choose either an existing patient or register a new patient.");
+        }
+
+        String patientName = requirePatientName(request.getPatientName());
+        String condition = validateCondition(request.getCondition());
         return jdbcTemplate.queryForObject("""
                 INSERT INTO patient (name, condition)
                 VALUES (?, ?)
                 RETURNING patient_id
                 """, Long.class, patientName, condition);
+    }
+
+    private String resolvePatientMode(MedicalTransfusionRequest request) {
+        String patientMode = trimToNull(request.getPatientMode());
+        if (patientMode == null) {
+            return request.getPatientId() == null ? "new" : "existing";
+        }
+
+        String normalizedMode = patientMode.toLowerCase(Locale.ROOT);
+        if (!Set.of("existing", "new").contains(normalizedMode)) {
+            throw new IllegalArgumentException("Please choose a valid patient type.");
+        }
+        return normalizedMode;
+    }
+
+    private void validatePatientFields(MedicalTransfusionRequest request, String patientMode) {
+        if ("new".equals(patientMode)) {
+            requirePatientName(request.getPatientName());
+        } else {
+            requireTransfusionId(request.getPatientId(), "Please select an existing patient.");
+        }
+        validateCondition(request.getCondition());
+    }
+
+    private String requirePatientName(String value) {
+        String normalized = trimToNull(value);
+        if (normalized == null) {
+            throw new IllegalArgumentException("Please enter the patient name.");
+        }
+        if (normalized.length() < 2 || normalized.length() > 100) {
+            throw new IllegalArgumentException("Patient name must be between 2 and 100 characters.");
+        }
+        if (!PATIENT_NAME_PATTERN.matcher(normalized).matches()) {
+            throw new IllegalArgumentException("Patient name can only contain letters and common name punctuation.");
+        }
+        return normalized;
+    }
+
+    private String validateCondition(String value) {
+        String normalized = trimToNull(value);
+        if (normalized != null && normalized.length() > 200) {
+            throw new IllegalArgumentException("Patient condition must be 200 characters or fewer.");
+        }
+        return normalized;
+    }
+
+    private void ensureTransfusionComponentAvailable(Long componentId) {
+        Long componentCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM blood_component WHERE component_id = ?",
+                Long.class,
+                componentId
+        );
+        if (componentCount == null || componentCount == 0) {
+            throw new IllegalArgumentException("The selected blood component could not be found.");
+        }
+
+        String status = jdbcTemplate.queryForObject(
+                "SELECT status FROM blood_component WHERE component_id = ?",
+                String.class,
+                componentId
+        );
+        if (status == null || (!status.equalsIgnoreCase("AVAILABLE") && !status.equalsIgnoreCase("RESERVED"))) {
+            throw new IllegalArgumentException("Only available or reserved components can be transfused.");
+        }
+
+        Long existingEvents = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM transfusion_record WHERE component_id = ?",
+                Long.class,
+                componentId
+        );
+        if (existingEvents != null && existingEvents > 0) {
+            throw new IllegalArgumentException("This component already has a transfusion record.");
+        }
     }
 
     private Long requireMedicalStaffId(String username) {
@@ -696,14 +777,30 @@ public class MedicalWorkflowService {
         return donorIds.isEmpty() ? null : donorIds.get(0);
     }
 
-    private boolean isDonorEligible(Long donorId) {
+    private void ensureDonorExists(Long donorId) {
+        Long donorCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM donor WHERE donor_id = ?",
+                Long.class,
+                donorId
+        );
+        if (donorCount == null || donorCount == 0) {
+            throw new IllegalArgumentException("The selected donor record could not be found.");
+        }
+    }
+
+    private void ensureDonorEligibleForDonation(Long donorId) {
         Boolean result = jdbcTemplate.queryForObject("""
                 SELECT COALESCE(permanent_deferral, FALSE) = FALSE
                        AND (deferral_expiry_date IS NULL OR deferral_expiry_date < CURRENT_DATE)
                 FROM donor
                 WHERE donor_id = ?
                 """, Boolean.class, donorId);
-        return Boolean.TRUE.equals(result);
+        if (result == null) {
+            throw new IllegalArgumentException("The selected donor record could not be found.");
+        }
+        if (!result) {
+            throw new IllegalArgumentException("This donor is currently deferred and cannot be collected.");
+        }
     }
 
     private boolean hasPermanentDeferral(Long donorId) {
@@ -744,8 +841,28 @@ public class MedicalWorkflowService {
                 """, Long.class, locationId);
 
         if (activeCount == null || activeCount == 0) {
-            throw new RuntimeException("Storage location was not found or has been archived.");
+            throw new IllegalArgumentException("Storage location was not found or has been archived.");
         }
+    }
+
+    private Timestamp parseDonationTimestamp(String value) {
+        String normalized = trimToNull(value);
+        if (normalized == null) {
+            throw new IllegalArgumentException("Collection timestamp is required.");
+        }
+
+        LocalDateTime collectionTimestamp;
+        try {
+            collectionTimestamp = LocalDateTime.parse(normalized);
+        } catch (DateTimeParseException ex) {
+            throw new IllegalArgumentException("Collection timestamp must be a valid date and time.");
+        }
+
+        if (collectionTimestamp.isAfter(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Collection timestamp cannot be in the future.");
+        }
+
+        return Timestamp.valueOf(collectionTimestamp);
     }
 
     private Timestamp parseTimestamp(String value) {
@@ -768,19 +885,26 @@ public class MedicalWorkflowService {
     }
 
     private List<String> normalizedComponentTypes(List<String> componentTypes) {
-        List<String> normalizedTypes = componentTypes == null
-                ? List.of()
-                : componentTypes.stream()
-                .map(this::normalizeNullable)
-                .filter(value -> value != null && COMPONENT_TYPES.contains(value))
-                .distinct()
-                .toList();
-
-        if (normalizedTypes.isEmpty()) {
-            throw new RuntimeException("Please select at least one component type.");
+        if (componentTypes == null || componentTypes.isEmpty()) {
+            throw new IllegalArgumentException("Please select at least one component type.");
         }
 
-        return normalizedTypes;
+        List<String> normalizedTypes = componentTypes.stream()
+                .map(this::normalizeNullable)
+                .toList();
+        if (normalizedTypes.stream().anyMatch(value -> value == null || !COMPONENT_TYPES.contains(value))) {
+            throw new IllegalArgumentException("Select only supported blood component types.");
+        }
+
+        return normalizedTypes.stream().distinct().toList();
+    }
+
+    private Long requireDonationId(Long value, String message) {
+        if (value == null || value <= 0) {
+            throw new IllegalArgumentException(message);
+        }
+
+        return value;
     }
 
     private Long requireId(Long value, String message) {
@@ -788,6 +912,13 @@ public class MedicalWorkflowService {
             throw new RuntimeException(message);
         }
 
+        return value;
+    }
+
+    private Long requireTransfusionId(Long value, String message) {
+        if (value == null || value <= 0) {
+            throw new IllegalArgumentException(message);
+        }
         return value;
     }
 

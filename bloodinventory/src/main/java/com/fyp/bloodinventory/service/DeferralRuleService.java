@@ -2,6 +2,7 @@ package com.fyp.bloodinventory.service;
 
 import com.fyp.bloodinventory.dto.DeferralRuleDto;
 import com.fyp.bloodinventory.dto.DeferralRuleRequest;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.lang.NonNull;
@@ -17,6 +18,8 @@ public class DeferralRuleService {
 
     private static final String TEMPORARY_LOCK = "TEMPORARY";
     private static final String PERMANENT_LOCK = "PERMANENT";
+    private static final String DUPLICATE_NAME_MESSAGE = "Deferral rule name already exists.";
+    private static final String DUPLICATE_NAME_CONSTRAINT = "ux_deferral_reason_description_normalized";
 
     private final JdbcTemplate jdbcTemplate;
     private final DatabaseAuditContextService auditContextService;
@@ -55,19 +58,30 @@ public class DeferralRuleService {
 
     @Transactional
     public void addRule(DeferralRuleRequest request) {
-        applyAuditContext();
         String description = requireText(request.getDescription(), "Please enter the deferral reason.");
         String lockType = requireLockType(request.getLockType());
         Integer coolingDays = requireCoolingDays(request.getDefaultCoolingPeriodDays(), lockType);
         Long staffId = requireId(request.getStaffId(), "Signed-in administrator account was not found.");
 
-        jdbcTemplate.update(
-                "CALL sp_add_deferral_rule(?, ?, ?, ?)",
-                description,
-                coolingDays,
-                staffId,
-                lockType
-        );
+        if (ruleNameExists(description)) {
+            throw new RuntimeException(DUPLICATE_NAME_MESSAGE);
+        }
+
+        applyAuditContext();
+        try {
+            jdbcTemplate.update(
+                    "CALL sp_add_deferral_rule(?, ?, ?, ?)",
+                    description,
+                    coolingDays,
+                    staffId,
+                    lockType
+            );
+        } catch (DataAccessException exception) {
+            if (isDuplicateNameFailure(exception)) {
+                throw new RuntimeException(DUPLICATE_NAME_MESSAGE, exception);
+            }
+            throw exception;
+        }
     }
 
     @Transactional
@@ -125,6 +139,26 @@ public class DeferralRuleService {
 
     private void applyAuditContext() {
         auditContextService.applyCurrentContext();
+    }
+
+    private boolean ruleNameExists(String description) {
+        Boolean exists = jdbcTemplate.queryForObject(
+                "SELECT EXISTS (SELECT 1 FROM deferral_reason WHERE LOWER(BTRIM(description)) = LOWER(BTRIM(?)))",
+                Boolean.class,
+                description
+        );
+        return Boolean.TRUE.equals(exists);
+    }
+
+    private boolean isDuplicateNameFailure(DataAccessException exception) {
+        for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
+            String message = cause.getMessage();
+            if (message != null && (message.contains(DUPLICATE_NAME_MESSAGE)
+                    || message.contains(DUPLICATE_NAME_CONSTRAINT))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private Long requireId(Long value, String message) {
